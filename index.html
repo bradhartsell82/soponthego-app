@@ -377,6 +377,40 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
   .phone-shell{width:100%;height:100dvh;border-radius:0;box-shadow:none;margin:0}
   .notch{display:none}
 }
+
+/* ── DESKTOP OVERRIDE (≥1024px) ───────────────────────────────────────────
+   On laptops/desktops, expand the "phone shell" into a proper desktop card.
+   The internal app structure (.screen, .navbar, .modal-sheet, .scroll-area)
+   is untouched — they still flow from top to bottom inside the shell — but
+   the shell itself becomes a roomy 800px-wide card filling most of the
+   viewport height. Phone visual chrome (notch, status bar, rounded corners,
+   chunky shadow) is hidden so it doesn't look like a fake phone on a laptop.
+
+   Anything < 1024px keeps the existing mobile/phone-in-frame behavior. */
+@media(min-width:1024px){
+  body{padding:32px 0;background:#0a0a10}
+  .phone-shell{
+    width:min(800px, 92vw);
+    height:min(900px, calc(100vh - 64px));
+    border-radius:16px;
+    box-shadow:0 8px 32px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.04);
+    margin:0 auto;
+  }
+  .notch{display:none}
+  /* Hide the fake phone status bar (battery/signal icons + 9:41 clock).
+     Status bar is purely decorative — it makes a desktop look like an iOS
+     screenshot, which we don't want here. Reclaim the 50px of vertical
+     space by anchoring .screen to the top instead. */
+  .status-bar{display:none}
+  .screen{top:0}
+  /* Show scrollbars on desktop — mobile hides them for cleanliness, but
+     on desktop the absence of a scrollbar makes long content feel stuck.
+     A subtle styled scrollbar matches the dark theme. */
+  .scroll-area::-webkit-scrollbar{display:block;width:8px}
+  .scroll-area::-webkit-scrollbar-track{background:transparent}
+  .scroll-area::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+  .scroll-area::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+}
 </style>
   <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-auth-compat.min.js"></script>
@@ -15697,32 +15731,60 @@ var LEGAL_DOCS = {
   privacy: {
     title: 'Privacy Policy',
     content: '<p style="font-size:11px;color:var(--text3);margin-bottom:12px"><em>Last updated: ' + new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'}) + '</em></p>' +
-      '<p><strong>What we collect:</strong> When you sign in, we receive your email address and name from your authentication provider (Google or email). When you generate SOPs, we store the title, content, and category locally on your device and may temporarily process the prompt through our AI provider to generate your document.</p>' +
-      '<p><strong>How we use it:</strong> We use your email to authenticate you and send service-related communications. We use your SOP data only to provide the service. We do not sell, rent, or trade your personal information.</p>' +
-      '<p><strong>Where it is stored:</strong> Your account is stored with Firebase Authentication. Your SOPs are stored locally on your device (in browser storage). Generation prompts are sent to our AI provider (Anthropic) for processing and are not retained beyond the request.</p>' +
-      '<p><strong>Your rights:</strong> You can export all your data at any time using the "Export all my data" option. You can permanently delete your account and all associated data using the "Delete my account" option. Both options are available in your account settings.</p>' +
-      '<p><strong>Cookies:</strong> We use necessary browser storage to keep you signed in and store your SOPs. We do not use tracking or advertising cookies.</p>' +
-      '<p><strong>Children:</strong> SOPONTHEGO is not intended for users under 13. We do not knowingly collect data from children.</p>' +
-      '<p><strong>Contact:</strong> Questions about privacy? Email <strong>brad@soponthego.com</strong></p>'
+      '<p>SOPONTHEGO is operated by JBC Holdings LLC, an Indiana limited liability company ("we," "us," "our"). This policy explains what we collect, why, and the choices you have.</p>' +
+      '<p><strong>What we collect:</strong> When you sign in, we receive your email address and name from your authentication provider (Google or email). When you generate SOPs, we store the title, content, and category, and we send the prompt to our AI provider so we can return a generated document. If you subscribe to a paid plan, our payment processor (Stripe) collects your payment information directly — we never see or store your full credit card number. We also collect basic technical information necessary to operate the service, including IP address and request timestamps, for security and abuse prevention.</p>' +
+      '<p><strong>How we use it:</strong> We use your information to authenticate you, deliver the service you signed up for, generate the SOPs you request, process payments through Stripe, communicate with you about your account and service, prevent abuse and fraud, and comply with legal obligations. We do not sell, rent, or trade your personal information. We do not use your data to train AI models.</p>' +
+      '<p><strong>Where it is stored:</strong> Your account is stored with Firebase Authentication (Google). Your SOPs are stored locally on your device (in browser storage). Generation prompts are sent to our AI provider (Anthropic) for processing and are not retained by Anthropic beyond the request, per their zero-retention API terms. Payment data is stored with Stripe. Backend infrastructure is hosted on Render and Vercel.</p>' +
+      '<p><strong>Subprocessors:</strong> We use the following third parties to operate the service. Each has its own privacy practices:</p>' +
+      '<ul style="margin:8px 0 8px 20px;padding:0">' +
+      '<li><strong>Anthropic</strong> — AI generation (prompts processed, not retained)</li>' +
+      '<li><strong>Firebase / Google Cloud</strong> — Authentication and account storage</li>' +
+      '<li><strong>Stripe</strong> — Payment processing and subscription billing</li>' +
+      '<li><strong>Render</strong> — Backend hosting</li>' +
+      '<li><strong>Vercel</strong> — Frontend hosting</li>' +
+      '</ul>' +
+      '<p><strong>Data retention:</strong> We retain your account and associated data as long as your account is active. If you delete your account, we remove your authentication record immediately and purge any associated server-side data within 90 days. Stripe retains transaction records as required by tax and financial regulations (typically 7 years). Anonymized analytics data may be retained longer.</p>' +
+      '<p><strong>Your rights:</strong> You can export all your data at any time using the "Export all my data" option in your account settings. You can permanently delete your account and all associated data using the "Delete my account" option. To exercise any other rights, email <strong>brad@soponthego.com</strong>.</p>' +
+      '<p><strong>California residents (CCPA / CPRA):</strong> If you are a California resident, you have the right to know what personal information we collect about you, to request deletion of your personal information, to correct inaccurate personal information, and to opt out of any "sale" or "sharing" of your personal information. We do not sell or share personal information as defined under California law. To exercise these rights, email <strong>brad@soponthego.com</strong>. We will not discriminate against you for exercising these rights.</p>' +
+      '<p><strong>European residents (GDPR):</strong> If you are in the European Economic Area, United Kingdom, or Switzerland, you have rights of access, rectification, erasure, restriction, portability, and objection regarding your personal data. Our lawful basis for processing is the performance of our contract with you (delivering the service you subscribed to) and our legitimate interests in operating and securing the service. To exercise these rights, email <strong>brad@soponthego.com</strong>.</p>' +
+      '<p><strong>Security:</strong> We use industry-standard measures to protect your data, including encrypted transport (HTTPS), encrypted authentication tokens, and reputable cloud providers. No method of electronic storage or transmission is 100% secure, however, and we cannot guarantee absolute security.</p>' +
+      '<p><strong>Cookies:</strong> We use necessary browser storage to keep you signed in and store your SOPs locally. We do not use tracking or advertising cookies.</p>' +
+      '<p><strong>Children:</strong> SOPONTHEGO is not intended for users under 13. We do not knowingly collect data from children under 13. If we learn we have collected such information, we will delete it.</p>' +
+      '<p><strong>International transfers:</strong> Your data may be processed in the United States or other countries where our subprocessors operate. By using the service, you consent to this transfer.</p>' +
+      '<p><strong>Changes to this policy:</strong> We may update this policy over time. Material changes will be communicated by email or in-app notice. Continued use of the service after changes means you accept the updated policy.</p>' +
+      '<p><strong>Contact:</strong> Questions about privacy? Email <strong>brad@soponthego.com</strong>. Mail: JBC Holdings LLC, Indiana, USA.</p>'
   },
   terms: {
     title: 'Terms of Service',
     content: '<p style="font-size:11px;color:var(--text3);margin-bottom:12px"><em>Last updated: ' + new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'}) + '</em></p>' +
-      '<p><strong>The service:</strong> SOPONTHEGO is an AI-powered tool for generating Standard Operating Procedures. By using the service, you agree to these terms.</p>' +
-      '<p><strong>Your account:</strong> You are responsible for maintaining the confidentiality of your account and for all activities under it.</p>' +
-      '<p><strong>Acceptable use:</strong> You agree not to use SOPONTHEGO to create content that is illegal, harmful, infringes on others rights, or violates applicable laws. You agree not to attempt to reverse-engineer, scrape, or abuse the service.</p>' +
-      '<p><strong>Your content:</strong> You retain ownership of the SOPs you create. By using the service, you grant us a limited license to process and store your content as needed to provide the service.</p>' +
-      '<p><strong>AI-generated content:</strong> SOPs generated by the service are AI-produced and may contain errors. You are responsible for reviewing and verifying all generated content before using it. SOPONTHEGO is not a substitute for professional legal, medical, or compliance advice.</p>' +
-      '<p><strong>Subscriptions &amp; billing:</strong> Paid plans (Solo, Pro, Team) are billed in advance on a recurring basis — monthly or yearly depending on your selection. Your subscription automatically renews at the end of each billing period unless you cancel.</p>' +
+      '<p>These Terms of Service ("Terms") are a contract between you and JBC Holdings LLC, an Indiana limited liability company ("SOPONTHEGO," "we," "us," "our"). By creating an account or using the service, you agree to these Terms. If you do not agree, do not use the service.</p>' +
+      '<p><strong>Definitions:</strong> "Service" means the SOPONTHEGO web application and any related features. "You" or "your" means the individual or entity using the service. "Account" means your user record with us. "Content" means the SOPs and any other material you create, upload, or generate using the service.</p>' +
+      '<p><strong>The service:</strong> SOPONTHEGO is an AI-powered tool that generates Standard Operating Procedures and related operational documents. The service is provided through a web application accessible via supported browsers.</p>' +
+      '<p><strong>Eligibility:</strong> You must be at least 18 years old (or the age of majority in your jurisdiction) and able to form a legally binding contract to use the service. By using the service you represent that you meet these requirements.</p>' +
+      '<p><strong>Your account:</strong> You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You must notify us promptly of any unauthorized access. We are not liable for any loss arising from your failure to secure your account.</p>' +
+      '<p><strong>Acceptable use:</strong> You agree not to use SOPONTHEGO to (a) create content that is illegal, harmful, defamatory, fraudulent, or infringes on the rights of others; (b) violate any applicable law, regulation, or third-party right; (c) attempt to reverse-engineer, scrape, decompile, or extract source code from the service; (d) abuse the service through excessive requests, automated attacks, or evasion of usage limits; (e) resell, sublicense, or redistribute the service or generated content as your own product without substantial transformation; or (f) use the service to develop a competing product. We may suspend or terminate accounts that violate these rules.</p>' +
+      '<p><strong>Your content:</strong> You retain ownership of the SOPs and other content you create or generate using the service. By using the service, you grant us a limited, worldwide, royalty-free license to process, store, transmit, and display your content solely as necessary to provide the service to you. We do not use your content to train AI models. We do not claim any rights to your content beyond this operational license.</p>' +
+      '<p><strong>AI-generated content:</strong> Documents generated by the service are produced by artificial intelligence and may contain errors, omissions, or inaccuracies. You are responsible for reviewing, editing, and verifying all generated content before using it for any purpose. SOPONTHEGO is a productivity tool, not a substitute for professional legal, medical, regulatory, or compliance advice. We make no warranty regarding the accuracy, completeness, or fitness for purpose of any generated content. Industry-specific compliance language included in templates or generated SOPs is provided for general guidance only and must be reviewed by qualified professionals before relying on it.</p>' +
+      '<p><strong>Subscriptions &amp; billing:</strong> Paid plans (Solo, Pro, Team) are billed in advance on a recurring basis — monthly or yearly depending on your selection. Your subscription automatically renews at the end of each billing period unless you cancel. All payments are processed by Stripe; by subscribing, you agree to Stripe\'s terms of service.</p>' +
+      '<p><strong>Usage limits:</strong> Each plan includes a monthly cap on SOP generations as disclosed at the time of purchase. Generation usage resets at the start of each billing period. Unused generations do not carry over.</p>' +
       '<p><strong>Cancellation:</strong> You can cancel anytime through the Manage Subscription portal in your account. When you cancel, your subscription remains active until the end of your current billing period — you keep full access to your paid plan until that date. After that, your account automatically reverts to the free trial.</p>' +
       '<p><strong>Refunds:</strong> All sales are final. We do not provide refunds for partial billing periods, unused time after cancellation, or for any reason after a charge has been processed. Your free trial (3 SOPs) is designed to let you fully evaluate the service before subscribing. Exceptions may be considered in cases of duplicate charges or technical errors — email brad@soponthego.com.</p>' +
       '<p><strong>Your data after cancellation:</strong> Your SOPs and account data remain stored and accessible to you after cancellation. If you re-subscribe in the future, your existing SOPs, profile, and settings will still be there. The Trial plan caps your library at 10 SOPs — if you had more than 10 on a paid plan, you\'ll still see them all but won\'t be able to save new SOPs until you upgrade again or remove some.</p>' +
       '<p><strong>Price changes:</strong> We may change subscription prices with at least 30 days\' notice. Price changes take effect at your next renewal — your current billing period is unaffected.</p>' +
       '<p><strong>Billing email changes:</strong> The email address on your subscription is tied to your account at signup. To change your billing email, email brad@soponthego.com.</p>' +
-      '<p><strong>Termination:</strong> We may suspend or terminate accounts that violate these terms. You may delete your account at any time.</p>' +
-      '<p><strong>Disclaimer:</strong> The service is provided "as is" without warranties of any kind. To the maximum extent permitted by law, our liability is limited to the amount you paid in the prior 12 months.</p>' +
-      '<p><strong>Changes:</strong> We may update these terms. Continued use after changes means you accept them.</p>' +
-      '<p><strong>Contact:</strong> Questions? Email <strong>brad@soponthego.com</strong></p>'
+      '<p><strong>Failed payments:</strong> If a recurring payment fails, we will attempt to recharge in accordance with Stripe\'s standard retry schedule. If payment is not resolved, your subscription may be paused or downgraded to the free trial until payment is restored.</p>' +
+      '<p><strong>Termination:</strong> We may suspend or terminate accounts that violate these Terms, including without prior notice in cases of fraud, abuse, or legal risk. You may delete your account at any time through the Manage Subscription portal or by emailing us.</p>' +
+      '<p><strong>Disclaimer of warranties:</strong> THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, ACCURACY, OR UNINTERRUPTED OPERATION. WE DO NOT WARRANT THAT THE SERVICE WILL BE ERROR-FREE OR THAT GENERATED CONTENT WILL MEET YOUR REQUIREMENTS.</p>' +
+      '<p><strong>Limitation of liability:</strong> TO THE MAXIMUM EXTENT PERMITTED BY LAW, OUR TOTAL LIABILITY FOR ANY CLAIM ARISING FROM OR RELATED TO THESE TERMS OR THE SERVICE IS LIMITED TO THE AMOUNTS YOU PAID US IN THE TWELVE MONTHS PRECEDING THE EVENT GIVING RISE TO THE CLAIM. WE WILL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOST PROFITS, LOST REVENUE, OR LOST DATA, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.</p>' +
+      '<p><strong>Indemnification:</strong> You agree to indemnify and hold harmless JBC Holdings LLC, its officers, employees, and agents from any claims, damages, losses, liabilities, and expenses (including reasonable attorneys\' fees) arising from (a) your use of the service, (b) your violation of these Terms, (c) your content, or (d) your violation of any rights of any third party.</p>' +
+      '<p><strong>Service availability:</strong> We aim for high availability but do not guarantee uninterrupted service. We may perform scheduled maintenance, deploy updates, or experience unplanned outages. We are not liable for temporary unavailability.</p>' +
+      '<p><strong>Force majeure:</strong> Neither party will be liable for failure or delay in performance due to events beyond reasonable control, including acts of God, natural disasters, war, terrorism, government action, network or power outages, or pandemic.</p>' +
+      '<p><strong>Governing law:</strong> These Terms are governed by the laws of the State of Indiana, USA, without regard to its conflict-of-laws principles. Any dispute arising from these Terms or the service will be resolved exclusively in the state or federal courts located in Indiana, and you consent to the personal jurisdiction of those courts.</p>' +
+      '<p><strong>Severability:</strong> If any provision of these Terms is found unenforceable, the remaining provisions will remain in full effect.</p>' +
+      '<p><strong>No waiver:</strong> Our failure to enforce any right or provision of these Terms is not a waiver of that right or provision.</p>' +
+      '<p><strong>Entire agreement:</strong> These Terms, together with the Privacy Policy, constitute the entire agreement between you and us regarding the service and supersede any prior agreements.</p>' +
+      '<p><strong>Changes:</strong> We may update these Terms. Material changes will be communicated by email or in-app notice and will take effect upon posting. Continued use after the effective date constitutes acceptance.</p>' +
+      '<p><strong>Contact:</strong> Questions? Email <strong>brad@soponthego.com</strong>. Mail: JBC Holdings LLC, Indiana, USA.</p>'
   }
 };
 
