@@ -88,8 +88,16 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 .chip.on{background:var(--accent);border-color:var(--accent);color:white;font-weight:700}
 .chip:active{transform:scale(.95)}
 .divider{height:1px;background:var(--border);margin:16px 0}
-.toast{position:absolute;bottom:calc(76px + var(--safe-bottom) + 20px);left:20px;right:20px;background:var(--green);color:#0a0a0a;border-radius:var(--radius-sm);padding:13px 18px;font-size:13px;font-weight:700;text-align:center;z-index:500;transition:opacity .3s,transform .3s}
-.toast.hidden{opacity:0;transform:translateY(16px);pointer-events:none}
+/* ── TOAST ────────────────────────────────────────────────────────────────
+   Top-anchored notification banner. Slides down from above the status bar,
+   sits centered horizontally, max ~440px wide so it doesn't span the whole
+   screen on desktop. Auto-dismisses after ~2.8s via JS.
+
+   Placement note: anchored to top so it never overlaps the bottom navbar.
+   Earlier version sat above the navbar at the bottom, but the toast was
+   wide enough to visually cover navbar buttons even with z-index gaps. */
+.toast{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translate(-50%,0);max-width:calc(100% - 32px);width:max-content;min-width:200px;background:var(--green);color:#0a0a0a;border-radius:var(--radius-sm);padding:11px 20px;font-size:13px;font-weight:700;text-align:center;z-index:500;transition:opacity .3s,transform .3s;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.toast.hidden{opacity:0;transform:translate(-50%,-16px);pointer-events:none}
 
 /* ── MODAL SHEET ── */
 .modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);z-index:300;display:flex;align-items:flex-end;transition:opacity .25s}
@@ -1585,6 +1593,32 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 <!-- API key modal -->
 
 
+<!-- Quick Setup modal (shown on first device when profile is empty) -->
+<div class="modal-backdrop hidden" id="m-quick-setup" onclick="if(event.target===this)dismissQuickSetup()">
+  <div class="modal-sheet" style="max-width:480px">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;margin-bottom:6px;font-size:32px">👋</div>
+    <div class="modal-title" style="text-align:center">Welcome back!</div>
+    <div style="font-size:13px;color:var(--text2);text-align:center;margin-bottom:18px;line-height:1.5">
+      Looks like this is a new device. Take 20 seconds to set up your profile so your SOPs look professional.
+    </div>
+    <div class="field-gap">
+      <div class="field-lbl">Your name</div>
+      <input class="text-input" id="qs-author" type="text" placeholder="e.g. Brad Hartsell">
+    </div>
+    <div class="field-gap">
+      <div class="field-lbl">Business name</div>
+      <input class="text-input" id="qs-company" type="text" placeholder="e.g. Acme Auto">
+    </div>
+    <button class="primary-btn" onclick="saveQuickSetup()">Save and continue</button>
+    <button class="secondary-btn" onclick="dismissQuickSetup()">Skip for now</button>
+    <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:10px;line-height:1.4">
+      You can always update these in Account settings later.
+    </div>
+  </div>
+</div>
+
+
 <!-- Pricing modal -->
 <div class="modal-backdrop hidden" id="m-pricing" onclick="if(event.target===this)closeModal('m-pricing')">
   <div class="modal-sheet" style="max-width:480px">
@@ -1906,6 +1940,12 @@ function initFirebase() {
             try { syncAccountUI(); } catch(e) {}
             // If the user just returned from Stripe Checkout, verify + upgrade
             try { handleStripeReturnIfPresent(); } catch(e) {}
+            // After everything else settles, see if we need to prompt the user
+            // to fill in their profile (they signed up on another device).
+            // Delayed so the home screen renders first — less jarring.
+            setTimeout(function() {
+              try { maybeShowQuickSetup(); } catch(e) {}
+            }, 400);
           }, 50);
         } else {
           var obEl = document.getElementById('s-onboard');
@@ -8229,6 +8269,79 @@ function loadProfile() {
 function saveProfileData() {
   try { localStorage.setItem(getProfileStorageKey(), JSON.stringify(profile)); } catch(e) {}
 }
+
+// ── QUICK SETUP (cross-device profile prompt) ────────────────────────────────
+// When a user signs in on a new device, their account (Firebase) carries over
+// but their profile (localStorage) does not. Onboarding only runs on the very
+// first login per device, and many users skip it. Result: an "onboarded" user
+// with no name or business name set, which makes their generated SOPs look
+// unprofessional ("Unknown · Unknown Date").
+//
+// This shows a friendly, dismissable prompt asking for the two most important
+// fields. Dismissal is remembered per-device-per-user so we never nag.
+
+function getQuickSetupDismissKey() {
+  var uid = (currentUser && currentUser.uid) ? currentUser.uid : '';
+  return uid ? ('sotg_qs_dismissed_' + uid) : 'sotg_qs_dismissed';
+}
+
+function maybeShowQuickSetup() {
+  try {
+    if(!currentUser) return;
+    // Already filled in? Nothing to do.
+    if(profile.author && profile.company) return;
+    // User already dismissed it on this device? Respect that.
+    if(localStorage.getItem(getQuickSetupDismissKey())) return;
+    // Onboarding hasn't completed yet — let onboarding handle it, don't double up.
+    if(!localStorage.getItem('sotg_onboarded')) return;
+    // Pre-fill name from Firebase displayName if available (Google sign-in often has it)
+    var authorInput = document.getElementById('qs-author');
+    var companyInput = document.getElementById('qs-company');
+    if(authorInput && !authorInput.value) {
+      var suggested = (currentUser.displayName || profile.author || '').trim();
+      if(suggested) authorInput.value = suggested;
+    }
+    if(companyInput && !companyInput.value && profile.company) {
+      companyInput.value = profile.company;
+    }
+    openModal('m-quick-setup');
+    setTimeout(function() {
+      // Focus whichever field is still empty for fastest entry
+      var target = (authorInput && !authorInput.value) ? authorInput : companyInput;
+      if(target) try { target.focus(); } catch(e) {}
+    }, 250);
+  } catch(e) {}
+}
+
+function saveQuickSetup() {
+  try {
+    var authorEl = document.getElementById('qs-author');
+    var companyEl = document.getElementById('qs-company');
+    var author = (authorEl && authorEl.value || '').trim();
+    var company = (companyEl && companyEl.value || '').trim();
+    // Require at least one field — empty save is the same as skip
+    if(!author && !company) {
+      dismissQuickSetup();
+      return;
+    }
+    if(author) profile.author = author;
+    if(company) profile.company = company;
+    saveProfileData();
+    try { syncAccountUI(); } catch(e) {}
+    // Mark dismissed so the prompt doesn't return next session even if a field is still blank
+    try { localStorage.setItem(getQuickSetupDismissKey(), '1'); } catch(e) {}
+    closeModal('m-quick-setup');
+    showToast('Profile saved ✓');
+  } catch(e) {
+    try { closeModal('m-quick-setup'); } catch(_) {}
+  }
+}
+
+function dismissQuickSetup() {
+  try { localStorage.setItem(getQuickSetupDismissKey(), '1'); } catch(e) {}
+  try { closeModal('m-quick-setup'); } catch(e) {}
+}
+
 // ── LOGO HANDLING ─────────────────────────────────────────────────────────────
 function handleLogoAreaClick() {
   // Gate the entire upload flow behind Pro+
@@ -12978,7 +13091,7 @@ function showToast(msg) {
     el = document.createElement('div');
     el.id = 'toast';
     el.className = 'toast hidden';
-    el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:12px 20px;border-radius:24px;font-size:13px;font-weight:600;z-index:11000;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:opacity .3s;max-width:90vw;text-align:center';
+    el.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:12px 20px;border-radius:24px;font-size:13px;font-weight:600;z-index:11000;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:opacity .3s;max-width:90vw;text-align:center';
     document.body.appendChild(el);
   } else {
     // Ensure z-index is above all modals (which use 9999-10000)
