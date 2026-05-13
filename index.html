@@ -88,7 +88,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 .chip.on{background:var(--accent);border-color:var(--accent);color:white;font-weight:700}
 .chip:active{transform:scale(.95)}
 .divider{height:1px;background:var(--border);margin:16px 0}
-.toast{position:absolute;bottom:96px;left:20px;right:20px;background:var(--green);color:#0a0a0a;border-radius:var(--radius-sm);padding:13px 18px;font-size:13px;font-weight:700;text-align:center;z-index:500;transition:opacity .3s,transform .3s}
+.toast{position:absolute;bottom:calc(76px + var(--safe-bottom) + 20px);left:20px;right:20px;background:var(--green);color:#0a0a0a;border-radius:var(--radius-sm);padding:13px 18px;font-size:13px;font-weight:700;text-align:center;z-index:500;transition:opacity .3s,transform .3s}
 .toast.hidden{opacity:0;transform:translateY(16px);pointer-events:none}
 
 /* ── MODAL SHEET ── */
