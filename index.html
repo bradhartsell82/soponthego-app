@@ -12213,65 +12213,58 @@ function buildPrintableSopHtml() {
     + '</div>';
 }
 
+// ── PDF DOWNLOAD ────────────────────────────────────────────────────────────
+// Strategy: use the browser's native Print dialog with "Save as PDF" as the
+// destination. This is the same engine the existing Print button uses, and
+// it's bulletproof because the browser does all the rendering work — no
+// third-party library, no html2canvas blank-render bugs, no CDN dependency.
+//
+// User flow:
+//   1. Click "PDF" in the format modal
+//   2. A small instruction modal appears explaining what to do
+//   3. User clicks "Open PDF dialog" → browser print dialog opens
+//   4. User changes Destination to "Save as PDF" → clicks Save
+//   5. Browser writes a perfect PDF using its own renderer
+//
+// This adds one extra click compared to a magical one-tap download, but it
+// works reliably on every browser (Chrome, Edge, Firefox, Safari) and produces
+// PDFs that look exactly like the on-screen Print preview.
 function doDownloadAsPDF() {
   var m = document.getElementById('m-download-fmt'); if(m) m.remove();
-  showToast('Generating PDF\u2026');
+  showPdfInstructionsModal();
+}
 
-  loadHtml2PdfLib().then(function() {
-    var title = (currentSopTitle || 'SOP').replace(/[^a-zA-Z0-9]+/g, '_');
-    // Include timestamp so multiple downloads of the same SOP get unique filenames
-    // (avoids Chrome's "App_Creation_SOP (1).pdf" auto-numbering confusion).
-    var stamp = new Date().toISOString().slice(0,10);
-    var filename = title + '_SOP_' + stamp + '.pdf';
+function showPdfInstructionsModal() {
+  var existing = document.getElementById('m-pdf-instructions');
+  if(existing) existing.remove();
+  var modal = document.createElement('div');
+  modal.id = 'm-pdf-instructions';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:10000;padding:16px';
+  modal.onclick = function(e) { if(e.target === modal) modal.remove(); };
 
-    // CRITICAL: html2pdf uses html2canvas under the hood, which CANNOT render
-    // elements positioned off-screen with negative left values (the screenshot
-    // comes back blank). The container must be ONSCREEN to render — we just
-    // make it invisible and non-interactive instead. Putting it at top:0 with
-    // opacity:0 and pointer-events:none accomplishes this without giving the
-    // user a visible flash.
-    var container = document.createElement('div');
-    container.id = 'pdf-render-target';
-    container.style.cssText = 'position:fixed;top:0;left:0;width:720px;background:white;color:#111;padding:0 24px;opacity:0;pointer-events:none;z-index:-1;overflow:hidden';
-    container.innerHTML = buildPrintableSopHtml();
-    document.body.appendChild(container);
+  var card = document.createElement('div');
+  card.style.cssText = 'background:var(--surface);border-radius:16px;max-width:460px;width:100%;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,.4);max-height:90vh;overflow-y:auto';
 
-    var opt = {
-      margin: [16, 14, 16, 14], // mm — top, right, bottom, left
-      filename: filename,
-      image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        // Tell html2canvas the actual size to render — without these it can
-        // pick the wrong dimensions when the element has unusual positioning.
-        width: 720,
-        windowWidth: 720
-      },
-      jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
+  card.innerHTML =
+      '<div style="font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text);margin-bottom:6px">\uD83D\uDCD5 Save as PDF</div>'
+    + '<div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:14px">Your browser will save the PDF using its built-in tools. This produces a clean, properly-formatted PDF every time.</div>'
 
-    // Small delay before rendering — gives the browser time to lay out the
-    // container fully (especially images like company logos). Without this,
-    // html2canvas can grab a partially-rendered DOM.
-    return new Promise(function(resolve) { setTimeout(resolve, 100); })
-      .then(function() {
-        return window.html2pdf().set(opt).from(container).save();
-      })
-      .then(function() {
-        try { document.body.removeChild(container); } catch(e) {}
-        showToast('PDF saved \u2713');
-      }, function(err) {
-        try { document.body.removeChild(container); } catch(e) {}
-        console.error('PDF generation error:', err);
-        showToast('PDF generation failed \u2014 try Word format instead');
-      });
-  }).catch(function(err) {
-    console.error('PDF library load error:', err);
-    showToast('Could not load PDF tools \u2014 try Word or Text instead');
-  });
+    + '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">What happens next:</div>'
+    + '<ol style="font-size:13px;color:var(--text2);line-height:1.7;padding-left:20px;margin:0 0 14px">'
+    +   '<li>The Print dialog opens</li>'
+    +   '<li>In the <strong>Destination</strong> dropdown, choose <strong>"Save as PDF"</strong></li>'
+    +   '<li>Click <strong>Save</strong> and pick where to save it</li>'
+    + '</ol>'
+
+    + '<button onclick="document.getElementById(\'m-pdf-instructions\').remove();doPrint();" style="width:100%;padding:14px;background:var(--accent);border:none;border-radius:10px;color:white;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;text-align:center;margin-bottom:8px">'
+    +   'Open PDF dialog'
+    + '</button>'
+    + '<button onclick="document.getElementById(\'m-pdf-instructions\').remove()" style="width:100%;padding:10px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--text2);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">'
+    +   'Cancel'
+    + '</button>';
+
+  modal.appendChild(card);
+  document.body.appendChild(modal);
 }
 
 // Copy to clipboard — useful for pasting into email, Slack, Google Docs.
@@ -12532,31 +12525,33 @@ function buildHtmlEmail() {
   return html;
 }
 
-// Email flow — Path 2 design:
-// 1. Auto-generate and download PDF
-// 2. Copy a suggested email body to clipboard
-// 3. Show clear instructions modal with "Open my email app" button
+// Email flow — PDF + mailto handoff design:
+// 1. Modal explains the two-step process (save PDF, then open email)
+// 2. User clicks "Save PDF" → browser print dialog opens
+// 3. User saves the PDF via the print dialog's "Save as PDF" option
+// 4. Returns to the modal which now offers "Open email" with subject+body pre-filled
+// 5. User opens their email, attaches the PDF, sends
 //
-// Why not auto-attach? Browsers can't attach files to mailto: links — that's
-// a fundamental limitation of the mailto protocol, not something we can fix
-// client-side. Real auto-send would need a backend email service. Until then,
-// honesty beats magic: tell the user exactly what to do.
+// Why two clicks instead of one? Browsers physically cannot attach files to
+// mailto: links — that's a security limitation, not something we can fix.
+// Real one-click email send would need a backend service (planned for later).
+// Until then, walking the user through the manual steps is more reliable than
+// hoping a magical PDF library produces non-blank output.
 function doEmail() {
   var company = profile.company || 'SOPONTHEGO';
   var title   = currentSopTitle || 'Standard Operating Procedure';
   var author  = profile.author || '';
 
-  // Suggested email body — short, professional, references the attached PDF.
+  // Build a clean, professional email body
   var greeting = 'Hi,';
   var pdfFilename = (title || 'SOP').replace(/[^a-zA-Z0-9]+/g, '_') + '_SOP.pdf';
   var signoff = author ? ('Thanks,\n' + author) : 'Thanks';
   var emailBody = greeting + '\n\n'
     + 'Attached is our SOP for "' + title + '". Please review and let me know if you have questions.\n\n'
-    + 'File: ' + pdfFilename + '\n\n'
     + signoff;
   var emailSubject = company + ': ' + title;
 
-  // Copy suggested body to clipboard so user can paste it after attaching the PDF.
+  // Pre-copy email body to clipboard as a fallback in case mailto doesn't pre-fill
   try {
     var ta = document.createElement('textarea');
     ta.value = emailBody;
@@ -12567,62 +12562,10 @@ function doEmail() {
     document.body.removeChild(ta);
   } catch(e) {}
 
-  // Start PDF download FIRST, then show the modal. PDF gen is async (CDN load +
-  // rendering), but we show the modal immediately so the user has something to
-  // look at while the download happens.
-  showEmailInstructionsModal(emailSubject, emailBody, pdfFilename);
-
-  // Kick off PDF generation. If user clicks "Open mail app" before PDF is ready,
-  // that's fine — they just open the email and the PDF lands in Downloads a
-  // few seconds later. The modal explains the order of operations.
-  loadHtml2PdfLib().then(function() {
-    // Onscreen-invisible container — html2canvas requires the element to be
-    // in the visible viewport to render correctly. opacity:0 + pointer-events:none
-    // achieves "invisible to the user, renderable by html2canvas".
-    var container = document.createElement('div');
-    container.style.cssText = 'position:fixed;top:0;left:0;width:720px;background:white;color:#111;padding:0 24px;opacity:0;pointer-events:none;z-index:-1;overflow:hidden';
-    container.innerHTML = buildPrintableSopHtml();
-    document.body.appendChild(container);
-
-    var opt = {
-      margin: [16, 14, 16, 14],
-      filename: pdfFilename,
-      image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { scale: 2, useCORS: true, logging: false, width: 720, windowWidth: 720 },
-      jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-
-    return new Promise(function(resolve) { setTimeout(resolve, 100); })
-      .then(function() {
-        return window.html2pdf().set(opt).from(container).save();
-      })
-      .then(function() {
-        try { document.body.removeChild(container); } catch(e) {}
-        // Update the modal status so the user knows PDF is ready
-        var statusEl = document.getElementById('email-pdf-status');
-        if(statusEl) {
-          statusEl.innerHTML = '\u2713 PDF saved to your Downloads folder';
-          statusEl.style.color = 'var(--green)';
-        }
-      }, function() {
-        try { document.body.removeChild(container); } catch(e) {}
-        var statusEl = document.getElementById('email-pdf-status');
-        if(statusEl) {
-          statusEl.innerHTML = '\u26A0 PDF couldn\'t be generated. Use the Download button to save another format.';
-          statusEl.style.color = 'var(--accent2)';
-        }
-      });
-  }).catch(function() {
-    var statusEl = document.getElementById('email-pdf-status');
-    if(statusEl) {
-      statusEl.innerHTML = '\u26A0 Couldn\'t generate PDF. Save another format from the Download button.';
-      statusEl.style.color = 'var(--accent2)';
-    }
-  });
+  showEmailInstructionsModal(emailSubject, emailBody);
 }
 
-function showEmailInstructionsModal(subject, body, pdfFilename) {
+function showEmailInstructionsModal(subject, body) {
   var existing = document.getElementById('m-email-instructions');
   if(existing) existing.remove();
   var modal = document.createElement('div');
@@ -12636,26 +12579,27 @@ function showEmailInstructionsModal(subject, body, pdfFilename) {
   var mailtoHref = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
 
   card.innerHTML =
-      '<div style="font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text);margin-bottom:6px">\u2709\uFE0F Send your SOP by email</div>'
-    + '<div id="email-pdf-status" style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:14px;padding:8px 12px;background:var(--surface2);border-radius:8px">\u23F3 Preparing PDF\u2026</div>'
+      '<div style="font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text);margin-bottom:6px">\u2709\uFE0F Email your SOP</div>'
+    + '<div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:16px">Two quick steps: save the PDF, then open your email.</div>'
 
-    + '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">What to do next:</div>'
-    + '<ol style="font-size:13px;color:var(--text2);line-height:1.6;padding-left:20px;margin:0 0 14px">'
-    +   '<li>Wait for the PDF to download (look in your Downloads folder)</li>'
-    +   '<li>Click <strong>Open my email app</strong> below \u2014 a message starts with your subject and a draft already filled in</li>'
-    +   '<li>Attach the downloaded PDF</li>'
-    +   '<li>Add a recipient and send</li>'
-    + '</ol>'
+    + '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">Step 1 \u2014 Save the PDF</div>'
+    + '<div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:8px;padding-left:4px">Print dialog opens. In <strong>Destination</strong>, pick <strong>"Save as PDF"</strong> and save it where you can find it (Desktop or Downloads).</div>'
+    + '<button onclick="doPrint()" style="width:100%;padding:12px;background:var(--accent);border:none;border-radius:10px;color:white;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;text-align:center;margin-bottom:16px">'
+    +   'Save PDF'
+    + '</button>'
+
+    + '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">Step 2 \u2014 Open your email</div>'
+    + '<div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:8px;padding-left:4px">A new email opens with the subject filled in. Attach the PDF you just saved, add a recipient, and send.</div>'
+    + '<a href="' + mailtoHref + '" onclick="setTimeout(function(){var el=document.getElementById(\'m-email-instructions\');if(el)el.remove();},500)" style="display:block;width:100%;padding:12px;background:var(--surface2);border:1.5px solid var(--accent);border-radius:10px;color:var(--accent);font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;text-align:center;text-decoration:none;margin-bottom:14px;box-sizing:border-box">'
+    +   'Open email app'
+    + '</a>'
 
     + '<div style="font-size:11px;color:var(--text3);margin-bottom:14px;padding:10px 12px;background:var(--surface2);border-radius:8px;line-height:1.5">'
-    +   '\uD83D\uDCCB <strong>Tip:</strong> We\'ve also copied the draft message to your clipboard so you can paste it if your email app doesn\'t fill in automatically.'
+    +   '\uD83D\uDCCB <strong>Tip:</strong> The email body has also been copied to your clipboard. If your email app doesn\'t pre-fill, paste it (Ctrl+V).'
     + '</div>'
 
-    + '<a href="' + mailtoHref + '" onclick="setTimeout(function(){document.getElementById(\'m-email-instructions\').remove();},500)" style="display:block;width:100%;padding:14px;background:var(--accent);border:none;border-radius:10px;color:white;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;text-align:center;text-decoration:none;margin-bottom:8px;box-sizing:border-box">'
-    +   'Open my email app'
-    + '</a>'
     + '<button onclick="document.getElementById(\'m-email-instructions\').remove()" style="width:100%;padding:10px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--text2);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">'
-    +   'I\'ll do it myself'
+    +   'Close'
     + '</button>';
 
   modal.appendChild(card);
