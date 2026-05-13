@@ -1890,7 +1890,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 </div>
 
 <!-- Toast notification -->
-<div id="toast" class="toast hidden" style="position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--green);color:#0a0a0a;padding:11px 20px;border-radius:12px;font-size:13px;font-weight:700;z-index:11000;box-shadow:0 6px 18px rgba(0,0,0,.35);max-width:420px;text-align:center;opacity:1;transition:opacity .3s,transform .3s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+<div id="toast" class="toast hidden" style="position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--green);color:#0a0a0a;padding:11px 20px;border-radius:12px;font-size:13px;font-weight:700;z-index:11000;box-shadow:0 6px 18px rgba(0,0,0,.35);max-width:420px;text-align:center;transition:opacity .3s,transform .3s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
 
  ────────────────────────────────────────────────────────────
 
@@ -10208,6 +10208,12 @@ function solo(el, group) {
   // manual. We never overwrite a non-default detail — only sync defaults.
   if(group === 'aud') {
     var audienceKey = el.getAttribute('data-audience') || el.textContent.trim();
+    // Reset the "warning shown" flag whenever user moves AWAY from Whole company.
+    // That way if they later click back into Whole company, they see the warning
+    // again. Prevents users who missed it the first time from never seeing it.
+    if(audienceKey !== 'Whole company' && window._audSizeWarnShown) {
+      window._audSizeWarnShown = false;
+    }
     syncDetailToAudience(audienceKey);
     maybeShowAudienceSizeWarning(audienceKey);
   }
@@ -10284,9 +10290,11 @@ function syncDetailToAudience(audienceKey) {
   });
 
   // Only sync if current detail is the previous suggested-default for
-  // some audience tier. That way: if user explicitly picked Training
-  // manual, we don't take that away from them.
-  var defaultDetailTiers = ['Quick reference', 'Standard procedure'];
+  // some audience tier OR is empty (chip group has nothing selected).
+  // That way: if user explicitly picked Training manual, we don't take
+  // that away — but if no chip is selected at all (which can happen
+  // when state drifts between audience changes), we still populate it.
+  var defaultDetailTiers = ['Quick reference', 'Standard procedure', ''];
   if(defaultDetailTiers.indexOf(currentDtl) === -1) return; // user picked Training manual — leave it
 
   dtlChips.forEach(function(c) {
@@ -12071,11 +12079,14 @@ function showDownloadFormatModal() {
   card.innerHTML =
       '<div style="font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text);margin-bottom:6px">💾 Download as…</div>'
     + '<div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:16px">Pick the format that fits how you\'ll use this SOP.</div>'
-    + '<button onclick="doDownloadAsText()" style="width:100%;padding:14px;background:var(--accent);border:none;border-radius:10px;color:white;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px;text-align:left">'
-    +   '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">📄</span><div><div>Plain text (.txt)</div><div style="font-size:11px;font-weight:600;opacity:.85;margin-top:2px">Universal — opens anywhere</div></div></div>'
+    + '<button onclick="doDownloadAsPDF()" style="width:100%;padding:14px;background:var(--accent);border:none;border-radius:10px;color:white;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px;text-align:left">'
+    +   '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">📕</span><div><div>PDF (.pdf)</div><div style="font-size:11px;font-weight:600;opacity:.85;margin-top:2px">Best for sharing · keeps formatting on every device</div></div></div>'
     + '</button>'
     + '<button onclick="doDownloadAsWord()" style="width:100%;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px;text-align:left">'
-    +   '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">📝</span><div><div>Word document (.doc)</div><div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:2px">Best for desktop · keeps formatting</div></div></div>'
+    +   '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">📝</span><div><div>Word document (.doc)</div><div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:2px">Editable in Word, Google Docs, Pages</div></div></div>'
+    + '</button>'
+    + '<button onclick="doDownloadAsText()" style="width:100%;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px;text-align:left">'
+    +   '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">📄</span><div><div>Plain text (.txt)</div><div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:2px">Universal — opens anywhere</div></div></div>'
     + '</button>'
     + '<button onclick="doDownloadCopyToClipboard()" style="width:100%;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;margin-bottom:12px;text-align:left">'
     +   '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">📋</span><div><div>Copy to clipboard</div><div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:2px">Paste it anywhere yourself</div></div></div>'
@@ -12100,6 +12111,145 @@ function doDownloadAsText() {
   a.click();
   setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 300);
   showToast('Downloaded ✓');
+}
+
+// ── PDF DOWNLOAD ────────────────────────────────────────────────────────────
+// PDFs are generated client-side using html2pdf.js loaded lazily from a CDN
+// (~700KB). Lazy-loading keeps initial page weight low — users who never
+// download a PDF don't pay the bandwidth cost.
+//
+// Architecture: we build the same HTML doPrint() uses, render it offscreen,
+// hand it to html2pdf, save the PDF blob with a clean filename.
+
+var _html2pdfLoaded = false;
+var _html2pdfLoading = null;
+
+function loadHtml2PdfLib() {
+  if(_html2pdfLoaded) return Promise.resolve();
+  if(_html2pdfLoading) return _html2pdfLoading;
+  _html2pdfLoading = new Promise(function(resolve, reject) {
+    var script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    script.onload = function() { _html2pdfLoaded = true; resolve(); };
+    script.onerror = function() {
+      _html2pdfLoading = null;
+      reject(new Error('Could not load PDF library — check your internet connection.'));
+    };
+    document.head.appendChild(script);
+  });
+  return _html2pdfLoading;
+}
+
+// Build the same well-formatted HTML used by doPrint so PDFs and prints
+// look identical. Returns a string of HTML body content (not a full doc).
+function buildPrintableSopHtml() {
+  var company = titleCase(profile.company || 'SOPONTHEGO');
+  var title   = titleCase(currentSopTitle || 'SOP');
+  var meta    = company + ' \u00b7 ' + getToday() + (profile.author ? ' \u00b7 ' + profile.author : '');
+  var logo    = (profile && profile.logo) ? profile.logo : '';
+
+  var rawBody = stripLeadingAiHeader(generatedText || '', currentSopTitle, profile.company);
+  var lines   = rawBody.split('\n');
+  var bodyHtml = '';
+  var inList   = false;
+  var i = 0;
+  while(i < lines.length) {
+    var line = lines[i];
+    var trimmed = line.trim();
+    if(/^[-*_]{3,}\s*$/.test(trimmed)) { i++; continue; }
+    if(trimmed.indexOf('|') !== -1 && i + 1 < lines.length &&
+       /^\s*\|?[\s\-:|]+\|?\s*$/.test(lines[i+1])) {
+      if(inList) { bodyHtml += '</ul>'; inList = false; }
+      var tblLines = [trimmed];
+      i++; tblLines.push(lines[i]); i++;
+      while(i < lines.length && lines[i].indexOf('|') !== -1 && lines[i].trim()) {
+        tblLines.push(lines[i]); i++;
+      }
+      bodyHtml += renderMarkdownTable(tblLines);
+      continue;
+    }
+    if(trimmed.match(/^#+ /)) {
+      if(inList){ bodyHtml += '</ul>'; inList = false; }
+      var hLevel = (trimmed.match(/^(#+)/)[1].length === 1) ? 'h1' : 'h2';
+      bodyHtml += '<' + hLevel + '>' + renderMarkdownInline(trimmed.replace(/^#+ /, '')) + '</' + hLevel + '>';
+    } else if(trimmed.match(/^[-*]\s*\[[ xX]\]\s/)) {
+      if(inList){ bodyHtml += '</ul>'; inList = false; }
+      var cbm = trimmed.match(/^[-*]\s*\[([ xX])\]\s+(.*)$/);
+      var isChecked = cbm[1].toLowerCase() === 'x';
+      var box = isChecked
+        ? '<span style="display:inline-block;width:13px;height:13px;border:1.5px solid #111;border-radius:3px;background:#111;color:white;text-align:center;line-height:11px;font-size:10px;margin-right:8px;vertical-align:middle">&#10003;</span>'
+        : '<span style="display:inline-block;width:13px;height:13px;border:1.5px solid #111;border-radius:3px;margin-right:8px;vertical-align:middle"></span>';
+      bodyHtml += '<p style="margin:4px 0">' + box + renderMarkdownInline(cbm[2]) + '</p>';
+    } else if(trimmed.match(/^(\d+\. |- |\u2022 |\* )/)) {
+      if(!inList){ bodyHtml += '<ul>'; inList = true; }
+      bodyHtml += '<li>' + renderMarkdownInline(trimmed.replace(/^(\d+\. |- |\u2022 |\* )/, '')) + '</li>';
+    } else if(trimmed) {
+      if(inList){ bodyHtml += '</ul>'; inList = false; }
+      bodyHtml += '<p>' + renderMarkdownInline(trimmed) + '</p>';
+    }
+    i++;
+  }
+  if(inList) bodyHtml += '</ul>';
+
+  var headerBlock = (logo
+    ? '<div style="margin-bottom:14px"><img src="' + logo + '" style="max-height:56px;max-width:200px;object-fit:contain;display:block" alt=""></div>'
+    : '')
+    + '<h1 style="font-size:22px;font-weight:700;border-bottom:2px solid #222;padding-bottom:8px;margin:0 0 4px;color:#111">' + title + '</h1>'
+    + '<div style="font-size:11px;color:#666;margin-bottom:20px">' + meta + '</div>';
+
+  // Wrap in a clean container with print-friendly styling
+  return ''
+    + '<div style="font-family:Georgia,serif;color:#111;font-size:14px;line-height:1.7;padding:24px 0">'
+    +   '<style scoped>'
+    +     'h1{font-size:20px;font-weight:700;margin:24px 0 6px;color:#222}'
+    +     'h2{font-size:15px;font-weight:700;margin:24px 0 6px;color:#222}'
+    +     'p,li{font-size:13px;margin:4px 0}ul{padding-left:18px}'
+    +     'table{border-collapse:collapse;width:100%;margin:10px 0;font-size:12.5px}'
+    +     'th,td{padding:7px 10px;border:1px solid #ccc;text-align:left}'
+    +     'th{background:#f4f4f8;font-weight:700}'
+    +   '</style>'
+    +   headerBlock
+    +   bodyHtml
+    + '</div>';
+}
+
+function doDownloadAsPDF() {
+  var m = document.getElementById('m-download-fmt'); if(m) m.remove();
+  showToast('Generating PDF…');
+
+  loadHtml2PdfLib().then(function() {
+    var title = (currentSopTitle || 'SOP').replace(/[^a-zA-Z0-9]+/g, '_');
+    var filename = title + '_SOP.pdf';
+
+    // Render the printable HTML into a hidden, off-screen container.
+    // html2pdf needs a real DOM node — it can't render HTML strings directly.
+    var container = document.createElement('div');
+    container.id = 'pdf-render-target';
+    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:720px;background:white;color:#111;padding:0 24px';
+    container.innerHTML = buildPrintableSopHtml();
+    document.body.appendChild(container);
+
+    var opt = {
+      margin: [16, 14, 16, 14], // mm — top, right, bottom, left
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css'] }
+    };
+
+    return window.html2pdf().set(opt).from(container).save().then(function() {
+      try { document.body.removeChild(container); } catch(e) {}
+      showToast('PDF downloaded \u2713');
+    }, function(err) {
+      try { document.body.removeChild(container); } catch(e) {}
+      console.error('PDF generation error:', err);
+      showToast('PDF generation failed \u2014 try Word format instead');
+    });
+  }).catch(function(err) {
+    console.error('PDF library load error:', err);
+    showToast('Could not load PDF tools \u2014 try Word or Text instead');
+  });
 }
 
 // Copy to clipboard — useful for pasting into email, Slack, Google Docs.
@@ -12196,42 +12346,93 @@ function doDownloadAsWord() {
   setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 300);
   showToast('Downloaded as Word doc! ✓');
 }
+// Text/SMS flow — Path C design:
+// Always copies a clean summary to clipboard, attempts to open the SMS app
+// (works on iPhone/Android/Mac with Messages, fails silently on Windows/Linux),
+// and shows a clear instruction modal regardless of platform.
+//
+// This eliminates the silent-failure case on Windows where mobile SMS isn't
+// available and the button appeared broken.
 function doSMS() {
   var company = profile.company || 'SOPONTHEGO';
   var author  = profile.author || '';
   var sopNum  = document.getElementById('out-sopnum') ? document.getElementById('out-sopnum').textContent : 'SOP-0001';
 
-  // Build clean professional plain-text for SMS
+  // Build clean professional plain-text for SMS — short enough to read on phone.
   var lines = [];
-  lines.push('━━━━━━━━━━━━━━━━━━━━');
+  lines.push('\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501');
   lines.push(company.toUpperCase());
   lines.push('STANDARD OPERATING PROCEDURE');
-  lines.push('━━━━━━━━━━━━━━━━━━━━');
-  lines.push(currentSopTitle.toUpperCase());
-  lines.push(sopNum + ' · ' + getToday());
+  lines.push('\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501');
+  lines.push((currentSopTitle || 'SOP').toUpperCase());
+  lines.push(sopNum + ' \u00b7 ' + getToday());
   if(author) lines.push('Prepared by: ' + author);
-  lines.push('━━━━━━━━━━━━━━━━━━━━');
+  lines.push('\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501');
   lines.push('');
 
-  // Clean up the generated text for SMS
-  var cleaned = generatedText
-    .replace(/^## /gm, '\n▶ ')
-    .replace(/^### /gm, '\n• ')
-    .replace(/^[-•*] /gm, '  · ')
+  var cleaned = (generatedText || '')
+    .replace(/^## /gm, '\n\u25B6 ')
+    .replace(/^### /gm, '\n\u2022 ')
+    .replace(/^[-\u2022*] /gm, '  \u00b7 ')
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/\*([^*]+)\*/g, '$1');
 
   var fullText = lines.join('\n') + cleaned;
+  var wasTrimmed = fullText.length > 1500;
+  var smsText = wasTrimmed ? (fullText.substring(0, 1400) + '\n\n[Full SOP copied to clipboard]') : fullText;
 
-  // SMS limit: send first 1500 chars, copy rest to clipboard
-  if(fullText.length > 1500) {
-    (function(t){ try{ var ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;top:-9999px;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta); }catch(e){} })(fullText);
-    var smsText = fullText.substring(0, 1400) + '\n\n[Full SOP copied to clipboard]';
-    var sa=document.createElement('a');sa.href='sms:?body='+encodeURIComponent(smsText);sa.style.display='none';document.body.appendChild(sa);sa.click();setTimeout(function(){document.body.removeChild(sa);},300);
-    showToast('Full SOP copied to clipboard · Summary sent by text');
-  } else {
-    var sa=document.createElement('a');sa.href='sms:?body='+encodeURIComponent(fullText);sa.style.display='none';document.body.appendChild(sa);sa.click();setTimeout(function(){document.body.removeChild(sa);},300);
-  }
+  // Always copy to clipboard first — this is the reliable path that works
+  // on every device. The SMS app open is bonus convenience.
+  var clipboardText = fullText;
+  try {
+    var ta = document.createElement('textarea');
+    ta.value = clipboardText;
+    ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  } catch(e) {}
+
+  showTextInstructionsModal(smsText, wasTrimmed);
+}
+
+function showTextInstructionsModal(smsText, wasTrimmed) {
+  var existing = document.getElementById('m-text-instructions');
+  if(existing) existing.remove();
+  var modal = document.createElement('div');
+  modal.id = 'm-text-instructions';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:10000;padding:16px';
+  modal.onclick = function(e) { if(e.target === modal) modal.remove(); };
+
+  var card = document.createElement('div');
+  card.style.cssText = 'background:var(--surface);border-radius:16px;max-width:460px;width:100%;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,.4);max-height:90vh;overflow-y:auto';
+
+  var smsHref = 'sms:?body=' + encodeURIComponent(smsText);
+
+  card.innerHTML =
+      '<div style="font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text);margin-bottom:6px">\uD83D\uDCAC Send your SOP by text</div>'
+    + '<div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:14px;padding:8px 12px;background:rgba(0,214,143,.1);border-radius:8px">\u2713 SOP copied to clipboard</div>'
+
+    + '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">What to do next:</div>'
+    + '<div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:14px">'
+    +   '<strong>On a phone:</strong> Click <em>Open Messages</em> below \u2014 a new text starts with the SOP filled in.<br><br>'
+    +   '<strong>On a desktop:</strong> Open your phone\'s messaging app and paste from clipboard (Ctrl+V or long-press \u2192 Paste).'
+    + '</div>'
+
+    + (wasTrimmed
+        ? '<div style="font-size:11px;color:var(--text3);margin-bottom:14px;padding:10px 12px;background:var(--surface2);border-radius:8px;line-height:1.5">\u2139\uFE0F The SOP is long, so the text will arrive as a summary. The full version is on your clipboard \u2014 paste it into a follow-up message or use Email instead.</div>'
+        : '')
+
+    + '<a href="' + smsHref + '" onclick="setTimeout(function(){document.getElementById(\'m-text-instructions\').remove();},500)" style="display:block;width:100%;padding:14px;background:var(--accent);border:none;border-radius:10px;color:white;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;text-align:center;text-decoration:none;margin-bottom:8px;box-sizing:border-box">'
+    +   'Open Messages'
+    + '</a>'
+    + '<button onclick="document.getElementById(\'m-text-instructions\').remove()" style="width:100%;padding:10px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--text2);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">'
+    +   'Done \u2014 close this'
+    + '</button>';
+
+  modal.appendChild(card);
+  document.body.appendChild(modal);
 }
 
 function buildHtmlEmail() {
@@ -12309,15 +12510,34 @@ function buildHtmlEmail() {
   return html;
 }
 
+// Email flow — Path 2 design:
+// 1. Auto-generate and download PDF
+// 2. Copy a suggested email body to clipboard
+// 3. Show clear instructions modal with "Open my email app" button
+//
+// Why not auto-attach? Browsers can't attach files to mailto: links — that's
+// a fundamental limitation of the mailto protocol, not something we can fix
+// client-side. Real auto-send would need a backend email service. Until then,
+// honesty beats magic: tell the user exactly what to do.
 function doEmail() {
   var company = profile.company || 'SOPONTHEGO';
   var title   = currentSopTitle || 'Standard Operating Procedure';
-  var body    = buildFullText();
+  var author  = profile.author || '';
 
-  // Copy full text to clipboard
+  // Suggested email body — short, professional, references the attached PDF.
+  var greeting = 'Hi,';
+  var pdfFilename = (title || 'SOP').replace(/[^a-zA-Z0-9]+/g, '_') + '_SOP.pdf';
+  var signoff = author ? ('Thanks,\n' + author) : 'Thanks';
+  var emailBody = greeting + '\n\n'
+    + 'Attached is our SOP for "' + title + '". Please review and let me know if you have questions.\n\n'
+    + 'File: ' + pdfFilename + '\n\n'
+    + signoff;
+  var emailSubject = company + ': ' + title;
+
+  // Copy suggested body to clipboard so user can paste it after attaching the PDF.
   try {
     var ta = document.createElement('textarea');
-    ta.value = body;
+    ta.value = emailBody;
     ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
     document.body.appendChild(ta);
     ta.select();
@@ -12325,17 +12545,91 @@ function doEmail() {
     document.body.removeChild(ta);
   } catch(e) {}
 
-  // Open mailto with subject + preview in body
-  var note = body.length > 500 ? '\n\n[Full SOP pasted from clipboard]' : '';
-  var subject = encodeURIComponent(company + ': ' + title);
-  var teaser  = encodeURIComponent(body.slice(0, 500) + note);
+  // Start PDF download FIRST, then show the modal. PDF gen is async (CDN load +
+  // rendering), but we show the modal immediately so the user has something to
+  // look at while the download happens.
+  showEmailInstructionsModal(emailSubject, emailBody, pdfFilename);
 
-  try {
-    window.location.href = 'mailto:?subject=' + subject + '&body=' + teaser;
-    showToast('Email opened — full SOP copied, paste into body \u2709\ufe0f');
-  } catch(e) {
-    showToast('SOP copied to clipboard — paste into your email \uD83D\uDCCB');
-  }
+  // Kick off PDF generation. If user clicks "Open mail app" before PDF is ready,
+  // that's fine — they just open the email and the PDF lands in Downloads a
+  // few seconds later. The modal explains the order of operations.
+  loadHtml2PdfLib().then(function() {
+    var container = document.createElement('div');
+    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:720px;background:white;color:#111;padding:0 24px';
+    container.innerHTML = buildPrintableSopHtml();
+    document.body.appendChild(container);
+
+    var opt = {
+      margin: [16, 14, 16, 14],
+      filename: pdfFilename,
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+    };
+
+    window.html2pdf().set(opt).from(container).save().then(function() {
+      try { document.body.removeChild(container); } catch(e) {}
+      // Update the modal status so the user knows PDF is ready
+      var statusEl = document.getElementById('email-pdf-status');
+      if(statusEl) {
+        statusEl.innerHTML = '\u2713 PDF saved to your Downloads folder';
+        statusEl.style.color = 'var(--green)';
+      }
+    }, function() {
+      try { document.body.removeChild(container); } catch(e) {}
+      var statusEl = document.getElementById('email-pdf-status');
+      if(statusEl) {
+        statusEl.innerHTML = '\u26A0 PDF couldn\'t be generated. Use the Download button to save another format.';
+        statusEl.style.color = 'var(--accent2)';
+      }
+    });
+  }).catch(function() {
+    var statusEl = document.getElementById('email-pdf-status');
+    if(statusEl) {
+      statusEl.innerHTML = '\u26A0 Couldn\'t generate PDF. Save another format from the Download button.';
+      statusEl.style.color = 'var(--accent2)';
+    }
+  });
+}
+
+function showEmailInstructionsModal(subject, body, pdfFilename) {
+  var existing = document.getElementById('m-email-instructions');
+  if(existing) existing.remove();
+  var modal = document.createElement('div');
+  modal.id = 'm-email-instructions';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:10000;padding:16px';
+  modal.onclick = function(e) { if(e.target === modal) modal.remove(); };
+
+  var card = document.createElement('div');
+  card.style.cssText = 'background:var(--surface);border-radius:16px;max-width:460px;width:100%;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,.4);max-height:90vh;overflow-y:auto';
+
+  var mailtoHref = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+
+  card.innerHTML =
+      '<div style="font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text);margin-bottom:6px">\u2709\uFE0F Send your SOP by email</div>'
+    + '<div id="email-pdf-status" style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:14px;padding:8px 12px;background:var(--surface2);border-radius:8px">\u23F3 Preparing PDF\u2026</div>'
+
+    + '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">What to do next:</div>'
+    + '<ol style="font-size:13px;color:var(--text2);line-height:1.6;padding-left:20px;margin:0 0 14px">'
+    +   '<li>Wait for the PDF to download (look in your Downloads folder)</li>'
+    +   '<li>Click <strong>Open my email app</strong> below \u2014 a message starts with your subject and a draft already filled in</li>'
+    +   '<li>Attach the downloaded PDF</li>'
+    +   '<li>Add a recipient and send</li>'
+    + '</ol>'
+
+    + '<div style="font-size:11px;color:var(--text3);margin-bottom:14px;padding:10px 12px;background:var(--surface2);border-radius:8px;line-height:1.5">'
+    +   '\uD83D\uDCCB <strong>Tip:</strong> We\'ve also copied the draft message to your clipboard so you can paste it if your email app doesn\'t fill in automatically.'
+    + '</div>'
+
+    + '<a href="' + mailtoHref + '" onclick="setTimeout(function(){document.getElementById(\'m-email-instructions\').remove();},500)" style="display:block;width:100%;padding:14px;background:var(--accent);border:none;border-radius:10px;color:white;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;text-align:center;text-decoration:none;margin-bottom:8px;box-sizing:border-box">'
+    +   'Open my email app'
+    + '</a>'
+    + '<button onclick="document.getElementById(\'m-email-instructions\').remove()" style="width:100%;padding:10px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--text2);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">'
+    +   'I\'ll do it myself'
+    + '</button>';
+
+  modal.appendChild(card);
+  document.body.appendChild(modal);
 }
 
 function doPrint() {
