@@ -44,12 +44,12 @@ html,body{height:100%;overflow:hidden;background:#080808;font-family:var(--font)
   transition:background .3s;
 }
 .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:35px;background:#080808;border-radius:0 0 20px 20px;z-index:100}
-.status-bar{height:50px;padding:14px 24px 0;display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600;color:var(--text);flex-shrink:0}
+.status-bar{display:none}
 .status-time{font-size:15px;font-weight:700}
 .status-icons{display:flex;gap:6px;align-items:center}
 
 /* ── SCREENS ── */
-.screen{position:absolute;top:50px;left:0;right:0;bottom:0;display:flex;flex-direction:column;overflow:hidden;transition:transform .32s cubic-bezier(.4,0,.2,1),opacity .32s;background:var(--bg)}
+.screen{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;overflow:hidden;transition:transform .32s cubic-bezier(.4,0,.2,1),opacity .32s;background:var(--bg)}
 .screen.hidden{transform:translateX(110%);opacity:0;pointer-events:none}
 .screen.slide-left{transform:translateX(-110%);opacity:0;pointer-events:none}
 .scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:90px}
@@ -402,12 +402,6 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
     margin:0 auto;
   }
   .notch{display:none}
-  /* Hide the fake phone status bar (battery/signal icons + 9:41 clock).
-     Status bar is purely decorative — it makes a desktop look like an iOS
-     screenshot, which we don't want here. Reclaim the 50px of vertical
-     space by anchoring .screen to the top instead. */
-  .status-bar{display:none}
-  .screen{top:0}
   /* Show scrollbars on desktop — mobile hides them for cleanliness, but
      on desktop the absence of a scrollbar makes long content feel stuck.
      A subtle styled scrollbar matches the dark theme. */
@@ -417,25 +411,13 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
   .scroll-area::-webkit-scrollbar-thumb:hover{background:var(--text3)}
 }
 
-/* ── iOS PWA / standalone mode: hide the fake status bar ────────────────
-   When the app is installed to the iOS home screen and launched as a
-   standalone PWA, iOS renders its own real status bar (battery, signal,
-   real clock) at the top. Our fake one would render underneath it,
-   creating a duplicate. Hide ours and the iOS one takes over.
-   `display-mode: standalone` covers iOS A2HS; the legacy `-webkit-...`
-   targets older Safari versions that don't support the standard query. */
-@media (display-mode: standalone) {
-  .status-bar { display: none; }
-  .notch { display: none; }
-  .screen { top: 0; }
-}
-@supports (-webkit-touch-callout: none) {
-  /* Belt-and-suspenders for iOS Safari running in standalone mode where
-     the standard display-mode query is sometimes flaky. */
-  body.ios-standalone .status-bar { display: none; }
-  body.ios-standalone .notch { display: none; }
-  body.ios-standalone .screen { top: 0; }
-}
+/* The fake .status-bar (hardcoded 9:41 clock + battery icons) used to render
+   above the app on every device. It was originally a visual flourish to make
+   the desktop preview look like an iOS screenshot, but it caused real problems:
+   on iOS PWAs it stacked behind iOS's real status bar, and on Safari mobile it
+   added a clutter row with the wrong (frozen) time. Now hidden globally — see
+   .status-bar { display: none } at the top of this stylesheet. The HTML element
+   is left in place so existing JS that touches it doesn't error out. */
 </style>
   <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-auth-compat.min.js"></script>
@@ -16563,19 +16545,6 @@ function goToAccount() {
 
 // ── PAGE INIT ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
-  // iOS standalone PWA detection: if app was launched from the home screen
-  // icon (Add to Home Screen), iOS renders its own real status bar — hide
-  // our fake one to avoid the duplicate. window.navigator.standalone is the
-  // legacy iOS-specific property; matchMedia('(display-mode: standalone)')
-  // is the modern cross-platform equivalent.
-  try {
-    var isStandalone = (window.navigator.standalone === true)
-      || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
-    if (isStandalone) {
-      document.body.classList.add('ios-standalone');
-    }
-  } catch (e) { /* non-fatal */ }
-
   // Hide all screens, show login while Firebase loads
   var screens = document.querySelectorAll('.screen');
   screens.forEach(function(s) { s.classList.add('hidden'); });
