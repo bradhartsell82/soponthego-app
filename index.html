@@ -8400,13 +8400,16 @@ function maybeShowQuickSetup() {
     // Wait for Firestore profile sync to land before deciding whether to prompt.
     // Without this guard, we'd flash the modal even for users whose profile is
     // already saved on another device — exactly the UX bug we're solving.
-    // Poll briefly (100ms × 20 = 2s max). If sync hasn't returned by then,
+    // Poll briefly (100ms × 80 = 8s max). Generous timeout because Render's
+    // free tier cold-starts can take 5-30s on the first request, and showing
+    // the modal during a cold start to a user who already has a saved profile
+    // would be a worse UX than waiting. If sync hasn't returned by then,
     // fall through with what we have rather than blocking forever.
     if (!_profileSyncedFromCloud) {
       var waited = 0;
       var poll = setInterval(function() {
         waited += 100;
-        if (_profileSyncedFromCloud || waited >= 2000) {
+        if (_profileSyncedFromCloud || waited >= 8000) {
           clearInterval(poll);
           // Re-check after cloud sync — profile.author/company may now be filled
           if (profile.author && profile.company) return;
