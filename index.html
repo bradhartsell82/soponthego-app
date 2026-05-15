@@ -1945,6 +1945,10 @@ function initFirebase() {
       if(user) {
         currentUser = user;
         loadProfile();
+        // After local load, kick off cloud sync to merge in any profile fields
+        // the user saved on another device. maybeShowQuickSetup() (below) will
+        // wait for this to complete before deciding whether to prompt.
+        try { syncProfileFromFirestore(); } catch(e) {}
         loadUserPlan();
         loadTheme();
         var screens = document.querySelectorAll('.screen');
@@ -8289,6 +8293,90 @@ function loadProfile() {
 }
 function saveProfileData() {
   try { localStorage.setItem(getProfileStorageKey(), JSON.stringify(profile)); } catch(e) {}
+  // Fire-and-forget background sync to Firestore so this profile follows
+  // the user across devices/browsers. Debounced via _profileSyncTimer below
+  // so rapid edits (typing in a field with on-input save) don't spam the
+  // backend.
+  try { scheduleProfileCloudSync(); } catch(e) {}
+}
+
+// ── PROFILE CLOUD SYNC ────────────────────────────────────────────────────────
+// Profile data lives in two places:
+//   1. localStorage (fast, per-device) — source of truth while editing
+//   2. Firestore (cross-device, slower) — source of truth across sessions
+// On login we merge Firestore → local. On every change we debounce a write
+// local → Firestore. Logo is excluded from cloud sync (too large; would
+// blow Firestore's 1MB doc limit). See server.js `setProfile` whitelist.
+
+var _profileSyncTimer = null;
+var _profileSyncedFromCloud = false; // becomes true after first successful Firestore read
+
+function scheduleProfileCloudSync() {
+  // Don't sync until we've heard from the cloud once — otherwise an empty
+  // local profile (race condition during login) could wipe a populated
+  // cloud profile. Once the cloud read is done, all saves push to cloud.
+  if (!_profileSyncedFromCloud) return;
+  if (!currentUser || !currentUser.uid) return;
+  if (_profileSyncTimer) clearTimeout(_profileSyncTimer);
+  _profileSyncTimer = setTimeout(function() {
+    _profileSyncTimer = null;
+    var payload = {};
+    // Whitelist matches the server-side allow list — logo intentionally omitted.
+    ['company','author','jobtitle','email','state','industry','size','role',
+     'address1','address2','city','zip'].forEach(function(k) {
+      if (typeof profile[k] === 'string') payload[k] = profile[k];
+    });
+    fetch(BACKEND_URL + '/profile-set', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.uid, profile: payload })
+    }).catch(function(err) {
+      // Network failures here are non-fatal — the local copy is still good
+      // and next save will retry. Just log and move on.
+      console.warn('[profile-sync] cloud save failed:', err && err.message);
+    });
+  }, 800); // 800ms debounce — long enough to coalesce typing, short enough to feel snappy
+}
+
+// Called once per session right after loadProfile() to merge Firestore data
+// into the local profile. Cloud wins for synced fields if both differ —
+// this assumes the cloud is more up-to-date (most recent write across devices).
+function syncProfileFromFirestore() {
+  if (!currentUser || !currentUser.uid) return Promise.resolve();
+  return fetch(BACKEND_URL + '/profile-get', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId: currentUser.uid })
+  })
+  .then(function(r) { return r.ok ? r.json() : { profile: {} }; })
+  .then(function(data) {
+    var cloud = (data && data.profile) ? data.profile : {};
+    // Merge cloud into local. Cloud values overwrite local values for any
+    // non-empty cloud field. Empty cloud fields leave local intact.
+    var changed = false;
+    Object.keys(cloud).forEach(function(k) {
+      // Skip the server-side metadata field
+      if (k === 'updatedAt') return;
+      // Only adopt non-empty strings from cloud
+      if (typeof cloud[k] === 'string' && cloud[k] && profile[k] !== cloud[k]) {
+        profile[k] = cloud[k];
+        changed = true;
+      }
+    });
+    _profileSyncedFromCloud = true;
+    if (changed) {
+      // Persist the merged profile locally so future loads have the synced fields
+      try { localStorage.setItem(getProfileStorageKey(), JSON.stringify(profile)); } catch(e) {}
+      try { syncAccountUI(); } catch(e) {}
+      try { syncLogoUI(); } catch(e) {}
+    }
+  })
+  .catch(function(err) {
+    // If cloud fetch fails (offline, backend down), fall back to local-only behavior.
+    // Mark as synced anyway so saves still push to cloud once it comes back.
+    console.warn('[profile-sync] cloud fetch failed, using local profile:', err && err.message);
+    _profileSyncedFromCloud = true;
+  });
 }
 
 // ── QUICK SETUP (cross-device profile prompt) ────────────────────────────────
@@ -8309,6 +8397,30 @@ function getQuickSetupDismissKey() {
 function maybeShowQuickSetup() {
   try {
     if(!currentUser) return;
+    // Wait for Firestore profile sync to land before deciding whether to prompt.
+    // Without this guard, we'd flash the modal even for users whose profile is
+    // already saved on another device — exactly the UX bug we're solving.
+    // Poll briefly (100ms × 20 = 2s max). If sync hasn't returned by then,
+    // fall through with what we have rather than blocking forever.
+    if (!_profileSyncedFromCloud) {
+      var waited = 0;
+      var poll = setInterval(function() {
+        waited += 100;
+        if (_profileSyncedFromCloud || waited >= 2000) {
+          clearInterval(poll);
+          // Re-check after cloud sync — profile.author/company may now be filled
+          if (profile.author && profile.company) return;
+          _showQuickSetupModalNow();
+        }
+      }, 100);
+      return;
+    }
+    _showQuickSetupModalNow();
+  } catch(e) {}
+}
+
+function _showQuickSetupModalNow() {
+  try {
     // Already filled in? Nothing to do.
     if(profile.author && profile.company) return;
     // User already dismissed it on this device? Respect that.
