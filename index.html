@@ -416,6 +416,26 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
   .scroll-area::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
   .scroll-area::-webkit-scrollbar-thumb:hover{background:var(--text3)}
 }
+
+/* ── iOS PWA / standalone mode: hide the fake status bar ────────────────
+   When the app is installed to the iOS home screen and launched as a
+   standalone PWA, iOS renders its own real status bar (battery, signal,
+   real clock) at the top. Our fake one would render underneath it,
+   creating a duplicate. Hide ours and the iOS one takes over.
+   `display-mode: standalone` covers iOS A2HS; the legacy `-webkit-...`
+   targets older Safari versions that don't support the standard query. */
+@media (display-mode: standalone) {
+  .status-bar { display: none; }
+  .notch { display: none; }
+  .screen { top: 0; }
+}
+@supports (-webkit-touch-callout: none) {
+  /* Belt-and-suspenders for iOS Safari running in standalone mode where
+     the standard display-mode query is sometimes flaky. */
+  body.ios-standalone .status-bar { display: none; }
+  body.ios-standalone .notch { display: none; }
+  body.ios-standalone .screen { top: 0; }
+}
 </style>
   <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-auth-compat.min.js"></script>
@@ -1605,11 +1625,11 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
     </div>
     <div class="field-gap">
       <div class="field-lbl">Your name</div>
-      <input class="text-input" id="qs-author" type="text" placeholder="e.g. Brad Hartsell">
+      <input class="text-input" id="qs-author" type="text" placeholder="Your full name">
     </div>
     <div class="field-gap">
       <div class="field-lbl">Business name</div>
-      <input class="text-input" id="qs-company" type="text" placeholder="e.g. Acme Auto">
+      <input class="text-input" id="qs-company" type="text" placeholder="Your business name">
     </div>
     <button class="primary-btn" onclick="saveQuickSetup()">Save and continue</button>
     <button class="secondary-btn" onclick="dismissQuickSetup()">Skip for now</button>
@@ -12192,7 +12212,7 @@ function buildPrintableSopHtml() {
   if(inList) bodyHtml += '</ul>';
 
   var headerBlock = (logo
-    ? '<div style="margin-bottom:14px"><img src="' + logo + '" style="max-height:56px;max-width:200px;object-fit:contain;display:block" alt=""></div>'
+    ? '<div style="margin-bottom:14px"><img src="' + logo + '" style="max-height:96px;max-width:320px;object-fit:contain;display:block" alt=""></div>'
     : '')
     + '<h1 style="font-size:22px;font-weight:700;border-bottom:2px solid #222;padding-bottom:8px;margin:0 0 4px;color:#111">' + title + '</h1>'
     + '<div style="font-size:11px;color:#666;margin-bottom:20px">' + meta + '</div>';
@@ -12326,7 +12346,7 @@ function doDownloadAsWord() {
   }
   if(inList) bodyHtml += '</ul>';
 
-  var headerHtml = (logo ? '<div style="margin-bottom:14px"><img src="' + logo + '" style="max-height:56px;max-width:200px" /></div>' : '')
+  var headerHtml = (logo ? '<div style="margin-bottom:14px"><img src="' + logo + '" style="max-height:96px;max-width:320px" /></div>' : '')
     + '<h1 style="font-size:22px;font-weight:700;border-bottom:2px solid #222;padding-bottom:8px;margin-bottom:4px">' + esc(title) + '</h1>'
     + '<p style="font-size:11px;color:#666;margin-bottom:20px">' + esc(company) + ' · ' + date + (author ? ' · ' + esc(author) : '') + (addr ? '<br>' + esc(addr) : '') + '</p>';
 
@@ -12489,7 +12509,7 @@ function buildHtmlEmail() {
     // Letterhead
     + '<div style="background:#1a1a2e;padding:24px 32px;display:flex;justify-content:space-between;align-items:flex-start">'
     + '<div>'
-    + (profile.logo ? '<img src="'+profile.logo+'" style="max-height:48px;max-width:160px;object-fit:contain">' : '<div style="font-family:Georgia,serif;font-size:22px;font-weight:700;color:white;letter-spacing:.04em">'+company+'</div>')
+    + (profile.logo ? '<img src="'+profile.logo+'" style="max-height:80px;max-width:260px;object-fit:contain">' : '<div style="font-family:Georgia,serif;font-size:22px;font-weight:700;color:white;letter-spacing:.04em">'+company+'</div>')
     + '</div>'
     + '<div style="text-align:right;font-size:11px;color:rgba(255,255,255,.7);line-height:1.8">'
     + (addr ? '<div>'+addr.replace(/\n/g,'<br>')+'</div>' : '')
@@ -15462,7 +15482,7 @@ function buildProfessionalDocumentHtml() {
   if(isEnterprise) {
     coverHtml = '<div class="sop-cover" style="height:9in;display:flex;flex-direction:column;justify-content:space-between;page-break-after:always;padding:0.5in 0">'
       + '<div>'
-      +   (logo ? '<img src="' + logo + '" style="max-height:64px;max-width:240px;object-fit:contain;display:block;margin-bottom:20px" alt="">' : '')
+      +   (logo ? '<img src="' + logo + '" style="max-height:110px;max-width:380px;object-fit:contain;display:block;margin-bottom:20px" alt="">' : '')
       +   '<div style="font-size:10px;font-weight:800;letter-spacing:.12em;color:#6c63ff;text-transform:uppercase;margin-bottom:8px">Standard Operating Procedure</div>'
       +   (company ? '<div style="font-size:13px;color:#666;margin-bottom:30px">' + esc(company) + '</div>' : '')
       + '</div>'
@@ -15484,7 +15504,7 @@ function buildProfessionalDocumentHtml() {
   var headerHtml = '';
   if(!isLeanAudience) {
     var headerLogoHtml = logo
-      ? '<img src="' + logo + '" style="max-height:52px;max-width:160px;object-fit:contain;flex-shrink:0" alt="">'
+      ? '<img src="' + logo + '" style="max-height:88px;max-width:280px;object-fit:contain;flex-shrink:0" alt="">'
       : '';
     headerHtml = '<div style="border-bottom:3px solid #6c63ff;padding-bottom:14px;margin-bottom:22px;display:flex;gap:18px;align-items:flex-start">'
       + headerLogoHtml
@@ -15502,7 +15522,7 @@ function buildProfessionalDocumentHtml() {
     // Lean: minimalist header — logo only if user explicitly uploaded one
     // (lean = personal/team doc; logo is optional but supported)
     var leanLogoHtml = logo
-      ? '<img src="' + logo + '" style="max-height:32px;max-width:120px;object-fit:contain;display:block;margin-bottom:12px" alt="">'
+      ? '<img src="' + logo + '" style="max-height:60px;max-width:200px;object-fit:contain;display:block;margin-bottom:12px" alt="">'
       : '';
     headerHtml = '<div style="margin-bottom:18px">'
       + leanLogoHtml
@@ -16428,6 +16448,19 @@ function goToAccount() {
 
 // ── PAGE INIT ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
+  // iOS standalone PWA detection: if app was launched from the home screen
+  // icon (Add to Home Screen), iOS renders its own real status bar — hide
+  // our fake one to avoid the duplicate. window.navigator.standalone is the
+  // legacy iOS-specific property; matchMedia('(display-mode: standalone)')
+  // is the modern cross-platform equivalent.
+  try {
+    var isStandalone = (window.navigator.standalone === true)
+      || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    if (isStandalone) {
+      document.body.classList.add('ios-standalone');
+    }
+  } catch (e) { /* non-fatal */ }
+
   // Hide all screens, show login while Firebase loads
   var screens = document.querySelectorAll('.screen');
   screens.forEach(function(s) { s.classList.add('hidden'); });
