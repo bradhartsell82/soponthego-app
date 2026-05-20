@@ -436,23 +436,39 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 <!-- ════════════════════════════════════════ -->
 <!-- SCREEN: ONBOARDING (first launch only)  -->
 <!-- ════════════════════════════════════════ -->
-<div class="screen hidden" id="s-login" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:100vh;padding:40px 24px 60px;background:var(--bg);overflow-y:auto">
+<div class="screen hidden" id="s-login" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:100vh;padding:120px 24px 60px;background:var(--bg);overflow-y:auto;position:relative">
+  <!-- Top-right sign-in pill: positioned below the 35px notch (top:44px) so it never gets hidden by it.
+       Entire pill is the tap target (~40px height for fat-finger safety on mobile). -->
+  <a href="javascript:void(0)" onclick="toggleAuthMode();return false;" id="topright-signin-pill"
+     style="position:absolute;top:44px;right:16px;display:flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid var(--border2);border-radius:999px;background:rgba(255,255,255,.025);text-decoration:none;cursor:pointer;transition:background .15s,border-color .15s,transform .1s;-webkit-tap-highlight-color:transparent;min-height:36px;z-index:10"
+     onmouseover="this.style.background='rgba(136,129,255,.1)';this.style.borderColor='var(--accent)'"
+     onmouseout="this.style.background='rgba(255,255,255,.025)';this.style.borderColor='var(--border2)'"
+     ontouchstart="this.style.transform='scale(.96)'"
+     ontouchend="this.style.transform='scale(1)'">
+    <span id="topright-signin-prefix" style="font-size:12px;color:var(--text2);font-weight:500;white-space:nowrap">Have an account?</span>
+    <span id="topright-signin-action" style="font-size:12px;color:var(--accent);font-weight:700;white-space:nowrap">Sign in &rarr;</span>
+  </a>
   <div style="width:100%;max-width:340px;text-align:center;margin:auto 0">
     <div style="width:80px;height:80px;background:#6c63ff;border-radius:20px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(108,99,255,.35)">
       <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="8" y="4" width="28" height="36" rx="4" fill="white"/><polygon points="28,4 36,4 36,12" fill="rgba(108,99,255,.3)"/><rect x="13" y="14" width="18" height="3" rx="1.5" fill="#6c63ff" opacity="0.9"/><rect x="13" y="20" width="14" height="3" rx="1.5" fill="#1a1a2e" opacity="0.2"/><rect x="13" y="26" width="16" height="3" rx="1.5" fill="#1a1a2e" opacity="0.15"/><circle cx="34" cy="36" r="8" fill="#00d68f"/><polyline points="30,36 33,39 39,31" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <div style="font-family:var(--font-display);font-size:28px;font-weight:900;color:var(--text);letter-spacing:1px;margin-bottom:6px">SOPONTHEGO</div>
-    <div style="font-size:13px;color:var(--text2);margin-bottom:32px;letter-spacing:3px">SOP &middot; ON THE GO</div>
-    <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px">SOPs in minutes,<br>not hours.</div>
-    <div style="font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6">AI-powered standard operating procedures<br>for your entire team.</div>
+    <!-- HEADLINE: trial-focused, not brand-focused -->
+    <div style="font-family:var(--font-display);font-size:26px;font-weight:900;color:var(--text);letter-spacing:-.01em;line-height:1.15;margin-bottom:10px">Start your free trial</div>
+    <div style="font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.5">Create your account — AI-powered SOPs<br>for your entire team.</div>
+
+    <!-- VALUE PROP: shown ABOVE the form so visitors see the offer before deciding to act -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(0,214,143,.08);border:1px solid rgba(0,214,143,.25);border-radius:var(--radius-sm);padding:11px 14px;margin-bottom:22px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00d68f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>
+      <div style="font-size:12.5px;font-weight:700;color:var(--text);text-align:left;line-height:1.4">3 SOPs free &middot; <span style="color:var(--text2);font-weight:600">no credit card required</span></div>
+    </div>
 
     <!-- Error message — appears ABOVE the form so users see it immediately
-         after a failed login attempt. No scrolling needed. -->
+         after a failed sign-up attempt. No scrolling needed. -->
     <div id="login-error" style="display:none;margin-bottom:16px;padding:12px 14px;background:rgba(255,107,107,.12);border:1px solid rgba(255,107,107,.35);border-radius:8px;font-size:13px;font-weight:600;color:#ff8a8a;text-align:left;line-height:1.4"></div>
 
     <button onclick="signInWithGoogle()" style="width:100%;padding:14px 20px;background:#ffffff;border:1.5px solid #e0e0e0;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;gap:12px;cursor:pointer;font-family:var(--font);font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:12px;transition:all .15s;box-shadow:0 2px 8px rgba(0,0,0,.08)">
       <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.96 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-      Continue with Google
+      Sign up with Google
     </button>
     
     <!-- OR divider -->
@@ -462,25 +478,22 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
       <div style="flex:1;height:1px;background:var(--border)"></div>
     </div>
     
-    <!-- Email/Password form -->
+    <!-- Email/Password form — defaults to sign-up -->
     <div id="email-form" style="text-align:left">
       <input id="login-email" type="email" placeholder="Email address" autocomplete="email" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('login-password').focus();}" 
         style="width:100%;background:var(--input-bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;box-sizing:border-box;margin-bottom:8px">
-      <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" oninput="validatePasswordLive()" onkeydown="if(event.key==='Enter'){event.preventDefault();signInWithEmail();}"
+      <input id="login-password" type="password" placeholder="Create a password" autocomplete="new-password" oninput="validatePasswordLive()" onkeydown="if(event.key==='Enter'){event.preventDefault();signInWithEmail();}"
         style="width:100%;background:var(--input-bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;box-sizing:border-box;margin-bottom:6px">
-      <div id="login-pw-hint" style="display:none;font-size:11px;color:var(--text3);text-align:left;margin-bottom:10px;padding-left:2px">Use at least 6 characters</div>
-      <button id="email-login-btn" onclick="signInWithEmail()" style="width:100%;padding:13px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:white;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;margin-bottom:10px">
-        Sign in with Email
+      <div id="login-pw-hint" style="display:block;font-size:11px;color:var(--text3);text-align:left;margin-bottom:10px;padding-left:2px">Use at least 6 characters</div>
+      <button id="email-login-btn" onclick="signInWithEmail()" style="width:100%;padding:14px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:white;font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;margin-bottom:14px;box-shadow:0 6px 18px rgba(108,99,255,.32)">
+        Start free trial
       </button>
-      <div style="text-align:center;font-size:12px;color:var(--text3);margin-bottom:8px">
-        <a href="javascript:void(0)" onclick="toggleAuthMode();return false;" id="auth-toggle-link" style="color:var(--accent);cursor:pointer;font-weight:600;text-decoration:underline">Need an account? Sign up</a>
-      </div>
-      <div style="text-align:center;font-size:11px;color:var(--text3)">
-        <a href="javascript:void(0)" onclick="forgotPassword();return false;" style="color:var(--text3);cursor:pointer;text-decoration:underline">Forgot password?</a>
-      </div>
     </div>
-    
-    <div style="font-size:11px;color:var(--text3);margin-top:20px;line-height:1.6">Free trial includes 3 SOP generations.<br>No credit card required to start.</div>
+
+    <!-- Forgot password — small utility link at bottom -->
+    <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:8px">
+      <a href="javascript:void(0)" onclick="forgotPassword();return false;" style="color:var(--text3);cursor:pointer;text-decoration:underline">Forgot password?</a>
+    </div>
   </div>
 </div>
 <div class="screen hidden" id="s-onboard">
@@ -15944,7 +15957,7 @@ function showPricingComparison() {
 
 
 // ── EMAIL/PASSWORD AUTHENTICATION ─────────────────────────────────────────────
-var authMode = 'signin'; // 'signin' or 'signup'
+var authMode = 'signup'; // 'signin' or 'signup' — page defaults to sign-up since trial visitors land here from "Start Free Trial"
 
 
 // ── Live password validation in signup mode ──────────────────────────────────
@@ -15975,20 +15988,27 @@ function validatePasswordLive() {
 function toggleAuthMode() {
   authMode = (authMode === 'signin') ? 'signup' : 'signin';
   var btn = document.getElementById('email-login-btn');
-  var link = document.getElementById('auth-toggle-link');
+  var pillPrefix = document.getElementById('topright-signin-prefix');
+  var pillAction = document.getElementById('topright-signin-action');
   var hint = document.getElementById('login-pw-hint');
   var pwInput = document.getElementById('login-password');
   if(authMode === 'signup') {
-    if(btn) btn.textContent = 'Create Account';
-    if(link) link.textContent = 'Already have an account? Sign in';
+    if(btn) btn.textContent = 'Start free trial';
+    if(pillPrefix) pillPrefix.textContent = 'Have an account?';
+    if(pillAction) pillAction.innerHTML = 'Sign in &rarr;';
     if(hint) hint.style.display = 'block';
-    if(pwInput) pwInput.setAttribute('autocomplete', 'new-password');
+    if(pwInput) {
+      pwInput.setAttribute('autocomplete', 'new-password');
+      pwInput.setAttribute('placeholder', 'Create a password');
+    }
   } else {
-    if(btn) btn.textContent = 'Sign in with Email';
-    if(link) link.textContent = 'Need an account? Sign up';
+    if(btn) btn.textContent = 'Sign in';
+    if(pillPrefix) pillPrefix.textContent = 'New here?';
+    if(pillAction) pillAction.innerHTML = 'Sign up &rarr;';
     if(hint) hint.style.display = 'none';
     if(pwInput) {
       pwInput.setAttribute('autocomplete', 'current-password');
+      pwInput.setAttribute('placeholder', 'Password');
       pwInput.style.borderColor = 'var(--border)';
     }
   }
@@ -16063,7 +16083,7 @@ function signInWithEmail() {
     if(btn) { 
       btn.disabled = false; 
       btn.style.opacity = '1'; 
-      btn.textContent = authMode === 'signup' ? 'Create Account' : 'Sign in with Email'; 
+      btn.textContent = authMode === 'signup' ? 'Start free trial' : 'Sign in'; 
     }
   });
 }
