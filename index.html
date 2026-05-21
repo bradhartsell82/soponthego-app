@@ -659,7 +659,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
       <div class="hero-title">What needs<br>an SOP <span>today?</span></div>
     </div>
 
-    <button class="big-create-btn fade-up d1" onclick="go('s-wizard');startWizard('create')">
+    <button class="big-create-btn fade-up d1" onclick="startNewWizard({sourceScreen:'s-home'})">
       <div class="bcb-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
       <div class="bcb-body">
         <div class="bcb-label">AI-Powered · 2 mins</div>
@@ -731,7 +731,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       <span class="nav-label">Library</span>
     </button>
-    <button class="nav-create" onclick="go('s-wizard');startWizard('create')">
+    <button class="nav-create" onclick="startNewWizard({sourceScreen:'s-home'})">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
     <button class="nav-item" onclick="if(checkFeatureAccess('Upload &amp; Rewrite SOPs','📤','rewrite')){go('s-upload');}">
@@ -950,8 +950,356 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 
 </div>
 
-<!-- ════════════════════════════════════════ -->
-<!-- SCREEN: UPLOAD & REWRITE               -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- NEW WIZARD (commit 3) — custom create flow, 4 screens                    -->
+<!-- All hidden by default. Wired up in commit 4+. The old s-wizard above     -->
+<!-- continues to work until we route create traffic to s-wn-1.               -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+
+<style id="new-wizard-styles">
+/* Shared header used across all new wizard screens */
+.wn-progress{display:flex;align-items:center;padding:14px 20px 4px;gap:6px}
+.wn-dot{flex:1;height:4px;border-radius:2px;background:var(--surface3)}
+.wn-dot.done{background:var(--green)}
+.wn-dot.current{background:var(--accent)}
+.wn-step-label{font-size:10px;color:var(--accent);font-weight:800;text-align:center;letter-spacing:.1em;text-transform:uppercase;padding:10px 20px 14px}
+.wn-step-badge{font-size:11px;color:var(--text2);font-weight:600;background:var(--surface2);padding:4px 9px;border-radius:8px}
+.wn-body{padding:8px 20px 14px}
+.wn-body h1{font-family:var(--font-display);font-size:22px;font-weight:800;letter-spacing:-.02em;color:var(--text);margin:0 0 6px;line-height:1.2}
+.wn-body .wn-sub{font-size:13px;color:var(--text2);line-height:1.5;margin:0 0 18px}
+.wn-field-lbl{font-size:11px;color:var(--accent);font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
+.wn-field-input{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:14px;color:var(--text);font-family:var(--font);font-size:14px;font-weight:600;box-sizing:border-box;outline:none;transition:border-color .15s}
+.wn-field-input:focus{border-color:var(--accent)}
+/* Pill bar inside the questions screen */
+.wn-pills{display:flex;gap:5px;padding:14px 20px 8px}
+.wn-pill{flex:1;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;font-family:var(--font);cursor:default;transition:all .15s}
+.wn-pill.tappable{cursor:pointer}
+.wn-pill.done{background:rgba(0,214,143,.18);border:1px solid rgba(0,214,143,.5);color:var(--green)}
+.wn-pill.skipped{background:transparent;border:1px solid var(--border2);color:var(--text2)}
+.wn-pill.current{background:var(--accent);border:1px solid var(--accent);color:#fff;box-shadow:0 0 0 3px rgba(108,99,255,.18)}
+.wn-pill.locked{background:transparent;border:1px solid var(--surface3);color:#4a4a5e}
+.wn-pill-tip{font-size:10.5px;color:var(--text2);text-align:center;padding:0 20px 14px;border-bottom:1px solid var(--border);line-height:1.4}
+/* Question screen body */
+.wn-q-num{font-size:11px;color:var(--accent);font-weight:800;letter-spacing:.1em;margin-bottom:8px;text-transform:uppercase}
+.wn-q-text{font-family:var(--font-display);font-size:18px;font-weight:700;line-height:1.25;letter-spacing:-.02em;color:var(--text);margin-bottom:8px}
+.wn-q-hint{font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.5}
+.wn-q-input{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:14px;color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;min-height:96px;box-sizing:border-box;resize:vertical;outline:none}
+.wn-q-input:focus{border-color:var(--accent)}
+/* Bottom action bar — used in question + format screens */
+.wn-actions{display:flex;gap:8px;padding:14px 20px calc(14px + var(--safe-bottom));align-items:center;flex-shrink:0;border-top:1px solid var(--border);background:var(--bg)}
+.wn-btn{flex:1;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:var(--font);font-size:14px;font-weight:800;letter-spacing:-.01em;cursor:pointer;border:none;transition:all .15s}
+.wn-btn:active{transform:scale(.97)}
+.wn-btn-icon{flex:0 0 48px;background:transparent;border:1.5px solid var(--border2);color:var(--text)}
+.wn-btn-skip{background:transparent;border:1.5px solid var(--border2);color:var(--text)}
+.wn-btn-next{background:var(--accent);color:#fff}
+.wn-btn-next.green{background:var(--green)}
+/* Compliance Q7 */
+.wn-cmp-box{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:all .15s}
+.wn-cmp-box.on{background:rgba(108,99,255,.10);border-color:rgba(108,99,255,.5)}
+.wn-cmp-check{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border2);background:transparent;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.wn-cmp-check.on{background:var(--accent);border-color:var(--accent)}
+.wn-cmp-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px}
+.wn-cmp-desc{font-size:11px;color:var(--text2);line-height:1.4}
+.wn-cmp-add{width:100%;background:transparent;border:1.5px dashed var(--border2);border-radius:10px;padding:10px;color:var(--text);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px}
+.wn-cmp-disclaimer{font-size:10.5px;color:var(--text2);line-height:1.5;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-top:14px;font-style:italic}
+/* Review screen items */
+.wn-review-title{font-family:var(--font-display);font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--text);margin-bottom:4px}
+.wn-review-sub{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:14px}
+.wn-review-item{padding:11px 12px 11px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:7px;display:flex;gap:10px;align-items:flex-start}
+.wn-review-num{width:22px;height:22px;border-radius:6px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.wn-review-num.done{background:rgba(0,214,143,.18);color:var(--green)}
+.wn-review-num.skip{background:transparent;border:1px solid var(--border2);color:var(--text2)}
+.wn-review-num.custom{background:rgba(108,99,255,.22);color:var(--accent);font-size:14px;line-height:1}
+.wn-review-q{font-size:11.5px;color:var(--text2);font-weight:600;margin-bottom:3px;line-height:1.35}
+.wn-review-q.custom-label{color:var(--accent);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.wn-review-a{font-size:13px;color:var(--text);font-weight:600;line-height:1.45;word-break:break-word}
+.wn-review-a.skipped{color:var(--text2);font-weight:500;font-style:italic}
+.wn-review-edit{background:var(--surface3);border:1.5px solid var(--border2);color:var(--text);font-size:10.5px;font-weight:800;padding:5px 11px;border-radius:7px;letter-spacing:.04em;flex-shrink:0;align-self:flex-start;margin-top:1px;cursor:pointer;font-family:var(--font)}
+.wn-review-item.custom-item{border-color:rgba(108,99,255,.4);background:rgba(108,99,255,.06)}
+.wn-add-button{width:100%;background:rgba(108,99,255,.12);border:1.5px solid rgba(108,99,255,.5);border-radius:10px;padding:13px;color:var(--text);font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:8px}
+.wn-add-button .wn-plus{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;line-height:1}
+/* Format & feel screen dropdowns */
+.wn-dd-group{margin-bottom:18px}
+.wn-dd-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.wn-dd-label{font-size:12px;color:var(--text);font-weight:700}
+.wn-dd-ai-badge{background:rgba(108,99,255,.15);color:var(--accent);border:1px solid rgba(108,99,255,.4);font-size:9px;font-weight:800;padding:3px 7px;border-radius:5px;letter-spacing:.06em;text-transform:uppercase}
+.wn-dd{width:100%;background:var(--surface2);border:1.5px solid rgba(108,99,255,.4);border-radius:10px;padding:13px 14px;color:var(--text);font-family:var(--font);font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.wn-dd-caret{color:var(--text2);font-size:12px}
+/* Final recap */
+.wn-recap-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px}
+.wn-recap-title{font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--text);margin-bottom:8px;line-height:1.3}
+.wn-recap-desc{font-size:12px;color:var(--text2);line-height:1.5}
+.wn-recap-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.wn-recap-tag{background:var(--surface2);color:var(--text2);border:1px solid var(--border);font-size:11px;font-weight:700;padding:5px 9px;border-radius:6px}
+.wn-recap-tag .wn-lbl-sm{color:var(--text3);margin-right:4px}
+.wn-generate-foot{font-size:11px;color:var(--text2);text-align:center;line-height:1.5;padding:0 8px;margin-top:8px}
+/* Template fast-path card */
+.wn-tpl-banner{background:rgba(108,99,255,.10);border:1px solid rgba(108,99,255,.4);border-radius:12px;padding:14px;margin-bottom:18px}
+.wn-tpl-banner-title{font-size:11px;color:var(--accent);font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.wn-tpl-banner-name{font-family:var(--font-display);font-size:18px;font-weight:800;color:var(--text);line-height:1.3}
+.wn-profile-summary{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:18px}
+.wn-profile-line{font-size:12px;color:var(--text2);margin-bottom:3px;display:flex;gap:8px}
+.wn-profile-line .wn-profile-lbl{color:var(--text3);min-width:80px;font-weight:600}
+.wn-profile-line .wn-profile-val{color:var(--text);font-weight:600}
+</style>
+
+<!-- ── SCREEN: NEW WIZARD STEP 1 — Title + Category ─────────────────────── -->
+<div class="screen hidden" id="s-wn-1" style="display:flex;flex-direction:column">
+  <div class="app-bar">
+    <button class="icon-btn" onclick="wnGoBack(1)" id="wn1-back-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div class="app-bar-title">Create SOP</div>
+    <div class="wn-step-badge">Step 1 of 4</div>
+  </div>
+  <div class="wn-progress">
+    <div class="wn-dot current"></div>
+    <div class="wn-dot"></div>
+    <div class="wn-dot"></div>
+    <div class="wn-dot"></div>
+  </div>
+  <div class="wn-step-label">The basics</div>
+  <div class="scroll-area">
+    <div class="wn-body">
+      <h1>What is this SOP for?</h1>
+      <div class="wn-sub" id="wn1-sub">Describe what you want to document.</div>
+      <div id="wn1-tpl-banner" style="display:none" class="wn-tpl-banner">
+        <div class="wn-tpl-banner-title">📚 Template</div>
+        <div class="wn-tpl-banner-name" id="wn1-tpl-name">—</div>
+      </div>
+      <div class="wn-field-lbl">SOP title</div>
+      <input class="wn-field-input" id="wn1-title" placeholder="e.g. Morning Opening Procedure" autocomplete="off" style="margin-bottom:20px"/>
+      <div class="wn-field-lbl">Category · pick all that apply</div>
+      <div class="chips" id="wn1-cat-chips"><!-- populated at runtime from CATEGORIES list --></div>
+    </div>
+  </div>
+  <div class="wn-actions">
+    <button class="wn-btn wn-btn-next" id="wn1-continue" onclick="wnContinueFromStep1()" disabled style="opacity:.5">Continue ›</button>
+  </div>
+</div>
+
+<!-- ── SCREEN: NEW WIZARD STEP 2 — Conversational Questions + Review ─────── -->
+<div class="screen hidden" id="s-wn-2" style="display:flex;flex-direction:column">
+  <div class="app-bar">
+    <button class="icon-btn" onclick="wnGoBack(2)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div class="app-bar-title" id="wn2-title">SOP</div>
+    <div class="wn-step-badge">Step 2 of 4</div>
+  </div>
+  <div class="wn-progress">
+    <div class="wn-dot done"></div>
+    <div class="wn-dot current"></div>
+    <div class="wn-dot"></div>
+    <div class="wn-dot"></div>
+  </div>
+  <div class="wn-step-label" id="wn2-step-label">Tell us about your operation</div>
+
+  <!-- A. Question mode (one-question-at-a-time view) -->
+  <div id="wn2-question-mode" style="display:flex;flex-direction:column;flex:1;min-height:0">
+    <div class="wn-pills" id="wn2-pills"><!-- 7 pills rendered at runtime --></div>
+    <div class="wn-pill-tip" id="wn2-pill-tip">Tap any number above to revisit · Skip what doesn't apply</div>
+    <div class="scroll-area" style="flex:1">
+      <div class="wn-body">
+        <div class="wn-q-num" id="wn2-q-num">QUESTION 1 OF 7</div>
+        <div class="wn-q-text" id="wn2-q-text">Loading…</div>
+        <div class="wn-q-hint" id="wn2-q-hint"></div>
+
+        <!-- For Q1-Q6: textarea -->
+        <div id="wn2-q-textarea-wrap">
+          <textarea class="wn-q-input" id="wn2-q-textarea" placeholder="Type your answer… or skip"></textarea>
+        </div>
+
+        <!-- For Q7: compliance checkboxes (hidden by default; shown for Q7 only) -->
+        <div id="wn2-q-compliance-wrap" style="display:none">
+          <div id="wn2-cmp-list"><!-- compliance items rendered at runtime --></div>
+          <button class="wn-cmp-add" onclick="wnAddCustomCompliance()">
+            <span>+</span><span>Add a regulation we missed</span>
+          </button>
+          <div class="wn-cmp-disclaimer">⚠️ These are AI suggestions for guidance only. Rules vary by location — verify with a qualified professional. We aren't lawyers.</div>
+        </div>
+      </div>
+    </div>
+    <div class="wn-actions">
+      <button class="wn-btn wn-btn-icon" onclick="wnPrevQuestion()" id="wn2-prev-btn">‹</button>
+      <button class="wn-btn wn-btn-skip" onclick="wnSkipQuestion()" id="wn2-skip-btn">Skip</button>
+      <button class="wn-btn wn-btn-next" onclick="wnNextQuestion()" id="wn2-next-btn">Next ›</button>
+    </div>
+  </div>
+
+  <!-- B. Review mode (all answers + add detail + edit) -->
+  <div id="wn2-review-mode" style="display:none;flex-direction:column;flex:1;min-height:0">
+    <div class="scroll-area" style="flex:1">
+      <div class="wn-body">
+        <div class="wn-review-title">Here's what you told me</div>
+        <div class="wn-review-sub">Edit anything, add details we missed, or continue.</div>
+        <div id="wn2-review-list"><!-- review items rendered at runtime --></div>
+        <button class="wn-add-button" onclick="wnAddCustomDetail()">
+          <span class="wn-plus">+</span><span>Add another detail to include</span>
+        </button>
+      </div>
+    </div>
+    <div class="wn-actions">
+      <button class="wn-btn wn-btn-icon" onclick="wnReviewBack()">‹</button>
+      <button class="wn-btn wn-btn-next" onclick="wnContinueFromReview()">Continue ›</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCREEN: NEW WIZARD STEP 3 — Format & Feel (AI-suggested dropdowns) ─── -->
+<div class="screen hidden" id="s-wn-3" style="display:flex;flex-direction:column">
+  <div class="app-bar">
+    <button class="icon-btn" onclick="wnGoBack(3)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div class="app-bar-title" id="wn3-title">SOP</div>
+    <div class="wn-step-badge">Step 3 of 4</div>
+  </div>
+  <div class="wn-progress">
+    <div class="wn-dot done"></div>
+    <div class="wn-dot done"></div>
+    <div class="wn-dot current"></div>
+    <div class="wn-dot"></div>
+  </div>
+  <div class="wn-step-label">Format &amp; feel</div>
+  <div class="scroll-area">
+    <div class="wn-body">
+      <h1>How should your SOP read?</h1>
+      <div class="wn-sub">We've made some smart guesses — change any if needed.</div>
+
+      <div class="wn-dd-group">
+        <div class="wn-dd-header"><span class="wn-dd-label">Who's this SOP for?</span><span class="wn-dd-ai-badge">✨ AI-suggested</span></div>
+        <div class="wn-dd" onclick="wnOpenDropdown('audience')"><span id="wn3-audience-val">My team</span><span class="wn-dd-caret">▼</span></div>
+      </div>
+
+      <div class="wn-dd-group">
+        <div class="wn-dd-header"><span class="wn-dd-label">Format style</span><span class="wn-dd-ai-badge">✨ AI-suggested</span></div>
+        <div class="wn-dd" onclick="wnOpenDropdown('format')"><span id="wn3-format-val">Step-by-step</span><span class="wn-dd-caret">▼</span></div>
+      </div>
+
+      <div class="wn-dd-group">
+        <div class="wn-dd-header"><span class="wn-dd-label">Detail level</span><span class="wn-dd-ai-badge">✨ AI-suggested</span></div>
+        <div class="wn-dd" onclick="wnOpenDropdown('detail')"><span id="wn3-detail-val">Standard procedure</span><span class="wn-dd-caret">▼</span></div>
+      </div>
+
+      <div class="wn-dd-group">
+        <div class="wn-dd-header"><span class="wn-dd-label">Tone</span><span class="wn-dd-ai-badge">✨ AI-suggested</span></div>
+        <div class="wn-dd" onclick="wnOpenDropdown('tone')"><span id="wn3-tone-val">Professional</span><span class="wn-dd-caret">▼</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="wn-actions">
+    <button class="wn-btn wn-btn-icon" onclick="wnGoBack(3)">‹</button>
+    <button class="wn-btn wn-btn-next" onclick="wnContinueFromStep3()">Continue ›</button>
+  </div>
+</div>
+
+<!-- ── SCREEN: NEW WIZARD STEP 4 — Recap + Generate ──────────────────────── -->
+<div class="screen hidden" id="s-wn-4" style="display:flex;flex-direction:column">
+  <div class="app-bar">
+    <button class="icon-btn" onclick="wnGoBack(4)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div class="app-bar-title">Almost done</div>
+    <div class="wn-step-badge">Step 4 of 4</div>
+  </div>
+  <div class="wn-progress">
+    <div class="wn-dot done"></div>
+    <div class="wn-dot done"></div>
+    <div class="wn-dot done"></div>
+    <div class="wn-dot current"></div>
+  </div>
+  <div class="wn-step-label">Ready to generate</div>
+  <div class="scroll-area">
+    <div class="wn-body">
+      <h1>Let's build your SOP</h1>
+      <div class="wn-sub">Here's what you're getting. Looks right?</div>
+      <div class="wn-recap-card">
+        <div class="wn-recap-title" id="wn4-recap-title">SOP Title</div>
+        <div class="wn-recap-desc" id="wn4-recap-desc">A practical SOP based on your answers.</div>
+        <div class="wn-recap-meta" id="wn4-recap-meta"><!-- tags rendered at runtime --></div>
+      </div>
+      <button class="primary-btn" onclick="wnGenerateNow()" id="wn4-generate-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Generate my SOP
+      </button>
+      <div class="wn-generate-foot">Takes 10–20 seconds. You can edit anything after.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCREEN: TEMPLATE FAST PATH (one-screen confirm → generate) ────────── -->
+<div class="screen hidden" id="s-tpl-fast" style="display:flex;flex-direction:column">
+  <div class="app-bar">
+    <button class="icon-btn" onclick="go('s-templates')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div class="app-bar-title">Quick SOP</div>
+    <div style="width:40px"></div>
+  </div>
+  <div class="scroll-area">
+    <div class="wn-body">
+      <h1 id="tpl-fast-headline">Ready to generate</h1>
+      <div class="wn-sub">We'll build this SOP using your business profile — no questions required.</div>
+
+      <div class="wn-tpl-banner">
+        <div class="wn-tpl-banner-title">📚 Template</div>
+        <div class="wn-tpl-banner-name" id="tpl-fast-name">—</div>
+      </div>
+
+      <div class="wn-profile-summary" id="tpl-fast-profile">
+        <!-- profile lines rendered at runtime -->
+      </div>
+
+      <div class="wn-generate-foot" style="text-align:left;font-style:italic;margin-bottom:18px">We'll use generic phrasing (e.g. "the POS system") rather than guessing specific tools. You can edit any specifics after.</div>
+    </div>
+  </div>
+  <div class="wn-actions" style="flex-direction:column;gap:10px">
+    <button class="primary-btn" onclick="tplFastGenerate()" style="width:100%">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      Generate now
+    </button>
+    <button class="wn-btn wn-btn-skip" style="width:100%" onclick="tplFastCustomize()">Customize first ›</button>
+  </div>
+</div>
+
+<!-- ── SCREEN: REWRITE FAST PATH (AI-surfaced update candidates) ─────────── -->
+<div class="screen hidden" id="s-rw-fast" style="display:flex;flex-direction:column">
+  <div class="app-bar">
+    <button class="icon-btn" onclick="go('s-upload')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div class="app-bar-title">Improve SOP</div>
+    <div style="width:40px"></div>
+  </div>
+  <div class="scroll-area">
+    <div class="wn-body">
+      <h1>Anything to update?</h1>
+      <div class="wn-sub" id="rw-fast-sub">We've read your SOP and noticed a few things that might need updating. Keep what's right, change what isn't.</div>
+
+      <div id="rw-fast-candidates"><!-- candidate checkboxes rendered at runtime --></div>
+
+      <div style="margin-top:18px">
+        <div class="wn-field-lbl">Anything else to change or address? <span style="color:var(--text2);font-weight:500;font-size:10px;text-transform:none">optional</span></div>
+        <textarea class="wn-q-input" id="rw-fast-notes" placeholder="e.g. Update names to current team · Add a section about X · Tighten up the language" style="min-height:80px"></textarea>
+      </div>
+
+      <div class="wn-cmp-disclaimer" style="margin-top:14px">AI suggestions are read from the text you provided. We don't access anything else.</div>
+    </div>
+  </div>
+  <div class="wn-actions" style="flex-direction:column;gap:10px">
+    <button class="primary-btn" onclick="rwFastImprove()" style="width:100%">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      Improve it
+    </button>
+    <button class="wn-btn wn-btn-skip" style="width:100%" onclick="rwFastCustomize()">Customize first ›</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- END NEW WIZARD MARKUP (commit 3)                                         -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+
 <!-- ════════════════════════════════════════ -->
 <!-- SCREEN: UPLOAD & REWRITE               -->
 <!-- ════════════════════════════════════════ -->
@@ -1200,7 +1548,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
   <div class="app-bar">
     <button class="icon-btn" onclick="go('s-home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
     <div class="app-bar-title">SOP Library</div>
-    <button class="icon-btn" onclick="go('s-wizard');startWizard('create')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    <button class="icon-btn" onclick="startNewWizard({sourceScreen:'s-home'})"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
   </div>
   <div class="lib-search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search SOPs…" id="lib-search-input" oninput="libSearchQuery=this.value;renderLibraryWithFolders()">
 </div>
@@ -1247,7 +1595,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
   <div class="navbar">
     <button class="nav-item" onclick="go('s-home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="nav-label">Home</span></button>
     <button class="nav-item active" onclick="go('s-library')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="nav-label">Library</span></button>
-    <button class="nav-create" onclick="go('s-wizard');startWizard('create')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    <button class="nav-create" onclick="startNewWizard({sourceScreen:'s-home'})"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
     <button class="nav-item" onclick="if(checkFeatureAccess('Upload &amp; Rewrite SOPs','📤','rewrite')){go('s-upload');}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span class="nav-label">Upload</span></button>
     <button class="nav-item" onclick="go('s-account')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="nav-label">Account</span></button>
   </div>
@@ -1566,7 +1914,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
   <div class="navbar">
     <button class="nav-item" onclick="go('s-home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="nav-label">Home</span></button>
     <button class="nav-item" onclick="go('s-library')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="nav-label">Library</span></button>
-    <button class="nav-create" onclick="go('s-wizard');startWizard('create')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    <button class="nav-create" onclick="startNewWizard({sourceScreen:'s-home'})"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
     <button class="nav-item" onclick="if(checkFeatureAccess('Upload &amp; Rewrite SOPs','📤','rewrite')){go('s-upload');}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span class="nav-label">Upload</span></button>
     <button class="nav-item active" onclick="go('s-account')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="nav-label">Account</span></button>
   </div>
@@ -1994,6 +2342,43 @@ var currentUser = null;
 var userPlanData = { plan: 'trial', sopsUsed: 0, sopsAllowed: 3, sopsThisMonth: 0, monthAnchor: '', billingCycle: 'monthly' };
 var userPlan = 'trial'; // mirror of userPlanData.plan, used in display logic
 var BACKEND_URL = 'https://soponthego-backend.onrender.com';
+
+// ════════════════════════════════════════════════════════════════════════════
+// logWizardEvent — lightweight UX instrumentation
+// ────────────────────────────────────────────────────────────────────────────
+// Posts events to BACKEND_URL + '/log-event'. Backend endpoint is being added
+// separately; until it exists this silently 404s, which is intentional — we
+// want client code ready so we can flip the switch with a backend change only.
+//
+// Usage: logWizardEvent('screen_reached', { screen: 'wiz-new-2', mode: 'create' })
+//
+// Never throws. Never blocks. Never shows the user anything. Fire-and-forget.
+// ════════════════════════════════════════════════════════════════════════════
+function logWizardEvent(eventName, props) {
+  try {
+    if(!eventName) return;
+    var payload = {
+      event: String(eventName),
+      props: props || {},
+      userId: (currentUser && currentUser.uid) ? currentUser.uid : 'anon',
+      plan: (userPlanData && userPlanData.plan) ? userPlanData.plan : 'trial',
+      ts: Date.now(),
+      sessionId: (window._wizSessionId = window._wizSessionId || (Date.now() + '-' + Math.random().toString(36).slice(2,8)))
+    };
+    // Debug log so we can see events firing during development
+    if(window._wizEventDebug) console.log('[logEvent]', eventName, props || {});
+    // Fire and forget — keepalive lets it complete even if user navigates away
+    fetch(BACKEND_URL + '/log-event', {
+      method: 'POST',
+      headers: { 'content-type':'application/json' },
+      body: JSON.stringify(payload),
+      keepalive: true
+    }).catch(function(){ /* silent */ });
+  } catch(e) { /* never let instrumentation break the app */ }
+}
+// Flip to true in console to see events during development:
+//   window._wizEventDebug = true;
+window._wizEventDebug = false;
 
 // Auth state handled inside initFirebase()
 
@@ -10245,41 +10630,14 @@ function renderTemplateList(templates, query) {
 }
 
 function selectTemplate(idVal) {
-  // Always look up by template .id (stable, unique). Callers must pass t.id,
-  // not array index. Previously this function tried to guess between array
-  // index and id, which caused the wrong template to load when array position
-  // happened to equal a different template's id (e.g. clicking "Workplace
-  // injury reporting" loaded "Gas / fuel spill response").
+  // Always look up by template .id (stable, unique). Callers must pass t.id.
   var t = TEMPLATES.find(function(x){ return x.id === idVal; });
   if(!t) return;
-  var idx = idVal; // preserve original variable used below for state tracking
-  selectedTplIdx = idx;
-  var map = {'w-title':t.name,'w-desc':t.desc||'','w-tools':t.tools||'','w-roles':t.roles||'','w-compliance':t.compliance||''};
-  Object.keys(map).forEach(function(id){
-    var el = document.getElementById(id);
-    if(el){ el.value = map[id]; }
-  });
-  // After overwriting title, refresh smart questions for the actual template
-  smartPromptQuestions = [];
-  smartPromptsGenerated = false;
-  lastFetchedTitle = '';
-  wiz.cat = t.cat; wiz.desc = t.desc||''; wiz.tools = t.tools||''; wiz.roles = t.roles||''; wiz.compliance = t.compliance||'';
-  // Toggle the matching category chip on (multi-select — don't clear others)
-  document.querySelectorAll('#cat-chips .chip').forEach(function(c){ if(c.textContent.trim()===t.cat) c.classList.add('on'); });
-  var bar = document.getElementById('selected-tpl-bar');
-  var barName = document.getElementById('selected-tpl-name');
-  var barIcon = document.getElementById('selected-tpl-icon');
-  if(bar) bar.style.display = 'flex';
-  if(barName) barName.textContent = t.name;
-  if(barIcon) barIcon.textContent = t.icon;
-  var titleEl = document.getElementById('w-title');
-  if(titleEl && titleEl.value) {
-    // Trigger full title input to generate smart questions
-    onTitleInput(titleEl.value);
-  }
-  // Flash checkmark
+  selectedTplIdx = idVal;
+  // Flash checkmark on the chosen template card
   if(tplMode==='list') renderTemplateList(TEMPLATES.filter(function(x){return x.cat===activeTplCat;}), '');
-  setTimeout(function(){ wizSourceScreen = 's-templates'; go('s-wizard'); }, 280);
+  // Route to the new template fast-path screen (one-screen confirmation → generate)
+  setTimeout(function(){ startTemplateFastPath(t); }, 280);
 }
 
 function clearTemplate() {
@@ -10602,11 +10960,9 @@ function wizNext() { wizGenerate(); }
 function momentCreate(moment) {
   if(moment === 'reactive') {
     // Stressed user — straight to wizard, blank slate, fast
-    wizSourceScreen = 's-home';
-    startWizard('create');
-    go('s-wizard');
+    startNewWizard({ sourceScreen: 's-home' });
     setTimeout(function() {
-      var titleEl = document.getElementById('w-title');
+      var titleEl = document.getElementById('wn1-title');
       if(titleEl) titleEl.focus();
       showToast('Type what happened — we\'ll build the procedure 👍');
     }, 400);
@@ -10636,17 +10992,11 @@ function momentCreate(moment) {
 }
 
 function quickCreate(title, cat) {
-  go('s-wizard');
-  startWizard('create');
-  setTimeout(function(){
-    var el = document.getElementById('w-title');
-    if(el) { el.value = title; checkOSHATrigger(title); }
-    wiz.title = title;
-    wiz.cat = cat;
-    document.querySelectorAll('#cat-chips .chip').forEach(function(c){
-      c.classList.toggle('on', c.textContent.trim() === cat);
-    });
-  }, 100);
+  startNewWizard({
+    sourceScreen: 's-home',
+    title: title || '',
+    categories: cat ? [cat] : []
+  });
 }
 
 // ── GENERATE ──────────────────────────────────────────────────────────────────
@@ -11351,6 +11701,38 @@ async function generateSOP() {
         var hint = hints[wiz.cat];
         return hint ? '\n\n## INDUSTRY LANGUAGE\n' + hint : '';
       })();
+
+  // ── NEW WIZARD HOOKS (commits 8, 9) ────────────────────────────────────
+  // 1. Generic-phrasing flag (set by template fast path) — never reference
+  //    brand-specific tools/people, even if the AI is tempted.
+  if(wiz.useGenericPhrasing) {
+    prompt += '\n\n## CRITICAL PHRASING RULE\n'
+      + 'Use GENERIC terms throughout — never name specific brand-name tools, software, '
+      + 'or people. Say "the POS system" not "Toast"; "the scheduling tool" not "Calendly"; '
+      + '"the manager" not a specific name. The user can edit specifics after generation. '
+      + 'Generic phrasing is more durable as the business grows and tools change.';
+  }
+  // 2. Rewrite mode — prepend the original SOP and the user's change instructions.
+  //    The generated output should be a rewrite of the original, not a fresh SOP.
+  if(wiz.mode === 'rewrite' && (wiz.originalText || uploadedFileText)) {
+    var originalSOP = String(wiz.originalText || uploadedFileText || '').slice(0, 12000);
+    var changeInstr = String(wiz.rewriteInstructions || 'Improve clarity, fix grammar, preserve all user-specific content.').slice(0, 2000);
+    prompt = '## REWRITE TASK\n'
+      + 'You are rewriting an EXISTING SOP per the user\'s instructions below. Do NOT create a fresh SOP from scratch — preserve the structure, all user-specific content (names, dollar amounts, tools, roles), and the intent of the original.\n\n'
+      + '## USER\'S CHANGE INSTRUCTIONS\n'
+      + changeInstr + '\n\n'
+      + '## REWRITE RULES\n'
+      + '- Apply requested changes consistently throughout — if a name changes, update every reference including pronouns and possessives.\n'
+      + '- If a threshold or amount changes, update related logic where logically connected (escalation paths, approval rules).\n'
+      + '- Preserve user-specific content where it exists — keep "Toast" if the original says "Toast"; do NOT replace with "the POS system."\n'
+      + '- Only use generic phrasing when introducing NEW content that the original didn\'t cover.\n'
+      + '- Keep the original\'s section ordering unless a change instruction explicitly says to reorder.\n'
+      + '- Fix grammar and tighten wording where needed, even if not explicitly requested.\n\n'
+      + '## ORIGINAL SOP\n'
+      + originalSOP + '\n\n'
+      + '## CONTEXT FOR REWRITE\n'
+      + prompt;
+  }
 
   try {
     // Set up cancel controller
@@ -13221,7 +13603,7 @@ function renderLibList(items) {
       + '<div class="empty-lib-icon">📂</div>'
       + '<div class="empty-lib-title">Your library is empty</div>'
       + '<div class="empty-lib-sub" style="margin-bottom:18px">SOPs you create are saved here automatically — they\'re yours forever.</div>'
-      + '<button onclick="go(\'s-wizard\');startWizard(\'create\')" style="padding:12px 22px;background:var(--accent);border:none;border-radius:20px;color:white;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:8px">'
+      + '<button onclick="startNewWizard({sourceScreen:\'s-library\'})" style="padding:12px 22px;background:var(--accent);border:none;border-radius:20px;color:white;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:8px">'
       +   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>'
       +   'Create your first SOP'
       + '</button>'
@@ -13390,10 +13772,18 @@ function rwGoStep1() {
 function rwGoStep2() {
   var sourceText = uploadedFileText || (document.getElementById('paste-text-direct') && document.getElementById('paste-text-direct').value.trim());
   if(!sourceText) { showToast('Please upload a file or paste your SOP text first'); return; }
+  // Route to the new rewrite fast path (AI surfaces update candidates).
+  // If the user picks "Customize first" from there, they'll come back to s-upload
+  // which still has the old step-2/step-3 markup intact.
+  startRewriteFastPath(sourceText);
+}
+
+// LEGACY: old step-2 navigation, kept for "Customize first" path which routes
+// back to s-upload. Callers from rw-s2 internal buttons still use this.
+function rwGoStep2Legacy() {
   document.getElementById('rw-s1').style.display = 'none';
   document.getElementById('rw-s2').style.display = '';
   setRwStep(2);
-  // Auto-scroll to top
   var scroll = document.querySelector('#s-upload .scroll-area');
   if(scroll) scroll.scrollTop = 0;
 }
@@ -13516,6 +13906,31 @@ var smartPromptsGenerated = false;
 var customTopics = [];
 var titleDebounceTimer = null;
 var lastFetchedTitle = '';
+
+// ── NEW WIZARD CONTEXT (commit 2) ────────────────────────────────────────────
+// Parallel storage for the new wizard. Old wizard keeps using smartPromptQuestions
+// untouched. New wizard reads from these new globals.
+//   wizCtx.questions          → array of 6 question strings
+//   wizCtx.compliance         → array of {name, desc} suggestion objects
+//   wizCtx.formatHints        → {audience, format, detail, tone}
+//   wizCtx.ready              → boolean — true once AI call has resolved or failed
+//   wizCtx.usedFallback       → true if we couldn't get AI suggestions
+//   wizCtx.title              → which title this context was fetched for
+var wizCtx = {
+  questions: [],
+  compliance: [],
+  formatHints: { audience:'', format:'', detail:'', tone:'' },
+  ready: false,
+  usedFallback: false,
+  title: ''
+};
+function resetWizCtx() {
+  wizCtx = {
+    questions: [], compliance: [],
+    formatHints: { audience:'', format:'', detail:'', tone:'' },
+    ready: false, usedFallback: false, title: ''
+  };
+}
 
 // ── TITLE INPUT HANDLER ───────────────────────────────────────────────────────
 function onDescInput(val) {
@@ -13810,6 +14225,1048 @@ async function prefetchSmartQuestions(title) {
   if(loadingEl) loadingEl.style.display = 'none';
   if(countEl && smartPromptQuestions.length) countEl.textContent = smartPromptQuestions.length + ' questions ready';
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// prefetchWizardContext(title) — new wizard's combined AI call (commit 2)
+// ────────────────────────────────────────────────────────────────────────────
+// Fetches 6 questions + compliance suggestions + format hints in ONE call.
+// Stores results in wizCtx for the new wizard screens to read.
+//
+// Behaviour:
+// • Sets wizCtx.ready = true when done (success or fail)
+// • On AI failure: falls back to getFallbackQuestions() and hardcoded
+//   compliance items by industry. Sets wizCtx.usedFallback = true.
+// • Uses the same _smartPromptToken pattern to ignore stale responses
+// • Retries once on network error before giving up
+//
+// Does NOT touch smartPromptQuestions (the old global). Safe to run alongside
+// the old wizard.
+// ════════════════════════════════════════════════════════════════════════════
+async function prefetchWizardContext(title) {
+  resetWizCtx();
+  wizCtx.title = title;
+
+  // Token to prevent stale responses overwriting fresh ones
+  var requestToken = Date.now() + '-' + Math.random().toString(36).slice(2,8);
+  window._wizCtxToken = requestToken;
+
+  // STEP 1 — populate fallback values immediately (instant render available)
+  var cat = wiz.cat || 'General';
+  var fallbackQs = getFallbackQuestions(title, cat);
+  wizCtx.questions = fallbackQs.slice(0, 6);
+  wizCtx.compliance = getFallbackCompliance(cat);
+  wizCtx.formatHints = getFallbackFormatHints(cat);
+  wizCtx.ready = true;
+  wizCtx.usedFallback = true; // assume fallback until AI succeeds
+
+  logWizardEvent('wiz_ctx_prefetch_started', { title: title, cat: cat });
+
+  // STEP 2 — call AI for personalized context
+  // Build the user-context block (industry, size, role, etc.)
+  var userIndustry = (profile && profile.industry) ? profile.industry : '';
+  if(!userIndustry) userIndustry = inferIndustryFromCategory(cat);
+  var userSubIndustry = (profile && profile.subIndustry) ? profile.subIndustry : '';
+  var userSize = (profile && profile.size) ? profile.size : '';
+  var userRole = (profile && profile.role) ? profile.role : '';
+  var userCompany = (profile && profile.company) ? profile.company : '';
+  var userState = (profile && profile.state) ? profile.state : '';
+
+  var industryContext = '';
+  if(userIndustry) {
+    industryContext = '\n\nUSER CONTEXT (CRITICAL — tailor everything to this):\n'
+      + '• Industry: ' + userIndustry + '\n'
+      + (userSubIndustry ? '• Business type: ' + userSubIndustry + '\n' : '')
+      + (userSize ? '• Team size: ' + userSize + '\n' : '')
+      + (userRole ? '• User role: ' + userRole + '\n' : '')
+      + (userCompany ? '• Company: ' + userCompany + '\n' : '')
+      + (userState ? '• State/region: ' + userState + '\n' : '');
+  }
+
+  // The prompt asks for a single JSON object with 3 keys: questions, compliance, formatHints.
+  // Conservative on compliance — better to under-suggest than hallucinate.
+  var prompt = 'You are a senior operations consultant helping a small business owner create an SOP.\n\n'
+    + 'SOP TITLE: "' + title + '"\n'
+    + 'CATEGORY: ' + cat
+    + industryContext + '\n\n'
+    + 'Return a SINGLE valid JSON object with exactly these 3 keys:\n\n'
+    + '1. "questions" — array of EXACTLY 6 short, targeted questions (under 12 words each).\n'
+    + '   Rules:\n'
+    + '   • Ask only what the AI cannot know: org structure, specific tools, approval thresholds, escalation contacts, who-does-what.\n'
+    + '   • NEVER ask: "What are the steps?", legal definitions, volume questions, generic descriptions.\n'
+    + '   • Every question must PERSONALIZE the SOP. If the answer is the same for any company, it is a bad question.\n'
+    + '   • Cover: WHO is responsible/approves, WHAT specific tool/system is used, WHAT triggers it, WHAT are the escalation rules, any compliance/industry-specific requirements.\n\n'
+    + '2. "compliance" — array of 2 to 4 LIKELY-RELEVANT compliance items for this SOP + industry + state.\n'
+    + '   Rules:\n'
+    + '   • Only suggest WELL-KNOWN, real regulations (OSHA, HIPAA, FDA, EPA, PCI-DSS, GDPR, FLSA, Title VII, state-specific common ones).\n'
+    + '   • Each item is an object: {"name": "Short name", "desc": "Brief description in plain language under 60 chars"}.\n'
+    + '   • Be CONSERVATIVE. If you are not confident a regulation applies, leave it out.\n'
+    + '   • Return EMPTY array [] if nothing clearly applies. Better to under-suggest than to invent.\n\n'
+    + '3. "formatHints" — object with 4 string fields suggesting how this SOP should be written:\n'
+    + '   • "audience": one of "Just me" | "My team" | "My department" | "Whole company"\n'
+    + '   • "format": one of "Step-by-step" | "Checklist" | "Role-based" | "Narrative"\n'
+    + '   • "detail": one of "Quick reference" | "Standard procedure" | "Training manual"\n'
+    + '   • "tone": one of "Formal" | "Professional" | "Plain & simple"\n'
+    + '   Pick the BEST FIT based on business size, role, and SOP topic. Examples:\n'
+    + '   • Solo plumber + safety SOP → "Just me", "Step-by-step", "Quick reference", "Plain & simple"\n'
+    + '   • Cafe with 10 staff + opening procedure → "My team", "Step-by-step", "Standard procedure", "Professional"\n'
+    + '   • HR director + harassment policy → "Whole company", "Narrative", "Training manual", "Formal"\n\n'
+    + 'Return ONLY the JSON object. No markdown, no commentary, no code fences.\n\n'
+    + 'EXAMPLE RESPONSE SHAPE:\n'
+    + '{"questions":["Q1","Q2","Q3","Q4","Q5","Q6"],"compliance":[{"name":"Local health code","desc":"Food service inspections"}],"formatHints":{"audience":"My team","format":"Step-by-step","detail":"Standard procedure","tone":"Professional"}}';
+
+  // Helper that does the actual fetch — separated so we can retry once
+  async function callAi() {
+    var resp = await fetch(BACKEND_URL + '/generate', {
+      method: 'POST',
+      headers: { 'content-type':'application/json' },
+      body: JSON.stringify({
+        systemPrompt: 'You are a senior operations consultant. You always return valid JSON objects only — no commentary, no markdown fences, just JSON.',
+        userPrompt: prompt,
+        userId: currentUser ? currentUser.uid : 'anon',
+        plan: userPlanData ? userPlanData.plan : 'trial',
+        maxTokens: 900,
+        useFastModel: true
+      })
+    });
+    var reader = resp.body ? resp.body.getReader() : null;
+    var text = '';
+    if(reader) {
+      var decoder = new TextDecoder();
+      while(true) {
+        var r = await reader.read();
+        if(r.done) break;
+        var chunk = decoder.decode(r.value, {stream:true});
+        chunk.split('\n').forEach(function(line){
+          if(line.startsWith('data: ')) {
+            try {
+              var evt = JSON.parse(line.slice(6));
+              if(evt.type === 'text' && evt.text) text += evt.text;
+              else if(evt.type === 'content_block_delta' && evt.delta && evt.delta.text) text += evt.delta.text;
+            } catch(e) {}
+          }
+        });
+      }
+    } else {
+      var data = await resp.json();
+      var block = data.content && data.content.find(function(b){return b.type==='text';});
+      text = block ? block.text.trim() : '';
+    }
+    return text;
+  }
+
+  var aiText = '';
+  try {
+    aiText = await callAi();
+  } catch(e1) {
+    // First attempt failed — retry once after a short wait
+    console.log('[wizCtx] first attempt failed, retrying:', e1.message);
+    try {
+      await new Promise(function(r){ setTimeout(r, 600); });
+      aiText = await callAi();
+    } catch(e2) {
+      console.log('[wizCtx] retry also failed, using fallback:', e2.message);
+      logWizardEvent('wiz_ctx_prefetch_failed', { reason: 'network', err: String(e2.message||'').slice(0,80) });
+      return; // fallback already in place
+    }
+  }
+
+  // Bail if this request is stale or the title changed under us
+  if(window._wizCtxToken !== requestToken) {
+    console.log('[wizCtx] stale response — ignoring');
+    return;
+  }
+
+  // Parse the JSON response
+  var parsed = null;
+  try {
+    var cleaned = String(aiText || '').replace(/```json|```/g, '').trim();
+    parsed = JSON.parse(cleaned);
+  } catch(e) {
+    console.log('[wizCtx] JSON parse failed, using fallback:', e.message);
+    logWizardEvent('wiz_ctx_prefetch_failed', { reason: 'parse', sample: String(aiText||'').slice(0,80) });
+    return; // fallback stays in place
+  }
+
+  // Validate shape — must have questions array; compliance and formatHints are optional
+  if(!parsed || !Array.isArray(parsed.questions) || parsed.questions.length === 0) {
+    console.log('[wizCtx] response missing questions, using fallback');
+    logWizardEvent('wiz_ctx_prefetch_failed', { reason: 'shape' });
+    return;
+  }
+
+  // Accept the AI's response — overwrite fallbacks
+  wizCtx.questions = parsed.questions.slice(0, 6).map(String);
+  if(Array.isArray(parsed.compliance)) {
+    wizCtx.compliance = parsed.compliance
+      .filter(function(c){ return c && c.name; })
+      .map(function(c){ return { name: String(c.name), desc: String(c.desc||'') }; })
+      .slice(0, 4);
+  }
+  if(parsed.formatHints && typeof parsed.formatHints === 'object') {
+    var fh = parsed.formatHints;
+    if(fh.audience) wizCtx.formatHints.audience = String(fh.audience);
+    if(fh.format) wizCtx.formatHints.format = String(fh.format);
+    if(fh.detail) wizCtx.formatHints.detail = String(fh.detail);
+    if(fh.tone) wizCtx.formatHints.tone = String(fh.tone);
+  }
+  wizCtx.usedFallback = false;
+  logWizardEvent('wiz_ctx_prefetch_succeeded', {
+    qCount: wizCtx.questions.length,
+    cCount: wizCtx.compliance.length,
+    hasFormatHints: !!(wizCtx.formatHints.audience || wizCtx.formatHints.format)
+  });
+}
+
+// Hardcoded compliance fallbacks by category (used when AI call fails).
+// Conservative — only well-known regulations that broadly apply.
+function getFallbackCompliance(cat) {
+  var c = String(cat || '').toLowerCase();
+  var common = []; // generic fallback if no category match
+  if(c.indexOf('safety') !== -1)        common = [{name:'OSHA general industry standards', desc:'Federal workplace safety (29 CFR 1910)'}];
+  else if(c.indexOf('hospital') !== -1 || c.indexOf('food') !== -1 || c.indexOf('restaurant') !== -1)
+    common = [{name:'FDA Food Code', desc:'Federal food safety standards'}, {name:'Local health code', desc:'County/state food service inspections'}];
+  else if(c.indexOf('health') !== -1 || c.indexOf('medical') !== -1)
+    common = [{name:'HIPAA', desc:'Protected health information privacy'}];
+  else if(c.indexOf('hr') !== -1 || c.indexOf('human') !== -1)
+    common = [{name:'Title VII', desc:'Workplace discrimination/harassment'}, {name:'FLSA', desc:'Wage and hour requirements'}];
+  else if(c.indexOf('finance') !== -1 || c.indexOf('cash') !== -1)
+    common = [{name:'PCI-DSS', desc:'Card data handling (if cards accepted)'}];
+  return common;
+}
+
+// Hardcoded format-hint fallback when AI call fails.
+// Uses team size + role from profile to pick sensible defaults.
+function getFallbackFormatHints(cat) {
+  var size = (profile && profile.size) ? String(profile.size).toLowerCase() : '';
+  var c = String(cat || '').toLowerCase();
+  // Audience: solo → Just me; small team → My team; bigger → My department
+  var audience = 'My team';
+  if(size.indexOf('just me') !== -1 || size.indexOf('1') === 0 || size === '1' || size === 'solo') audience = 'Just me';
+  else if(size.indexOf('50') !== -1 || size.indexOf('100') !== -1 || size.indexOf('large') !== -1) audience = 'My department';
+  // Format: HR/policy → narrative; everything else → step-by-step
+  var format = 'Step-by-step';
+  if(c.indexOf('hr') !== -1 || c.indexOf('policy') !== -1) format = 'Narrative';
+  // Detail: default standard
+  var detail = 'Standard procedure';
+  // Tone: HR/legal → formal; trades/retail/food → plain or professional
+  var tone = 'Professional';
+  if(c.indexOf('hr') !== -1 || c.indexOf('legal') !== -1) tone = 'Formal';
+  else if(c.indexOf('hospital') !== -1 || c.indexOf('food') !== -1 || c.indexOf('retail') !== -1 || c.indexOf('trade') !== -1) tone = 'Plain & simple';
+  return { audience: audience, format: format, detail: detail, tone: tone };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// NEW WIZARD (commits 4–10) — state, rendering, navigation, fast paths
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── State: new wizard's universe (separate from old `wiz` to avoid breaking the
+//    existing flow). At Generate time we map wn → wiz and call generateSOP().
+var wn = null;
+function wnReset() {
+  wn = {
+    mode: 'create',           // 'create' | 'template' | 'rewrite'
+    sourceScreen: 's-home',   // where to go on cancel/back-from-step-1
+    title: '',
+    categories: [],           // array of strings, multi-select
+    qIndex: 0,                // current question 0..6 (Q1..Q7); 7 = review
+    answers: ['','','','','','',''],   // text answers for Q1..Q6 (idx 6 unused for textarea Q7)
+    skipped: [false, false, false, false, false, false, false],
+    visited: [true, false, false, false, false, false, false],
+    complianceSelections: [], // array of {name, desc} that user has checked on Q7
+    customCompliance: [],     // user-added strings on Q7
+    customDetails: [],        // "+ Add another detail" entries on review screen
+    editingFromReview: false, // true if user is editing a Q from the review screen
+    format: { audience: 'My team', formatStyle: 'Step-by-step', detail: 'Standard procedure', tone: 'Professional' },
+    templateData: null,       // template object if mode === 'template' and they tapped Customize first
+    rewriteText: '',          // original text if mode === 'rewrite'
+    rewriteCandidates: [],    // [{value, context, checked, newValue}]
+    rewriteNotes: ''
+  };
+}
+
+// ── 1. Entry point — called when user taps "Create your own SOP" anywhere.
+// Routes to the new wizard, hides the old s-wizard noise behind the scenes.
+function startNewWizard(opts) {
+  opts = opts || {};
+  wnReset();
+  wn.mode = opts.mode || 'create';
+  wn.sourceScreen = opts.sourceScreen || 's-home';
+  if(opts.title) wn.title = opts.title;
+  if(opts.categories) wn.categories = opts.categories.slice();
+  if(opts.templateData) wn.templateData = opts.templateData;
+  // Also reset legacy wiz so any old-wizard code that reads it doesn't get stale state
+  try {
+    wiz = { step:1, mode: wn.mode, title:'', cat:'', freq:'', desc:'', tools:'', roles:'', compliance:'', audience:'', format:'Step-by-step', detail:'Standard procedure', tone:'Professional', rewriteType:'' };
+  } catch(e) {}
+  logWizardEvent('wizard_entered', { mode: wn.mode, fromTemplate: !!opts.templateData });
+  // Populate step 1
+  wnRenderStep1();
+  go('s-wn-1');
+  logWizardEvent('screen_reached', { screen: 's-wn-1' });
+}
+
+// ── STEP 1 ─────────────────────────────────────────────────────────────────
+function wnRenderStep1() {
+  // Title input
+  var titleEl = document.getElementById('wn1-title');
+  if(titleEl) titleEl.value = wn.title || '';
+  // Template banner (only if a template fed us)
+  var banner = document.getElementById('wn1-tpl-banner');
+  var bannerName = document.getElementById('wn1-tpl-name');
+  if(wn.templateData && banner && bannerName) {
+    banner.style.display = '';
+    bannerName.textContent = wn.templateData.name || 'Template';
+  } else if(banner) {
+    banner.style.display = 'none';
+  }
+  // Sub-text varies by mode
+  var sub = document.getElementById('wn1-sub');
+  if(sub) {
+    if(wn.templateData) sub.textContent = 'We started this from a template — review and continue.';
+    else sub.textContent = 'Describe what you want to document.';
+  }
+  // Category chips — build from canonical list, mark any pre-selected
+  var chipWrap = document.getElementById('wn1-cat-chips');
+  if(chipWrap) {
+    var cats = ['HR','Safety','Operations','Finance','Customer Service','Sales','IT','Marketing','Healthcare','Construction','Legal','Hospitality','Other'];
+    chipWrap.innerHTML = cats.map(function(c){
+      var on = wn.categories.indexOf(c) !== -1 ? ' on' : '';
+      return '<div class="chip' + on + '" onclick="wnToggleCategory(this, \'' + c.replace(/'/g, "\\'") + '\')">' + c + '</div>';
+    }).join('');
+  }
+  // Wire title input to enable/disable Continue button
+  if(titleEl) {
+    titleEl.oninput = function() { wn.title = this.value; wnUpdateStep1Continue(); };
+  }
+  wnUpdateStep1Continue();
+}
+function wnToggleCategory(el, cat) {
+  var idx = wn.categories.indexOf(cat);
+  if(idx === -1) { wn.categories.push(cat); el.classList.add('on'); }
+  else { wn.categories.splice(idx, 1); el.classList.remove('on'); }
+  wnUpdateStep1Continue();
+}
+function wnUpdateStep1Continue() {
+  var btn = document.getElementById('wn1-continue');
+  if(!btn) return;
+  var ok = !!(wn.title && wn.title.trim()) && wn.categories.length > 0;
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '1' : '.5';
+}
+async function wnContinueFromStep1() {
+  if(!wn.title || !wn.categories.length) return;
+  logWizardEvent('screen_completed', { screen: 's-wn-1' });
+  // Trigger AI prefetch (questions + compliance + format hints). Don't await it —
+  // user can already start filling answers; fallback is in place from t=0.
+  try {
+    // Set wiz.cat so prefetchWizardContext can reference it (it uses wiz.cat to infer industry)
+    wiz.cat = wn.categories[0] || '';
+    prefetchWizardContext(wn.title);
+  } catch(e) {}
+  // Move to step 2
+  go('s-wn-2');
+  logWizardEvent('screen_reached', { screen: 's-wn-2' });
+  // Set step 2 title to the SOP title
+  var t = document.getElementById('wn2-title');
+  if(t) t.textContent = wn.title.length > 30 ? wn.title.slice(0,28)+'…' : wn.title;
+  // Render Q1 immediately using fallback while AI loads
+  wn.qIndex = 0;
+  wn.visited[0] = true;
+  wnRenderQuestion();
+}
+
+// ── STEP 2: Question flow ──────────────────────────────────────────────────
+function wnRenderQuestion() {
+  // Make sure we're in question mode (not review mode)
+  var qMode = document.getElementById('wn2-question-mode');
+  var rMode = document.getElementById('wn2-review-mode');
+  if(qMode) qMode.style.display = 'flex';
+  if(rMode) rMode.style.display = 'none';
+
+  // Render pill bar
+  wnRenderPills();
+
+  var idx = wn.qIndex;
+  var stepLabel = document.getElementById('wn2-step-label');
+  var qNum = document.getElementById('wn2-q-num');
+  var qText = document.getElementById('wn2-q-text');
+  var qHint = document.getElementById('wn2-q-hint');
+  var taWrap = document.getElementById('wn2-q-textarea-wrap');
+  var cmpWrap = document.getElementById('wn2-q-compliance-wrap');
+  var ta = document.getElementById('wn2-q-textarea');
+  var nextBtn = document.getElementById('wn2-next-btn');
+
+  if(qNum) qNum.textContent = 'Question ' + (idx + 1) + ' of 7' + (idx === 6 ? ' · Compliance' : '');
+
+  if(idx < 6) {
+    // Textarea question (Q1-Q6)
+    if(taWrap) taWrap.style.display = '';
+    if(cmpWrap) cmpWrap.style.display = 'none';
+    if(stepLabel) stepLabel.textContent = 'Tell us about your operation';
+    var q = (wizCtx.questions && wizCtx.questions[idx]) || 'Tell us about this step.';
+    if(qText) qText.textContent = q;
+    if(qHint) qHint.textContent = 'Skip if it doesn\'t apply.';
+    if(ta) {
+      ta.value = wn.answers[idx] || '';
+      ta.oninput = function() { wn.answers[idx] = this.value; };
+      // Focus textarea on mobile so keyboard opens immediately
+      setTimeout(function(){ if(ta && document.body.contains(ta)) ta.focus(); }, 100);
+    }
+    // Next button label
+    if(nextBtn) {
+      nextBtn.textContent = (idx === 5) ? 'Next ›' : 'Next ›';
+      nextBtn.classList.remove('green');
+    }
+    // Skip button — standard label on Q1-Q6
+    var skipBtnQ = document.getElementById('wn2-skip-btn');
+    if(skipBtnQ) skipBtnQ.textContent = 'Skip';
+    // Pill tip — generic on Q1-Q6
+    var tipQ = document.getElementById('wn2-pill-tip');
+    if(tipQ) tipQ.textContent = 'Tap any number above to revisit · Skip what doesn\'t apply';
+  } else {
+    // Compliance question (Q7)
+    if(taWrap) taWrap.style.display = 'none';
+    if(cmpWrap) cmpWrap.style.display = '';
+    if(stepLabel) stepLabel.textContent = 'Compliance';
+    if(qText) qText.textContent = 'Any rules or regulations to mention?';
+    if(qHint) qHint.textContent = 'We\'ve suggested likely ones — keep what applies, remove what doesn\'t.';
+    wnRenderComplianceList();
+    if(nextBtn) {
+      nextBtn.textContent = 'Review ›';
+      nextBtn.classList.add('green');
+    }
+    // Skip button on Q7 reads more naturally as "None apply"
+    var skipBtnC = document.getElementById('wn2-skip-btn');
+    if(skipBtnC) skipBtnC.textContent = 'None apply';
+    // Pill tip — Q7-specific, doesn't repeat the "skip what doesn't apply"
+    // language since the checkboxes already do that
+    var tipC = document.getElementById('wn2-pill-tip');
+    if(tipC) tipC.textContent = 'Tap any number above to revisit a previous answer';
+  }
+
+  // Prev button hidden on Q1
+  var prevBtn = document.getElementById('wn2-prev-btn');
+  if(prevBtn) prevBtn.style.visibility = (idx === 0) ? 'hidden' : 'visible';
+
+  logWizardEvent('question_shown', { idx: idx, fromAI: !wizCtx.usedFallback });
+}
+function wnRenderPills() {
+  var wrap = document.getElementById('wn2-pills');
+  if(!wrap) return;
+  var html = '';
+  for(var i = 0; i < 7; i++) {
+    var state = 'locked';
+    if(i === wn.qIndex) state = 'current';
+    else if(wn.visited[i] && wn.skipped[i]) state = 'skipped';
+    else if(wn.visited[i] && wnHasAnswer(i)) state = 'done';
+    else if(wn.visited[i]) state = 'skipped'; // visited but blank = skipped
+    var label;
+    if(state === 'done') label = '<svg viewBox="0 0 14 14" fill="none" style="width:13px;height:13px"><polyline points="2.5,7.5 6,11 11.5,3.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    else if(state === 'skipped') label = '—';
+    else label = String(i + 1);
+    var tappable = (state === 'done' || state === 'skipped') ? ' tappable' : '';
+    var click = (state === 'done' || state === 'skipped') ? ' onclick="wnJumpToQuestion(' + i + ')"' : '';
+    html += '<div class="wn-pill ' + state + tappable + '"' + click + '>' + label + '</div>';
+  }
+  wrap.innerHTML = html;
+}
+function wnHasAnswer(idx) {
+  if(idx < 6) return !!(wn.answers[idx] && wn.answers[idx].trim());
+  // Q7: has compliance selections or custom items
+  return (wn.complianceSelections && wn.complianceSelections.length > 0) || (wn.customCompliance && wn.customCompliance.length > 0);
+}
+function wnJumpToQuestion(idx) {
+  if(!wn.visited[idx]) return; // can only jump back to visited questions
+  logWizardEvent('pill_jumped', { from: wn.qIndex, to: idx });
+  // Save current answer first
+  wnCaptureCurrentAnswer();
+  wn.qIndex = idx;
+  wnRenderQuestion();
+}
+function wnCaptureCurrentAnswer() {
+  if(wn.qIndex < 6) {
+    var ta = document.getElementById('wn2-q-textarea');
+    if(ta) wn.answers[wn.qIndex] = ta.value;
+  }
+  // Q7 captures via checkbox toggle, no action needed here
+}
+function wnNextQuestion() {
+  wnCaptureCurrentAnswer();
+  var idx = wn.qIndex;
+  // Mark as not-skipped if has content
+  if(idx < 6) {
+    if(wnHasAnswer(idx)) wn.skipped[idx] = false;
+    logWizardEvent('question_answered', { idx: idx, len: (wn.answers[idx] || '').length });
+  } else {
+    logWizardEvent('question_answered', { idx: idx, complianceCount: wn.complianceSelections.length, customCount: wn.customCompliance.length });
+  }
+  if(wn.editingFromReview) {
+    // Edit from review — go straight back to review
+    wn.editingFromReview = false;
+    wnEnterReviewMode();
+    return;
+  }
+  if(idx >= 6) {
+    // Q7 → go to review
+    wnEnterReviewMode();
+    return;
+  }
+  // Advance
+  wn.qIndex = idx + 1;
+  wn.visited[wn.qIndex] = true;
+  wnRenderQuestion();
+}
+function wnSkipQuestion() {
+  wnCaptureCurrentAnswer();
+  var idx = wn.qIndex;
+  if(idx < 6) {
+    // Mark as skipped regardless of content (user explicitly chose to skip)
+    wn.answers[idx] = '';
+    wn.skipped[idx] = true;
+  } else {
+    // Q7 skip — clear all selections
+    wn.complianceSelections = [];
+    wn.customCompliance = [];
+    wn.skipped[6] = true;
+  }
+  logWizardEvent('question_skipped', { idx: idx });
+  if(wn.editingFromReview) {
+    wn.editingFromReview = false;
+    wnEnterReviewMode();
+    return;
+  }
+  if(idx >= 6) {
+    wnEnterReviewMode();
+    return;
+  }
+  wn.qIndex = idx + 1;
+  wn.visited[wn.qIndex] = true;
+  wnRenderQuestion();
+}
+function wnPrevQuestion() {
+  if(wn.qIndex === 0) return;
+  wnCaptureCurrentAnswer();
+  wn.qIndex--;
+  wnRenderQuestion();
+}
+
+// ── Q7: Compliance checkboxes ─────────────────────────────────────────────
+function wnRenderComplianceList() {
+  var listEl = document.getElementById('wn2-cmp-list');
+  if(!listEl) return;
+  var items = (wizCtx.compliance || []).slice();
+  if(!items.length) {
+    listEl.innerHTML = '<div style="font-size:12px;color:var(--text2);padding:8px 0">No specific compliance suggestions for this SOP. Add anything that applies below.</div>';
+  } else {
+    listEl.innerHTML = items.map(function(item, i) {
+      var checked = wn.complianceSelections.some(function(s){ return s.name === item.name; });
+      var checkInner = checked ? '<svg viewBox="0 0 14 14" fill="none" style="width:12px;height:12px"><polyline points="2.5,7.5 6,11 11.5,3.5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '';
+      return '<div class="wn-cmp-box ' + (checked ? 'on' : '') + '" onclick="wnToggleCompliance(' + i + ')">'
+        + '<div class="wn-cmp-check ' + (checked ? 'on' : '') + '">' + checkInner + '</div>'
+        + '<div style="flex:1;min-width:0">'
+        + '  <div class="wn-cmp-name">' + esc(item.name) + '</div>'
+        + (item.desc ? '  <div class="wn-cmp-desc">' + esc(item.desc) + '</div>' : '')
+        + '</div></div>';
+    }).join('');
+  }
+  // Also render any custom additions
+  if(wn.customCompliance && wn.customCompliance.length) {
+    listEl.innerHTML += wn.customCompliance.map(function(c, i) {
+      return '<div class="wn-cmp-box on">'
+        + '<div class="wn-cmp-check on"><svg viewBox="0 0 14 14" fill="none" style="width:12px;height:12px"><polyline points="2.5,7.5 6,11 11.5,3.5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>'
+        + '<div style="flex:1;min-width:0">'
+        + '  <div class="wn-cmp-name">' + esc(c) + '</div>'
+        + '  <div class="wn-cmp-desc">Added by you</div>'
+        + '</div>'
+        + '<button onclick="event.stopPropagation();wnRemoveCustomCompliance(' + i + ')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:0 4px">×</button>'
+        + '</div>';
+    }).join('');
+  }
+}
+function wnToggleCompliance(idx) {
+  var item = (wizCtx.compliance || [])[idx];
+  if(!item) return;
+  var existingIdx = wn.complianceSelections.findIndex(function(s){ return s.name === item.name; });
+  if(existingIdx === -1) wn.complianceSelections.push(item);
+  else wn.complianceSelections.splice(existingIdx, 1);
+  wn.skipped[6] = false;
+  wnRenderComplianceList();
+}
+function wnAddCustomCompliance() {
+  var v = prompt('Regulation name (e.g. "Local fire code"):');
+  if(!v) return;
+  v = String(v).trim();
+  if(!v) return;
+  wn.customCompliance.push(v);
+  wn.skipped[6] = false;
+  wnRenderComplianceList();
+  logWizardEvent('compliance_custom_added', { len: v.length });
+}
+function wnRemoveCustomCompliance(idx) {
+  wn.customCompliance.splice(idx, 1);
+  wnRenderComplianceList();
+}
+
+// ── Review screen ─────────────────────────────────────────────────────────
+function wnEnterReviewMode() {
+  var qMode = document.getElementById('wn2-question-mode');
+  var rMode = document.getElementById('wn2-review-mode');
+  if(qMode) qMode.style.display = 'none';
+  if(rMode) rMode.style.display = 'flex';
+  wnRenderReviewList();
+  logWizardEvent('screen_reached', { screen: 'wn2-review' });
+}
+function wnRenderReviewList() {
+  var listEl = document.getElementById('wn2-review-list');
+  if(!listEl) return;
+  var html = '';
+  for(var i = 0; i < 7; i++) {
+    var hasAns = wnHasAnswer(i);
+    var numClass = hasAns ? 'done' : 'skip';
+    var numContent = hasAns ? String(i + 1) : '—';
+    var qText, aText;
+    if(i < 6) {
+      qText = (wizCtx.questions && wizCtx.questions[i]) || 'Question ' + (i+1);
+      aText = hasAns ? wn.answers[i] : 'Skipped';
+    } else {
+      qText = 'Compliance & regulations';
+      if(hasAns) {
+        var names = wn.complianceSelections.map(function(s){ return s.name; }).concat(wn.customCompliance);
+        aText = names.join(' · ');
+      } else {
+        aText = 'Skipped';
+      }
+    }
+    var aClass = hasAns ? '' : 'skipped';
+    html += '<div class="wn-review-item">'
+      + '<div class="wn-review-num ' + numClass + '">' + numContent + '</div>'
+      + '<div style="flex:1;min-width:0">'
+      + '  <div class="wn-review-q">' + esc(qText) + '</div>'
+      + '  <div class="wn-review-a ' + aClass + '">' + esc(aText) + '</div>'
+      + '</div>'
+      + '<button class="wn-review-edit" onclick="wnEditFromReview(' + i + ')">Edit</button>'
+      + '</div>';
+  }
+  // Custom details
+  (wn.customDetails || []).forEach(function(d, i) {
+    html += '<div class="wn-review-item custom-item">'
+      + '<div class="wn-review-num custom">+</div>'
+      + '<div style="flex:1;min-width:0">'
+      + '  <div class="wn-review-q custom-label">Your addition</div>'
+      + '  <div class="wn-review-a">' + esc(d) + '</div>'
+      + '</div>'
+      + '<button class="wn-review-edit" onclick="wnEditCustomDetail(' + i + ')">Edit</button>'
+      + '</div>';
+  });
+  listEl.innerHTML = html;
+}
+function wnEditFromReview(qIdx) {
+  logWizardEvent('review_edit_clicked', { idx: qIdx });
+  wn.editingFromReview = true;
+  wn.qIndex = qIdx;
+  wn.visited[qIdx] = true;
+  wnRenderQuestion();
+}
+function wnAddCustomDetail() {
+  var v = prompt('What else should this SOP cover?');
+  if(!v) return;
+  v = String(v).trim();
+  if(!v) return;
+  wn.customDetails.push(v);
+  logWizardEvent('add_detail_clicked', { len: v.length });
+  wnRenderReviewList();
+}
+function wnEditCustomDetail(i) {
+  var current = wn.customDetails[i] || '';
+  var v = prompt('Edit this detail:', current);
+  if(v === null) return;
+  v = String(v).trim();
+  if(!v) { wn.customDetails.splice(i, 1); }
+  else { wn.customDetails[i] = v; }
+  wnRenderReviewList();
+}
+function wnReviewBack() {
+  // Going "back" from review = return to Q7
+  wn.qIndex = 6;
+  wnRenderQuestion();
+}
+function wnContinueFromReview() {
+  logWizardEvent('screen_completed', { screen: 'wn2-review' });
+  // Apply AI format hints (if available) to wn.format
+  if(wizCtx.formatHints) {
+    if(wizCtx.formatHints.audience) wn.format.audience = wizCtx.formatHints.audience;
+    if(wizCtx.formatHints.format) wn.format.formatStyle = wizCtx.formatHints.format;
+    if(wizCtx.formatHints.detail) wn.format.detail = wizCtx.formatHints.detail;
+    if(wizCtx.formatHints.tone) wn.format.tone = wizCtx.formatHints.tone;
+  }
+  go('s-wn-3');
+  logWizardEvent('screen_reached', { screen: 's-wn-3' });
+  wnRenderStep3();
+}
+
+// ── STEP 3: Format & Feel ──────────────────────────────────────────────────
+function wnRenderStep3() {
+  var t = document.getElementById('wn3-title');
+  if(t) t.textContent = wn.title.length > 30 ? wn.title.slice(0,28)+'…' : wn.title;
+  document.getElementById('wn3-audience-val').textContent = wn.format.audience || 'My team';
+  document.getElementById('wn3-format-val').textContent = wn.format.formatStyle || 'Step-by-step';
+  document.getElementById('wn3-detail-val').textContent = wn.format.detail || 'Standard procedure';
+  document.getElementById('wn3-tone-val').textContent = wn.format.tone || 'Professional';
+}
+function wnOpenDropdown(which) {
+  // Simple OS-friendly dropdown via window.prompt (works on all platforms; not pretty
+  // but ships v1 — replace with custom UI in a later pass).
+  var options, current, key;
+  if(which === 'audience') {
+    options = ['Just me','My team','My department','Whole company'];
+    current = wn.format.audience;
+    key = 'audience';
+  } else if(which === 'format') {
+    options = ['Step-by-step','Checklist','Role-based','Narrative'];
+    current = wn.format.formatStyle;
+    key = 'formatStyle';
+  } else if(which === 'detail') {
+    options = ['Quick reference','Standard procedure','Training manual'];
+    current = wn.format.detail;
+    key = 'detail';
+  } else if(which === 'tone') {
+    options = ['Formal','Professional','Plain & simple'];
+    current = wn.format.tone;
+    key = 'tone';
+  } else return;
+  var msg = 'Choose ' + which + ':\n\n' + options.map(function(o,i){ return (i+1) + '. ' + o + (o === current ? ' (current)' : ''); }).join('\n') + '\n\nEnter number (1-' + options.length + '):';
+  var v = prompt(msg, options.indexOf(current) + 1);
+  if(!v) return;
+  var n = parseInt(v, 10);
+  if(isNaN(n) || n < 1 || n > options.length) return;
+  wn.format[key] = options[n - 1];
+  wnRenderStep3();
+  logWizardEvent('dropdown_changed', { key: which, value: wn.format[key] });
+}
+function wnContinueFromStep3() {
+  logWizardEvent('screen_completed', { screen: 's-wn-3' });
+  go('s-wn-4');
+  logWizardEvent('screen_reached', { screen: 's-wn-4' });
+  wnRenderStep4();
+}
+
+// ── STEP 4: Recap + Generate ───────────────────────────────────────────────
+function wnRenderStep4() {
+  document.getElementById('wn4-recap-title').textContent = wn.title;
+  var aCount = wn.answers.filter(function(a, i){ return i < 6 && a && a.trim(); }).length;
+  var hasCmp = wn.complianceSelections.length > 0 || wn.customCompliance.length > 0;
+  var cmpCount = wn.complianceSelections.length + wn.customCompliance.length;
+  var detCount = (wn.customDetails || []).length;
+  // Build the answers-count phrase: read naturally for 0, 1, or many
+  var answerPhrase;
+  if(aCount === 0) answerPhrase = 'based on your business profile';
+  else if(aCount === 1) answerPhrase = 'with 1 answered question';
+  else answerPhrase = 'with ' + aCount + ' answered questions';
+  var detail = 'A ' + wn.format.formatStyle.toLowerCase() + ' SOP for ' + wn.format.audience.toLowerCase()
+    + ', written in a ' + wn.format.tone.toLowerCase() + ' tone, ' + answerPhrase
+    + (hasCmp ? ' and ' + cmpCount + ' compliance item' + (cmpCount === 1 ? '' : 's') : '')
+    + (detCount ? ' plus ' + detCount + ' added detail' + (detCount === 1 ? '' : 's') : '') + '.';
+  document.getElementById('wn4-recap-desc').textContent = detail;
+  var meta = document.getElementById('wn4-recap-meta');
+  if(meta) {
+    var tags = [
+      {l:'Category', v: wn.categories.join(', ')},
+      {l:'For', v: wn.format.audience},
+      {l:'Format', v: wn.format.formatStyle},
+      {l:'Compliance', v: cmpCount + ' item' + (cmpCount === 1 ? '' : 's')}
+    ];
+    meta.innerHTML = tags.map(function(t){
+      return '<div class="wn-recap-tag"><span class="wn-lbl-sm">' + t.l + ':</span>' + esc(t.v) + '</div>';
+    }).join('');
+  }
+}
+function wnGenerateNow() {
+  logWizardEvent('generate_clicked', { mode: wn.mode });
+  // Map wn → wiz so the existing generateSOP() can consume it unchanged
+  wiz.title = wn.title;
+  wiz.cat = wn.categories.join(', ');
+  wiz.audience = wn.format.audience;
+  wiz.format = wn.format.formatStyle;
+  wiz.detail = wn.format.detail;
+  wiz.tone = wn.format.tone;
+  // Build a synthesized desc that captures all the answers, custom details, and compliance
+  // The existing generateSOP() reads wiz.desc as the user's main narrative — we stuff
+  // our structured Q&A into it so the AI gets full context.
+  var descLines = [];
+  for(var i = 0; i < 6; i++) {
+    var q = (wizCtx.questions && wizCtx.questions[i]) || ('Question ' + (i+1));
+    var a = wn.answers[i];
+    if(a && a.trim()) descLines.push('Q: ' + q + '\nA: ' + a.trim());
+  }
+  if(wn.complianceSelections.length || wn.customCompliance.length) {
+    var cmp = wn.complianceSelections.map(function(s){ return s.name; }).concat(wn.customCompliance);
+    descLines.push('Compliance: ' + cmp.join(', '));
+  }
+  (wn.customDetails || []).forEach(function(d){ descLines.push('Additional detail: ' + d); });
+  wiz.desc = descLines.join('\n\n');
+  // Stuff template data into wiz.tools/roles/compliance if it came from a template
+  if(wn.templateData) {
+    if(!wiz.tools && wn.templateData.tools) wiz.tools = wn.templateData.tools;
+    if(!wiz.roles && wn.templateData.roles) wiz.roles = wn.templateData.roles;
+    if(!wiz.compliance && wn.templateData.compliance) wiz.compliance = wn.templateData.compliance;
+  }
+  // Hand off to existing generateSOP — it shows s-gen and routes to s-output
+  try {
+    generateSOP();
+  } catch(e) {
+    console.error('generateSOP failed:', e);
+    showToast('Something went wrong. Please try again.');
+  }
+}
+
+// ── Back navigation across the new wizard ──────────────────────────────────
+function wnGoBack(fromStep) {
+  if(fromStep === 1) {
+    // Back from step 1 = leave wizard entirely
+    logWizardEvent('wizard_abandoned', { lastScreen: 's-wn-1' });
+    go(wn.sourceScreen || 's-home');
+    return;
+  }
+  if(fromStep === 2) {
+    // From step 2: if in review mode, go back to Q7; otherwise go to step 1
+    var rMode = document.getElementById('wn2-review-mode');
+    if(rMode && rMode.style.display === 'flex') { wnReviewBack(); return; }
+    go('s-wn-1');
+    logWizardEvent('screen_reached', { screen: 's-wn-1' });
+    return;
+  }
+  if(fromStep === 3) { go('s-wn-2'); wnEnterReviewMode(); return; }
+  if(fromStep === 4) { go('s-wn-3'); wnRenderStep3(); return; }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TEMPLATE FAST PATH (commit 8)
+// ════════════════════════════════════════════════════════════════════════════
+var tplFastSelected = null; // holds the template object during the fast-path
+function startTemplateFastPath(template) {
+  if(!template) return;
+  tplFastSelected = template;
+  logWizardEvent('wizard_entered', { mode: 'template', fromTemplate: true, templateId: template.id });
+  // Populate the screen
+  document.getElementById('tpl-fast-name').textContent = template.name;
+  document.getElementById('tpl-fast-headline').textContent = 'Ready to generate';
+  // Profile summary
+  var lines = [];
+  if(profile.company) lines.push({l:'Business', v: profile.company});
+  if(profile.industry) lines.push({l:'Industry', v: profile.industry + (profile.subIndustry ? ' · ' + profile.subIndustry : '')});
+  if(profile.size) lines.push({l:'Team size', v: profile.size});
+  if(profile.role) lines.push({l:'Your role', v: profile.role});
+  if(profile.state || profile.city) lines.push({l:'Location', v: [profile.city, profile.state].filter(Boolean).join(', ')});
+  if(!lines.length) lines.push({l:'Profile', v: 'Complete your profile in Account for better results'});
+  var profEl = document.getElementById('tpl-fast-profile');
+  if(profEl) {
+    profEl.innerHTML = lines.map(function(L){
+      return '<div class="wn-profile-line"><span class="wn-profile-lbl">' + esc(L.l) + '</span><span class="wn-profile-val">' + esc(L.v) + '</span></div>';
+    }).join('');
+  }
+  go('s-tpl-fast');
+  logWizardEvent('screen_reached', { screen: 's-tpl-fast' });
+}
+function tplFastGenerate() {
+  if(!tplFastSelected) return;
+  logWizardEvent('generate_clicked', { mode: 'template' });
+  // Map template data into wiz directly, no question flow needed
+  var t = tplFastSelected;
+  wiz = {
+    step: 5, mode: 'create', title: t.name, cat: t.cat || 'Operations',
+    freq: '', desc: t.desc || '', tools: t.tools || '', roles: t.roles || '',
+    compliance: t.compliance || '', audience: '',
+    format: 'Step-by-step', detail: 'Standard procedure', tone: 'Professional',
+    rewriteType: '',
+    // FLAG: tells generateSOP to use generic phrasing (no "Toast" — say "the POS system")
+    useGenericPhrasing: true
+  };
+  // Infer format from profile
+  var fh = getFallbackFormatHints(t.cat || '');
+  wiz.audience = fh.audience;
+  wiz.format = fh.format;
+  wiz.detail = fh.detail;
+  wiz.tone = fh.tone;
+  try {
+    generateSOP();
+  } catch(e) {
+    console.error('tplFastGenerate failed:', e);
+    showToast('Something went wrong. Please try again.');
+  }
+}
+function tplFastCustomize() {
+  if(!tplFastSelected) return;
+  logWizardEvent('template_fast_customize_clicked', { templateId: tplFastSelected.id });
+  // Hand off to the new wizard with template data fed as context
+  startNewWizard({
+    mode: 'create',
+    sourceScreen: 's-templates',
+    title: tplFastSelected.name,
+    categories: tplFastSelected.cat ? [tplFastSelected.cat] : [],
+    templateData: tplFastSelected
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// REWRITE FAST PATH (commit 9)
+// ════════════════════════════════════════════════════════════════════════════
+async function startRewriteFastPath(text) {
+  if(!text || !text.trim()) { showToast('Please add some text first.'); return; }
+  wn = wn || {};
+  wn.mode = 'rewrite';
+  wn.rewriteText = text;
+  wn.rewriteCandidates = [];
+  wn.rewriteNotes = '';
+  logWizardEvent('wizard_entered', { mode: 'rewrite', textLen: text.length });
+  go('s-rw-fast');
+  // Show loading state while we get candidates
+  var candWrap = document.getElementById('rw-fast-candidates');
+  if(candWrap) candWrap.innerHTML = '<div style="font-size:13px;color:var(--text2);padding:14px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;text-align:center">Reading your SOP…</div>';
+  // Async fetch candidates
+  try {
+    var candidates = await fetchRewriteCandidates(text);
+    wn.rewriteCandidates = candidates;
+    rwFastRenderCandidates();
+    logWizardEvent('rewrite_candidates_loaded', { count: candidates.length });
+  } catch(e) {
+    console.log('Rewrite candidate fetch failed:', e);
+    if(candWrap) candWrap.innerHTML = '<div style="font-size:13px;color:var(--text2);padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:10px">No specific candidates surfaced — use the box below to describe what to change.</div>';
+    logWizardEvent('rewrite_candidates_failed');
+  }
+}
+async function fetchRewriteCandidates(text) {
+  var trimmed = String(text).slice(0, 8000); // cap to keep token budget reasonable
+  var prompt = 'You are analyzing an existing SOP that a user wants to update. Identify SPECIFIC items that are most likely to need updating: named people, specific dollar amounts, specific dates or timeframes, specific tool/software names, specific role titles tied to specific people.\n\n'
+    + 'DO NOT surface: general formatting, section ordering, language tone, general structure.\n\n'
+    + 'Return ONLY a valid JSON array of up to 5 candidate objects. Each object has:\n'
+    + '  "value": the exact value as it appears in the SOP (e.g. "Sarah", "$200", "Toast", "Net 30")\n'
+    + '  "context": the surrounding sentence (max 80 chars) so the user can verify\n'
+    + '  "type": one of "person" | "amount" | "date" | "tool" | "role"\n\n'
+    + 'Be CONSERVATIVE — better to surface 2 great candidates than 5 mediocre ones. Return [] if nothing clearly stands out.\n\n'
+    + 'SOP TEXT:\n' + trimmed;
+  var resp = await fetch(BACKEND_URL + '/generate', {
+    method: 'POST',
+    headers: { 'content-type':'application/json' },
+    body: JSON.stringify({
+      systemPrompt: 'You analyze SOP text and return ONLY valid JSON arrays. No commentary, no markdown.',
+      userPrompt: prompt,
+      userId: currentUser ? currentUser.uid : 'anon',
+      plan: userPlanData ? userPlanData.plan : 'trial',
+      maxTokens: 600,
+      useFastModel: true
+    })
+  });
+  var reader = resp.body ? resp.body.getReader() : null;
+  var raw = '';
+  if(reader) {
+    var decoder = new TextDecoder();
+    while(true) {
+      var r = await reader.read();
+      if(r.done) break;
+      var chunk = decoder.decode(r.value, {stream:true});
+      chunk.split('\n').forEach(function(line){
+        if(line.startsWith('data: ')) {
+          try {
+            var evt = JSON.parse(line.slice(6));
+            if(evt.type === 'text' && evt.text) raw += evt.text;
+            else if(evt.type === 'content_block_delta' && evt.delta && evt.delta.text) raw += evt.delta.text;
+          } catch(e) {}
+        }
+      });
+    }
+  } else {
+    var data = await resp.json();
+    var block = data.content && data.content.find(function(b){return b.type==='text';});
+    raw = block ? block.text.trim() : '';
+  }
+  var parsed = JSON.parse(String(raw||'').replace(/```json|```/g,'').trim());
+  if(!Array.isArray(parsed)) return [];
+  return parsed.filter(function(c){ return c && c.value; }).slice(0, 5).map(function(c){
+    return {
+      value: String(c.value).slice(0, 100),
+      context: String(c.context || '').slice(0, 120),
+      type: String(c.type || 'other'),
+      checked: false,
+      newValue: ''
+    };
+  });
+}
+function rwFastRenderCandidates() {
+  var wrap = document.getElementById('rw-fast-candidates');
+  if(!wrap) return;
+  var items = wn.rewriteCandidates || [];
+  if(!items.length) {
+    wrap.innerHTML = '<div style="font-size:13px;color:var(--text2);padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;text-align:center">No specific items to flag. Use the box below to describe what to change.</div>';
+    return;
+  }
+  wrap.innerHTML = items.map(function(c, i) {
+    var checked = c.checked;
+    var checkInner = checked ? '<svg viewBox="0 0 14 14" fill="none" style="width:12px;height:12px"><polyline points="2.5,7.5 6,11 11.5,3.5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '';
+    var typeLabel = c.type ? c.type.toUpperCase() : '';
+    return '<div class="wn-cmp-box ' + (checked ? 'on' : '') + '" style="margin-bottom:8px">'
+      + '<div class="wn-cmp-check ' + (checked ? 'on' : '') + '" onclick="rwFastToggle(' + i + ')">' + checkInner + '</div>'
+      + '<div style="flex:1;min-width:0">'
+      + '  <div class="wn-cmp-name">Found: <span style="color:var(--accent)">"' + esc(c.value) + '"</span>' + (typeLabel ? ' <span style="font-size:9px;color:var(--text3);font-weight:700;letter-spacing:.06em">· ' + typeLabel + '</span>' : '') + '</div>'
+      + (c.context ? '  <div class="wn-cmp-desc" style="margin-bottom:6px;font-style:italic">"…' + esc(c.context) + '…"</div>' : '')
+      + (checked ? '  <input type="text" placeholder="Change to…" value="' + esc(c.newValue) + '" oninput="wn.rewriteCandidates[' + i + '].newValue=this.value" style="width:100%;background:var(--bg);border:1.5px solid var(--accent);border-radius:8px;padding:8px 10px;color:var(--text);font-family:var(--font);font-size:13px;font-weight:600;box-sizing:border-box;outline:none;margin-top:6px">' : '')
+      + '</div></div>';
+  }).join('');
+}
+function rwFastToggle(i) {
+  if(!wn.rewriteCandidates || !wn.rewriteCandidates[i]) return;
+  wn.rewriteCandidates[i].checked = !wn.rewriteCandidates[i].checked;
+  if(!wn.rewriteCandidates[i].checked) wn.rewriteCandidates[i].newValue = '';
+  rwFastRenderCandidates();
+}
+function rwFastImprove() {
+  logWizardEvent('generate_clicked', { mode: 'rewrite' });
+  // Capture notes
+  var notesEl = document.getElementById('rw-fast-notes');
+  wn.rewriteNotes = notesEl ? notesEl.value : '';
+  // Build a clear instruction block for the AI
+  var changeLines = [];
+  (wn.rewriteCandidates || []).forEach(function(c) {
+    if(c.checked && c.newValue && c.newValue.trim()) {
+      changeLines.push('Replace "' + c.value + '" with "' + c.newValue.trim() + '" throughout (including related references — pronouns, possessives, related thresholds).');
+    }
+  });
+  if(wn.rewriteNotes && wn.rewriteNotes.trim()) {
+    changeLines.push('Additional user notes: ' + wn.rewriteNotes.trim());
+  }
+  var instructions = changeLines.length ? changeLines.join('\n') : 'No specific changes — improve clarity, tighten language, fix grammar, but preserve the original structure and all user-specific content (names, amounts, tools).';
+  // Set up wiz for the rewrite flow — generateSOP() handles `mode: 'rewrite'`
+  wiz = {
+    step: 5, mode: 'rewrite',
+    title: 'Updated SOP',
+    cat: 'Operations',
+    desc: '', tools: '', roles: '', compliance: '',
+    audience: 'My team', format: 'Step-by-step', detail: 'Standard procedure', tone: 'Professional',
+    rewriteType: 'improve',
+    rewriteInstructions: instructions,
+    originalText: wn.rewriteText
+  };
+  uploadedFileText = wn.rewriteText;
+  try {
+    generateSOP();
+  } catch(e) {
+    console.error('rwFastImprove failed:', e);
+    showToast('Something went wrong. Please try again.');
+  }
+}
+function rwFastCustomize() {
+  logWizardEvent('rewrite_fast_customize_clicked');
+  // Route back to the existing s-upload screen, but skip step 1 (already have
+  // their text) and land them on step 2 (instructions). uploadedFileText is
+  // already set from when they uploaded/pasted originally.
+  go('s-upload');
+  setTimeout(function() {
+    try { rwGoStep2Legacy(); } catch(e) {}
+  }, 350);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// END NEW WIZARD JS
+// ════════════════════════════════════════════════════════════════════════════
 
 function renderPreviewQuestions(questions) {
   var listEl = document.getElementById('sq-preview-list');
@@ -15219,13 +16676,10 @@ function showRelatedTemplates(title) {
 }
 
 function quickCreateFromRelated(name) {
-  go('s-wizard');
-  startWizard('create');
-  setTimeout(function() {
-    var ti = document.getElementById('w-title');
-    if(ti) { ti.value = name; ti.dispatchEvent(new Event('input')); }
-    try { prefetchSmartQuestions(name); } catch(e) {}
-  }, 300);
+  startNewWizard({
+    sourceScreen: 's-home',
+    title: name || ''
+  });
 }
 
 function showTemplateBadgeOnOutput(title) {
