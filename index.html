@@ -17,6 +17,7 @@
   --radius:18px;--radius-sm:12px;--radius-xs:8px;
   --font:'Plus Jakarta Sans',sans-serif;--font-display:'Syne',sans-serif;
   --safe-bottom:env(safe-area-inset-bottom,0px);
+  --safe-top:env(safe-area-inset-top,0px);
   --shadow:0 4px 24px rgba(0,0,0,.12);
   --bg:#0f0f12;--surface:#1a1a22;--surface2:#22222e;--surface3:#2a2a38;
   --border:#2e2e3e;--border2:#3a3a4e;
@@ -52,7 +53,7 @@ html,body{height:100%;overflow:hidden;background:#080808;font-family:var(--font)
 .screen{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;overflow:hidden;transition:transform .32s cubic-bezier(.4,0,.2,1),opacity .32s;background:var(--bg)}
 .screen.hidden{transform:translateX(110%);opacity:0;pointer-events:none}
 .screen.slide-left{transform:translateX(-110%);opacity:0;pointer-events:none}
-.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:90px}
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-top:var(--safe-top);padding-bottom:90px}
 .scroll-area::-webkit-scrollbar{display:none}
 
 /* ── NAVBAR ── */
@@ -65,7 +66,9 @@ html,body{height:100%;overflow:hidden;background:#080808;font-family:var(--font)
 .nav-create:active{transform:scale(.93)}
 
 /* ── COMMON COMPONENTS ── */
-.app-bar{padding:14px 20px 8px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+/* FIX #2: app-bars are used at the top of secondary screens (no scroll-area).
+   Add safe-top padding so back buttons and titles don't clip into the notch. */
+.app-bar{padding:calc(14px + var(--safe-top)) 20px 8px;display:flex;align-items:center;gap:12px;flex-shrink:0}
 .app-bar-title{font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--text);flex:1;text-align:center}
 .icon-btn{width:40px;height:40px;border-radius:50%;background:var(--surface2);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);transition:all .15s;flex-shrink:0}
 .icon-btn:active{transform:scale(.93)}
@@ -970,8 +973,9 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 .wn-field-lbl{font-size:11px;color:var(--accent);font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
 .wn-field-input{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:14px;color:var(--text);font-family:var(--font);font-size:14px;font-weight:600;box-sizing:border-box;outline:none;transition:border-color .15s}
 .wn-field-input:focus{border-color:var(--accent)}
-/* Pill bar inside the questions screen */
-.wn-pills{display:flex;gap:5px;padding:14px 20px 8px}
+/* Pill bar inside the questions screen
+   FIX #2: safe-top so pill bar doesn't clip into status bar */
+.wn-pills{display:flex;gap:5px;padding:calc(14px + var(--safe-top)) 20px 8px}
 .wn-pill{flex:1;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;font-family:var(--font);cursor:default;transition:all .15s}
 .wn-pill.tappable{cursor:pointer}
 .wn-pill.done{background:rgba(0,214,143,.18);border:1px solid rgba(0,214,143,.5);color:var(--green)}
@@ -1251,7 +1255,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
         <!-- profile lines rendered at runtime -->
       </div>
 
-      <div class="wn-generate-foot" style="text-align:left;font-style:italic;margin-bottom:18px">We'll use generic phrasing (e.g. "the POS system") rather than guessing specific tools. You can edit any specifics after.</div>
+      <div class="wn-generate-foot" style="text-align:left;font-style:italic;margin-bottom:18px">This is a starting point — edit anything after generation. We'll use generic phrasing (e.g. "the POS system") rather than guessing specific tools. You can edit any specifics after.</div>
     </div>
   </div>
   <div class="wn-actions" style="flex-direction:column;gap:10px">
@@ -1788,16 +1792,6 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 
     <div class="settings-grp">
       <div class="settings-grp-title">Profile</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--border)">
-        <div>
-          <div style="font-size:14px;font-weight:700;color:var(--text)">Wizard Tips &amp; Outline</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:2px">Show guidance tips and live outline in the SOP wizard</div>
-        </div>
-        <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0">
-          <input type="checkbox" id="tips-toggle" checked onchange="setWizTipsEnabled(this.checked)" style="opacity:0;width:0;height:0">
-          <span style="position:absolute;cursor:pointer;inset:0;background:var(--surface2);border-radius:24px;transition:.3s" id="tips-slider"></span>
-        </label>
-      </div>
       <div class="settings-list">
         <div class="settings-row" onclick="editField('company','Company name',profile.company)"><div class="sr-icon" style="background:rgba(108,99,255,.15)">🏢</div><div class="sr-label">Company</div><div class="sr-value muted" id="sr-company">Not set</div><svg class="sr-arr" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
         <div class="settings-row" onclick="editField('author','Your name',profile.author)"><div class="sr-icon" style="background:rgba(0,214,143,.15)">👤</div><div class="sr-label">Your name</div><div class="sr-value muted" id="sr-author">Not set</div><svg class="sr-arr" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
@@ -2079,11 +2073,11 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 
     <div style="background:rgba(108,99,255,.1);border:1.5px solid var(--accent);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;text-align:center">
       <div style="font-size:12px;color:var(--text2);margin-bottom:4px">After subscribing, email your team list to:</div>
-      <div style="font-size:16px;font-weight:800;color:var(--accent)">brad@soponthego.com</div>
+      <div style="font-size:16px;font-weight:800;color:var(--accent)">hello@soponthego.com</div>
       <div style="font-size:11px;color:var(--text3);margin-top:4px">Subject: Team Setup — [Your Company Name]</div>
     </div>
 
-    <div style="font-size:12px;color:var(--text3);margin-bottom:6px;text-align:left">✓ Up to 10 team member seats included<br>✓ Shared SOP library<br>✓ 3 free SOPs to try<br>✓ Priority support at brad@soponthego.com</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:6px;text-align:left">✓ Up to 10 team member seats included<br>✓ Shared SOP library<br>✓ 3 free SOPs to try<br>✓ Priority support at hello@soponthego.com</div>
 
     <button class="primary-btn" onclick="closeModal('m-team-setup');activateTeamTrial()">Subscribe to Team Plan — $69.99/mo</button>
     <button class="secondary-btn" onclick="closeModal('m-team-setup')">Back</button>
@@ -2824,6 +2818,10 @@ var sopSteps = [];
 var generatedText = '';
 var currentSopTitle = '';
 var currentSopCat = '';
+// FIX #15: stable doc ID assigned once when SOP is generated, used by
+// printable HTML, DOCX export, etc. Without persisting this, the counter
+// would increment every time the user re-exports the same SOP.
+var currentDocId = '';
 var editingStepIdx = -1;
 var currentFieldKey = '';
 var deleteIdx = -1;
@@ -9674,7 +9672,7 @@ function startTrial() {
   var cycle = (selectedBillingCycle === 'yearly') ? 'yearly' : 'monthly';
   var priceId = (cycle === 'yearly') ? planData.stripeYearlyPriceId : planData.stripeMonthlyPriceId;
   if(!priceId) {
-    showToast('Plan not available yet — please email brad@soponthego.com');
+    showToast('Plan not available yet — please email hello@soponthego.com');
     return;
   }
 
@@ -9818,7 +9816,7 @@ function showTeamInstructions() {
 }
 function activateTeamTrial() {
   // Stripe checkout launching soon — no free upgrades.
-  showToast('Team plan launching soon — email brad@soponthego.com for early access');
+  showToast('Team plan launching soon — email hello@soponthego.com for early access');
 }
 
 // ── WIZARD ────────────────────────────────────────────────────────────────────
@@ -10985,7 +10983,10 @@ function momentCreate(moment) {
 
   } else if(moment === 'upload') {
     // Process changed — rewrite existing SOP (Pro feature — gate it)
-    if(!checkFeatureAccess('Upload & Rewrite SOPs', '📤')) return;
+    // FIX #23: third arg 'rewrite' is required so checkFeatureAccess
+    // enforces canRewrite for the user's plan. Without it the gate falls
+    // through to legacy "trial only" check and Solo users slipped through.
+    if(!checkFeatureAccess('Upload & Rewrite SOPs', '📤', 'rewrite')) return;
     resetUpload();
     go('s-upload');
   }
@@ -11458,6 +11459,9 @@ async function generateSOP() {
 
   currentSopTitle = wiz.title;
   currentSopCat = wiz.cat;
+  // FIX #15: reset doc ID so the new SOP gets a fresh sequence number.
+  // Without this, re-generating would reuse the previous SOP's ID.
+  currentDocId = '';
   go('s-gen');
   
   // Reset version history for new generation
@@ -11641,6 +11645,18 @@ async function generateSOP() {
     + 'TITLE: ' + wiz.title + '\n'
     + 'CATEGORY: ' + (wiz.cat || 'General') + '\n\n'
     + industryBlock
+    + '## TOPIC-SPECIFIC REQUIREMENTS (read this BEFORE writing)\n'
+    + 'Different KINDS of SOPs need different content. Before drafting, identify which category this SOP belongs to and make sure the content addresses THAT category\'s critical decision points:\n'
+    + '• Shipping/logistics → packaging materials, insurance thresholds, carrier specifics, tracking, fragile handling, customer comms on delays\n'
+    + '• Cash/money handling → dollar thresholds requiring dual control, safe access, deposit timing, reconciliation cadence, fraud red flags\n'
+    + '• Customer complaint → severity tiers, refund authority by dollar amount, escalation triggers, response SLA, when to involve legal\n'
+    + '• Hiring/onboarding → interview panel composition, reference checks, offer approval, first-day equipment, 30/60/90 milestones\n'
+    + '• Incident/emergency → severity declaration, escalation chain by time elapsed, communication channels, post-mortem owners\n'
+    + '• Sales/outreach → target volume, qualifying criteria, multi-touch cadence, CRM tools, compliance (CAN-SPAM, TCPA, GDPR), opt-out handling\n'
+    + '• Safety/PPE → hazard types, PPE specifications, training cadence, incident reporting, refresher requirements\n'
+    + '• HR policy → reporting chain, investigation steps, documentation, anonymous channels, retaliation protection\n'
+    + '• Compliance/audit → applicable regulations, audit frequency, evidence retention, designated officer, remediation timelines\n'
+    + 'If the topic doesn\'t fit one of these patterns, identify the 3-5 critical decision points the SOP must address and write content covering each.\n\n'
     + '## AUDIENCE REQUIREMENT (HIGHEST PRIORITY — DRIVES SOP COMPLEXITY)\n'
     + 'Audience: ' + userAudience + '\n'
     + audienceInstruction + '\n\n'
@@ -11658,9 +11674,15 @@ async function generateSOP() {
     + '- Use ## for section headers\n'
     + '- Every procedural step starts with an action verb\n'
     + '- Include specific timeframes wherever possible (within 24 hours, by end of shift, etc.)\n'
+    + '- FORMATTING RULES (CRITICAL):\n'
+    + '  • Use numbered lists (1. 2. 3.) ONLY for sequential procedural steps that must be done in order.\n'
+    + '  • For standalone labeled callouts (Purpose, Scope, Escalation, Notes) use **Bold:** labels, NOT "1. Purpose:" — never number a single standalone item.\n'
+    + '  • For compliance/regulation lists, format as bullet points (- item), one per line. Never as a dense paragraph.\n'
+    + '  • For non-sequential lists (materials, contacts, tools), use bullet points (- item), not numbered lists.\n'
+    + '  • When a section has only one item, write it as a paragraph or bold-labeled line — never as "1. <item>".\n'
     + (isLeanAudience
         ? '- DO NOT include a "Review & Update" or "Revision History" section — this SOP is for a small audience; skip enterprise housekeeping sections.'
-        : '- End with a Review & Update section (how often, who reviews)')
+        : '- End with a Review & Update section (how often, who reviews) — but do NOT add "Last updated", "Version 1.0", or "Revision History" lines. The document footer handles version tracking separately.')
     + (function() {
         var meta = getTemplateMeta(wiz.title);
         // Suppress mandatory section list for LEAN AUDIENCES regardless of
@@ -11962,6 +11984,112 @@ function renderMarkdownTable(lines) {
     html += '</tr>';
   });
   html += '</tbody></table>';
+  return html;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// renderMarkdownBody — converts AI-generated markdown body to HTML.
+//
+// Centralized version shared by PDF print, DOCX export, and library/preview
+// renderers. Previously each renderer had its own near-identical loop, and a
+// numbering bug ("1. 1. Pull accounts" doubling, list restarts on every text
+// break) had to be fixed in 3 places. This single helper is the new source.
+//
+// Inputs:
+//   rawBody — markdown string (already stripped of any leading AI header)
+//   opts    — { checkboxStyle: 'html' | 'text', tableRenderer: fn(lines) }
+//             checkboxStyle: HTML uses inline-styled spans (good for PDF/preview),
+//                            text uses ☑/☐ unicode (good for plain DOCX)
+//             tableRenderer: function that turns table lines → HTML. Allows
+//                            renderers to format tables differently if needed.
+//
+// Returns: HTML string ready to be concatenated into the document body.
+// ═════════════════════════════════════════════════════════════════════════════
+function renderMarkdownBody(rawBody, opts) {
+  opts = opts || {};
+  var checkboxStyle = opts.checkboxStyle || 'html';
+  var tableRenderer = opts.tableRenderer || renderMarkdownTable;
+  var lines = String(rawBody || '').split('\n');
+  var html = '';
+  var inList = false;
+  var listKind = null;     // 'ol' or 'ul' while a list is open
+  var orderedCount = 0;    // running count so consecutive <ol> lists continue
+  function closeList() {
+    if(!inList) return '';
+    inList = false;
+    var k = listKind; listKind = null;
+    return k === 'ol' ? '</ol>' : '</ul>';
+  }
+  var i = 0;
+  while(i < lines.length) {
+    var line = lines[i];
+    var trimmed = line.trim();
+    // Skip horizontal rules
+    if(/^[-*_]{3,}\s*$/.test(trimmed)) { i++; continue; }
+    // Markdown table
+    if(trimmed.indexOf('|') !== -1 && i + 1 < lines.length &&
+       /^\s*\|?[\s\-:|]+\|?\s*$/.test(lines[i+1])) {
+      html += closeList();
+      var tblLines = [trimmed]; i++;
+      tblLines.push(lines[i]); i++;
+      while(i < lines.length && lines[i].indexOf('|') !== -1 && lines[i].trim()) {
+        tblLines.push(lines[i]); i++;
+      }
+      html += tableRenderer(tblLines);
+      continue;
+    }
+    // Heading
+    if(trimmed.match(/^#+ /)) {
+      html += closeList();
+      orderedCount = 0;   // new section = restart numbering
+      var hLevel = (trimmed.match(/^(#+)/)[1].length === 1) ? 'h1' : 'h2';
+      html += '<' + hLevel + '>' + renderMarkdownInline(trimmed.replace(/^#+ /, '')) + '</' + hLevel + '>';
+    // Markdown checkbox (- [ ] or - [x])
+    } else if(trimmed.match(/^[-*]\s*\[[ xX]\]\s/)) {
+      html += closeList();
+      var cbm = trimmed.match(/^[-*]\s*\[([ xX])\]\s+(.*)$/);
+      var isChecked = cbm[1].toLowerCase() === 'x';
+      var box;
+      if(checkboxStyle === 'text') {
+        box = isChecked ? '☑' : '☐';
+        html += '<p>' + box + ' ' + renderMarkdownInline(cbm[2]) + '</p>';
+      } else {
+        box = isChecked
+          ? '<span style="display:inline-block;width:13px;height:13px;border:1.5px solid #111;border-radius:3px;background:#111;color:white;text-align:center;line-height:11px;font-size:10px;margin-right:8px;vertical-align:middle">&#10003;</span>'
+          : '<span style="display:inline-block;width:13px;height:13px;border:1.5px solid #111;border-radius:3px;margin-right:8px;vertical-align:middle"></span>';
+        html += '<p style="margin:4px 0">' + box + renderMarkdownInline(cbm[2]) + '</p>';
+      }
+    // Ordered list item (1. 2. 3.)
+    } else if(trimmed.match(/^\d+\.\s+/)) {
+      // FIX #17: strip AI's number prefix and let <ol> handle numbering.
+      // FIX #14b: switch list type if previous was unordered.
+      // FIX #17: continue numbering across paragraph breaks.
+      if(inList && listKind !== 'ol') html += closeList();
+      if(!inList) {
+        html += '<ol start="' + (orderedCount + 1) + '">';
+        inList = true; listKind = 'ol';
+      }
+      orderedCount++;
+      html += '<li>' + renderMarkdownInline(trimmed.replace(/^\d+\.\s+/, '')) + '</li>';
+    // Unordered list item (- or * or •)
+    } else if(trimmed.match(/^[-*\u2022]\s+/)) {
+      if(inList && listKind !== 'ul') html += closeList();
+      if(!inList) {
+        html += '<ul>'; inList = true; listKind = 'ul';
+      }
+      html += '<li>' + renderMarkdownInline(trimmed.replace(/^[-*\u2022]\s+/, '')) + '</li>';
+    // Regular paragraph
+    } else if(trimmed) {
+      html += closeList();
+      // Reset ordered-list count on a section-label paragraph (short text
+      // ending with colon or all-caps style heading-like line). Keeps count
+      // running across simple inline paragraphs but restarts on section breaks.
+      if(/^[A-Z][\w\s&-]{2,40}:$/.test(trimmed)) orderedCount = 0;
+      html += '<p>' + renderMarkdownInline(trimmed) + '</p>';
+    }
+    i++;
+  }
+  html += closeList();
   return html;
 }
 
@@ -12664,47 +12792,8 @@ function buildPrintableSopHtml() {
   var logo    = (profile && profile.logo) ? profile.logo : '';
 
   var rawBody = stripLeadingAiHeader(generatedText || '', currentSopTitle, profile.company);
-  var lines   = rawBody.split('\n');
-  var bodyHtml = '';
-  var inList   = false;
-  var i = 0;
-  while(i < lines.length) {
-    var line = lines[i];
-    var trimmed = line.trim();
-    if(/^[-*_]{3,}\s*$/.test(trimmed)) { i++; continue; }
-    if(trimmed.indexOf('|') !== -1 && i + 1 < lines.length &&
-       /^\s*\|?[\s\-:|]+\|?\s*$/.test(lines[i+1])) {
-      if(inList) { bodyHtml += '</ul>'; inList = false; }
-      var tblLines = [trimmed];
-      i++; tblLines.push(lines[i]); i++;
-      while(i < lines.length && lines[i].indexOf('|') !== -1 && lines[i].trim()) {
-        tblLines.push(lines[i]); i++;
-      }
-      bodyHtml += renderMarkdownTable(tblLines);
-      continue;
-    }
-    if(trimmed.match(/^#+ /)) {
-      if(inList){ bodyHtml += '</ul>'; inList = false; }
-      var hLevel = (trimmed.match(/^(#+)/)[1].length === 1) ? 'h1' : 'h2';
-      bodyHtml += '<' + hLevel + '>' + renderMarkdownInline(trimmed.replace(/^#+ /, '')) + '</' + hLevel + '>';
-    } else if(trimmed.match(/^[-*]\s*\[[ xX]\]\s/)) {
-      if(inList){ bodyHtml += '</ul>'; inList = false; }
-      var cbm = trimmed.match(/^[-*]\s*\[([ xX])\]\s+(.*)$/);
-      var isChecked = cbm[1].toLowerCase() === 'x';
-      var box = isChecked
-        ? '<span style="display:inline-block;width:13px;height:13px;border:1.5px solid #111;border-radius:3px;background:#111;color:white;text-align:center;line-height:11px;font-size:10px;margin-right:8px;vertical-align:middle">&#10003;</span>'
-        : '<span style="display:inline-block;width:13px;height:13px;border:1.5px solid #111;border-radius:3px;margin-right:8px;vertical-align:middle"></span>';
-      bodyHtml += '<p style="margin:4px 0">' + box + renderMarkdownInline(cbm[2]) + '</p>';
-    } else if(trimmed.match(/^(\d+\. |- |\u2022 |\* )/)) {
-      if(!inList){ bodyHtml += '<ul>'; inList = true; }
-      bodyHtml += '<li>' + renderMarkdownInline(trimmed.replace(/^(\d+\. |- |\u2022 |\* )/, '')) + '</li>';
-    } else if(trimmed) {
-      if(inList){ bodyHtml += '</ul>'; inList = false; }
-      bodyHtml += '<p>' + renderMarkdownInline(trimmed) + '</p>';
-    }
-    i++;
-  }
-  if(inList) bodyHtml += '</ul>';
+  // FIX #17: centralized markdown body renderer with proper ol/ul tracking
+  var bodyHtml = renderMarkdownBody(rawBody, { checkboxStyle: 'html' });
 
   var headerBlock = (logo
     ? '<div style="margin-bottom:14px"><img src="' + logo + '" style="max-height:96px;max-width:320px;object-fit:contain;display:block" alt=""></div>'
@@ -12712,20 +12801,129 @@ function buildPrintableSopHtml() {
     + '<h1 style="font-size:22px;font-weight:700;border-bottom:2px solid #222;padding-bottom:8px;margin:0 0 4px;color:#111">' + title + '</h1>'
     + '<div style="font-size:11px;color:#666;margin-bottom:20px">' + meta + '</div>';
 
+  // FIX #15 (final): real document ID footer.
+  // Format: SOP-{CAT}-{YYMMDD}-{NNN}
+  //   • SOP-           — universal prefix, instantly identifies document type
+  //   • CAT            — 2-4 letter category code (OPS, HR, SAF, FIN, etc.)
+  //   • YYMMDD         — compact date (260521 = May 21, 2026)
+  //   • NNN            — sequential counter per user/category/day
+  //
+  // Why this matters: businesses store SOPs by ID and reference them in
+  // meetings, emails, and document management systems. A clean reference
+  // handle makes the SOP feel "real" — like something a corporate ops team
+  // would issue.
+  //
+  // The counter persists in localStorage scoped to the user so they get
+  // SOP-OPS-260521-001, then 002, etc. as they create more in the same
+  // category on the same day. Across users IDs may collide but each user
+  // has a stable, predictable sequence they can reference internally.
+  var docId = generateDocumentId(wiz.cat || 'General');
+  var footerBlock = '<div style="margin-top:32px;padding-top:12px;border-top:1px solid #ddd;'
+    + 'font-size:10.5px;color:#888;text-align:right;letter-spacing:.08em;'
+    + 'font-family:Georgia,serif;font-variant-numeric:tabular-nums">'
+    + esc(docId)
+    + '</div>';
+
   // Wrap in a clean container with print-friendly styling
   return ''
     + '<div style="font-family:Georgia,serif;color:#111;font-size:14px;line-height:1.7;padding:24px 0">'
     +   '<style scoped>'
     +     'h1{font-size:20px;font-weight:700;margin:24px 0 6px;color:#222}'
     +     'h2{font-size:15px;font-weight:700;margin:24px 0 6px;color:#222}'
-    +     'p,li{font-size:13px;margin:4px 0}ul{padding-left:18px}'
+    +     'p,li{font-size:13px;margin:4px 0}ul,ol{padding-left:22px;margin:6px 0}'
     +     'table{border-collapse:collapse;width:100%;margin:10px 0;font-size:12.5px}'
     +     'th,td{padding:7px 10px;border:1px solid #ccc;text-align:left}'
     +     'th{background:#f4f4f8;font-weight:700}'
     +   '</style>'
     +   headerBlock
     +   bodyHtml
+    +   footerBlock
     + '</div>';
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// generateDocumentId — produces SOP-{CAT}-{YYMMDD}-{NNN}
+// ────────────────────────────────────────────────────────────────────────────
+// Returns a stable, sequential document ID for the current SOP. Sequence is
+// persisted per (user, category, date) in localStorage so the same user
+// generating multiple Operations SOPs today gets -001, -002, -003 in order.
+//
+// Category abbreviation map: maps long category names to short codes used
+// in corporate document filing. Falls back to first 3 letters uppercase if
+// the category isn't in the map.
+// ════════════════════════════════════════════════════════════════════════════
+var SOP_CATEGORY_CODES = {
+  'hr': 'HR',
+  'safety': 'SAF',
+  'operations': 'OPS',
+  'business operations': 'OPS',
+  'finance': 'FIN',
+  'financial services': 'FIN',
+  'customer service': 'CS',
+  'sales': 'SLS',
+  'it': 'IT',
+  'technology & software': 'TECH',
+  'marketing': 'MKT',
+  'healthcare': 'HEA',
+  'dental practice': 'DEN',
+  'veterinary': 'VET',
+  'construction': 'CON',
+  'manufacturing': 'MFG',
+  'legal': 'LGL',
+  'legal & accounting': 'LGL',
+  'hospitality': 'HOS',
+  'restaurant & food service': 'FB',
+  'food truck': 'FB',
+  'retail': 'RET',
+  'ecommerce': 'ECM',
+  'salon & beauty': 'SAL',
+  'spa & massage': 'SPA',
+  'fitness & wellness': 'FIT',
+  'automotive & repair': 'AUTO',
+  'transportation & logistics': 'LOG',
+  'real estate & property': 'RE',
+  'education & childcare': 'EDU',
+  'cleaning & janitorial': 'CLN',
+  'home services': 'HS',
+  'professional services': 'PRO',
+  'landscaping & agriculture': 'AGR',
+  'event planning & entertainment': 'EVT',
+  'pet grooming': 'PET',
+  'non-profit & government': 'GOV',
+  'reputation management': 'REP',
+  'online reviews & reputation': 'REP'
+};
+
+function generateDocumentId(category) {
+  // FIX #15: stable across re-exports.
+  // If we already have a doc ID for the current SOP, return it. The counter
+  // only increments on the FIRST call for a new SOP. Subsequent calls (print,
+  // DOCX export, re-print) reuse the same ID.
+  if(currentDocId) return currentDocId;
+  // First category if multiple (e.g. "HR, Safety" → "HR")
+  var primary = String(category || '').split(',')[0].trim().toLowerCase();
+  var catCode = SOP_CATEGORY_CODES[primary]
+    || primary.replace(/[^a-z]/g, '').slice(0, 3).toUpperCase()
+    || 'GEN';
+  // Date in YYMMDD
+  var d = new Date();
+  var yy = String(d.getFullYear() % 100).padStart(2, '0');
+  var mm = String(d.getMonth() + 1).padStart(2, '0');
+  var dd = String(d.getDate()).padStart(2, '0');
+  var dateCode = yy + mm + dd;
+  // Per-user sequential counter for (cat, date). Persisted in localStorage
+  // so the user can generate multiple SOPs today and see them numbered.
+  var userId = (currentUser && currentUser.uid) ? currentUser.uid : 'anon';
+  var counterKey = 'sotg_docseq_' + userId + '_' + catCode + '_' + dateCode;
+  var seq = 1;
+  try {
+    var stored = parseInt(localStorage.getItem(counterKey) || '0', 10);
+    seq = (isNaN(stored) ? 0 : stored) + 1;
+    localStorage.setItem(counterKey, String(seq));
+  } catch(e) {}
+  var seqStr = String(seq).padStart(3, '0');
+  currentDocId = 'SOP-' + catCode + '-' + dateCode + '-' + seqStr;
+  return currentDocId;
 }
 
 // ── PDF DOWNLOAD ────────────────────────────────────────────────────────────
@@ -12800,46 +12998,9 @@ function doDownloadAsWord() {
   var date = getToday();
 
   // Build the body the same way the print path does — markdown rendered to HTML
+  // FIX #17: use centralized renderer (proper ol/ul tracking, no number doubling)
   var rawBody = stripLeadingAiHeader(generatedText || '', currentSopTitle, profile.company);
-  var lines = rawBody.split('\n');
-  var bodyHtml = '';
-  var inList = false;
-  var i = 0;
-  while(i < lines.length) {
-    var line = lines[i];
-    var trimmed = line.trim();
-    if(/^[-*_]{3,}\s*$/.test(trimmed)) { i++; continue; }
-    // Markdown table
-    if(trimmed.indexOf('|') !== -1 && i + 1 < lines.length &&
-       /^\s*\|?[\s\-:|]+\|?\s*$/.test(lines[i+1])) {
-      if(inList) { bodyHtml += '</ul>'; inList = false; }
-      var tblLines = [trimmed]; i++;
-      tblLines.push(lines[i]); i++;
-      while(i < lines.length && lines[i].indexOf('|') !== -1 && lines[i].trim()) {
-        tblLines.push(lines[i]); i++;
-      }
-      bodyHtml += renderMarkdownTable(tblLines);
-      continue;
-    }
-    if(trimmed.match(/^#+ /)) {
-      if(inList){ bodyHtml += '</ul>'; inList = false; }
-      var hLevel = (trimmed.match(/^(#+)/)[1].length === 1) ? 'h1' : 'h2';
-      bodyHtml += '<' + hLevel + '>' + renderMarkdownInline(trimmed.replace(/^#+ /, '')) + '</' + hLevel + '>';
-    } else if(trimmed.match(/^[-*]\s*\[[ xX]\]\s/)) {
-      if(inList){ bodyHtml += '</ul>'; inList = false; }
-      var cbm = trimmed.match(/^[-*]\s*\[([ xX])\]\s+(.*)$/);
-      var box = cbm[1].toLowerCase() === 'x' ? '☑' : '☐';
-      bodyHtml += '<p>' + box + ' ' + renderMarkdownInline(cbm[2]) + '</p>';
-    } else if(trimmed.match(/^(\d+\. |- |• |\* )/)) {
-      if(!inList){ bodyHtml += '<ul>'; inList = true; }
-      bodyHtml += '<li>' + renderMarkdownInline(trimmed.replace(/^(\d+\. |- |• |\* )/, '')) + '</li>';
-    } else if(trimmed) {
-      if(inList){ bodyHtml += '</ul>'; inList = false; }
-      bodyHtml += '<p>' + renderMarkdownInline(trimmed) + '</p>';
-    }
-    i++;
-  }
-  if(inList) bodyHtml += '</ul>';
+  var bodyHtml = renderMarkdownBody(rawBody, { checkboxStyle: 'text' });
 
   var headerHtml = (logo ? '<div style="margin-bottom:14px"><img src="' + logo + '" style="max-height:96px;max-width:320px" /></div>' : '')
     + '<h1 style="font-size:22px;font-weight:700;border-bottom:2px solid #222;padding-bottom:8px;margin-bottom:4px">' + esc(title) + '</h1>'
@@ -13130,55 +13291,8 @@ function doPrint() {
   // Strip duplicate header from AI body so the print version doesn't
   // collide with our own header block.
   var rawBody = stripLeadingAiHeader(generatedText || '', currentSopTitle, profile.company);
-  var lines   = rawBody.split('\n');
-  var bodyHtml = '';
-  var inList   = false;
-  var i = 0;
-  while(i < lines.length) {
-    var line = lines[i];
-    var trimmed = line.trim();
-
-    // Skip horizontal rule lines
-    if(/^[-*_]{3,}\s*$/.test(trimmed)) { i++; continue; }
-
-    // Markdown table detection
-    if(trimmed.indexOf('|') !== -1 && i + 1 < lines.length &&
-       /^\s*\|?[\s\-:|]+\|?\s*$/.test(lines[i+1])) {
-      if(inList) { bodyHtml += '</ul>'; inList = false; }
-      var tblLines = [trimmed];
-      i++;
-      tblLines.push(lines[i]);
-      i++;
-      while(i < lines.length && lines[i].indexOf('|') !== -1 && lines[i].trim()) {
-        tblLines.push(lines[i]); i++;
-      }
-      bodyHtml += renderMarkdownTable(tblLines);
-      continue;
-    }
-
-    if(trimmed.match(/^#+ /)) {
-      if(inList){ bodyHtml += '</ul>'; inList = false; }
-      var hLevel = (trimmed.match(/^(#+)/)[1].length === 1) ? 'h1' : 'h2';
-      bodyHtml += '<' + hLevel + '>' + renderMarkdownInline(trimmed.replace(/^#+ /, '')) + '</' + hLevel + '>';
-    } else if(trimmed.match(/^[-*]\s*\[[ xX]\]\s/)) {
-      // Markdown checkbox
-      if(inList){ bodyHtml += '</ul>'; inList = false; }
-      var cbm = trimmed.match(/^[-*]\s*\[([ xX])\]\s+(.*)$/);
-      var isChecked = cbm[1].toLowerCase() === 'x';
-      var box = isChecked
-        ? '<span style="display:inline-block;width:13px;height:13px;border:1.5px solid #111;border-radius:3px;background:#111;color:white;text-align:center;line-height:11px;font-size:10px;margin-right:8px;vertical-align:middle">✓</span>'
-        : '<span style="display:inline-block;width:13px;height:13px;border:1.5px solid #111;border-radius:3px;margin-right:8px;vertical-align:middle"></span>';
-      bodyHtml += '<p style="margin:4px 0">' + box + renderMarkdownInline(cbm[2]) + '</p>';
-    } else if(trimmed.match(/^(\d+\. |- |• |\* )/)) {
-      if(!inList){ bodyHtml += '<ul>'; inList = true; }
-      bodyHtml += '<li>' + renderMarkdownInline(trimmed.replace(/^(\d+\. |- |• |\* )/, '')) + '</li>';
-    } else if(trimmed) {
-      if(inList){ bodyHtml += '</ul>'; inList = false; }
-      bodyHtml += '<p>' + renderMarkdownInline(trimmed) + '</p>';
-    }
-    i++;
-  }
-  if(inList) bodyHtml += '</ul>';
+  // FIX #17: use centralized renderer
+  var bodyHtml = renderMarkdownBody(rawBody, { checkboxStyle: 'html' });
 
   // Header block: logo (if uploaded) above the title
   var headerBlock = (logo
@@ -13195,11 +13309,18 @@ function doPrint() {
     + '.meta{font-size:11px;color:#666;margin-bottom:20px}'
     + 'h1{font-size:20px;font-weight:700;margin:24px 0 6px;color:#222}'
     + 'h2{font-size:15px;font-weight:700;margin:24px 0 6px;color:#222}'
-    + 'p,li{font-size:13px;margin:4px 0}ul{padding-left:18px}'
+    + 'p,li{font-size:13px;margin:4px 0}ul,ol{padding-left:22px;margin:6px 0}'
     + 'table{border-collapse:collapse;width:100%;margin:10px 0;font-size:12.5px}'
     + 'th,td{padding:7px 10px;border:1px solid #ccc;text-align:left}'
     + 'th{background:#f4f4f8;font-weight:700}'
-    + '@page{margin:18mm}@media print{body{margin:0;max-width:none}}</style>'
+    + '@page{margin:18mm;'
+    +   /* FIX #14c: suppress browser print headers/footers so "about:blank 1/1" */
+    +   /* doesn't appear at the top/bottom of generated PDFs. The margin-boxes */
+    +   /* are where Chrome puts the URL and page numbers by default. Empty out */
+    +   /* all four corners. */
+    +   '@top-left{content:""}@top-center{content:""}@top-right{content:""}'
+    +   '@bottom-left{content:""}@bottom-center{content:""}@bottom-right{content:""}'
+    + '}@media print{body{margin:0;max-width:none}}</style>'
     + '</head><body>'
     + headerBlock
     + bodyHtml
@@ -13269,13 +13390,13 @@ function showHelpFeedbackModal(subject, body) {
 
   var card = document.createElement('div');
   card.style.cssText = 'background:var(--surface);border-radius:16px;max-width:440px;width:100%;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,.4)';
-  var mailtoHref = 'mailto:brad@soponthego.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  var mailtoHref = 'mailto:hello@soponthego.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
   card.innerHTML =
       '<div style="font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--text);margin-bottom:6px">💬 Help & feedback</div>'
     + '<div style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:16px">Got a question, suggestion, or bug to report? Email us — we read every message.</div>'
     + '<div style="background:var(--surface2);border:1.5px solid var(--accent);border-radius:12px;padding:14px;margin-bottom:16px;text-align:center">'
     +   '<div style="font-size:12px;color:var(--text3);margin-bottom:4px">Email us at:</div>'
-    +   '<div style="font-size:16px;font-weight:800;color:var(--accent)">brad@soponthego.com</div>'
+    +   '<div style="font-size:16px;font-weight:800;color:var(--accent)">hello@soponthego.com</div>'
     + '</div>'
     + '<a href="' + mailtoHref + '" style="display:block;width:100%;padding:13px;background:var(--accent);border:none;border-radius:10px;color:white;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;text-align:center;text-decoration:none;margin-bottom:8px;box-sizing:border-box">Open mail app</a>'
     + '<button onclick="copyHelpEmail()" style="width:100%;padding:11px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px">Copy email address</button>'
@@ -13288,11 +13409,11 @@ function showHelpFeedbackModal(subject, body) {
 function copyHelpEmail() {
   try {
     if(navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText('brad@soponthego.com');
+      navigator.clipboard.writeText('hello@soponthego.com');
     } else {
       // Fallback
       var ta = document.createElement('textarea');
-      ta.value = 'brad@soponthego.com';
+      ta.value = 'hello@soponthego.com';
       document.body.appendChild(ta);
       ta.select();
       document.execCommand('copy');
@@ -13406,7 +13527,18 @@ function saveToLib(title, text, cat) {
       showPricingModal();
       return;
     }
-    hist.unshift({title:title,text:text,content:text,cat:cat||'General',date:getToday(),ts:Date.now(),ver:1});
+    // FIX #15: persist docId with the SOP so re-opening from library
+    // shows the original document ID (not a fresh one).
+    hist.unshift({
+      title: title,
+      text: text,
+      content: text,
+      cat: cat || 'General',
+      date: getToday(),
+      ts: Date.now(),
+      ver: 1,
+      docId: currentDocId || ''
+    });
     if(hist.length > 500) hist = hist.slice(0,500);
     localStorage.setItem(getLibStorageKey(), JSON.stringify(hist));
     allHistory = hist;
@@ -13473,6 +13605,10 @@ function openLibSop(idx) {
   currentSopTitle = h.title;
   currentSopCat   = h.cat || 'General';
   generatedText   = h.content || h.text || '';
+  // FIX #15: restore the original doc ID. If the saved SOP predates this
+  // feature it won't have docId; leave currentDocId empty and the print
+  // path will lazily generate one on next print/export.
+  currentDocId = h.docId || '';
   wiz = { step:1, mode: h.rewritten ? 'rewrite' : 'create', title:h.title, cat:h.cat||'General', freq:'', desc:'', tools:'', roles:'', compliance:'', audience:'' };
   if(h.rewritten) wiz.rewriteType = h.rewriteType || 'Improved';
   // Track origin so back button can return user to library
@@ -13658,10 +13794,48 @@ function processUploadedFile(file) {
   var ext = (file.name || '').split('.').pop().toLowerCase();
   var textExts = ['txt','md','markdown','html','htm'];
 
-  // For PDFs and Word docs — show a helpful modal explaining the conversion path
-  // rather than silently failing. This is the launch-window UX; PDF text
-  // extraction will be wired in a follow-up.
-  if(ext === 'pdf' || ext === 'doc' || ext === 'docx' || ext === 'rtf') {
+  // FIX #21: PDF and Word extraction.
+  // Lazy-load pdf.js or mammoth.js, extract text, hand off to the same
+  // post-extraction handler as text files. If extraction fails or yields
+  // very little text (likely a scanned PDF), fall back to the paste modal
+  // so the user still has a path forward.
+  if(ext === 'pdf') {
+    showExtractingState(file.name, 'PDF');
+    extractPdfText(file).then(function(text) {
+      hideExtractingState();
+      if(text && text.trim().length > 40) {
+        finalizeUpload(file, ext, text);
+      } else {
+        showUploadFormatHelp(ext, file.name, 'We couldn\'t extract enough text from this PDF — it may be a scanned image. Please paste the text below.');
+      }
+    }).catch(function(err) {
+      hideExtractingState();
+      console.error('PDF extract failed:', err);
+      showUploadFormatHelp(ext, file.name);
+    });
+    return;
+  }
+
+  if(ext === 'docx') {
+    showExtractingState(file.name, 'Word');
+    extractDocxText(file).then(function(text) {
+      hideExtractingState();
+      if(text && text.trim().length > 40) {
+        finalizeUpload(file, ext, text);
+      } else {
+        showUploadFormatHelp(ext, file.name, 'We couldn\'t extract text from this document. Please paste the text below.');
+      }
+    }).catch(function(err) {
+      hideExtractingState();
+      console.error('DOCX extract failed:', err);
+      showUploadFormatHelp(ext, file.name);
+    });
+    return;
+  }
+
+  // Legacy formats (.doc, .rtf) — can't extract reliably client-side.
+  // Keep the "paste it" fallback for these.
+  if(ext === 'doc' || ext === 'rtf') {
     showUploadFormatHelp(ext, file.name);
     return;
   }
@@ -13671,9 +13845,29 @@ function processUploadedFile(file) {
     return;
   }
 
+  // Plain text formats — read directly
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var content = e.target.result;
+    if(ext === 'html' || ext === 'htm') {
+      var div = document.createElement('div');
+      div.innerHTML = content;
+      content = div.textContent || div.innerText || content;
+    }
+    finalizeUpload(file, ext, content);
+  };
+  reader.onerror = function() {
+    showToast('Could not read file — try a different one');
+    clearFile();
+  };
+  reader.readAsText(file);
+}
+
+// Show the "we got your file, it's ready" preview after successful extraction.
+// Extracted from processUploadedFile so PDF/DOCX paths and text paths share it.
+function finalizeUpload(file, ext, content) {
   var preview = document.getElementById('uploaded-file-preview');
   var pasteSection = document.getElementById('paste-section');
-
   if(preview) preview.style.display = '';
   var fileIcons = {pdf:'🔴', docx:'🔵', doc:'🔵', txt:'📃', md:'📃', rtf:'📄', html:'🌐', htm:'🌐'};
   var fileIcon = fileIcons[ext] || '📄';
@@ -13684,27 +13878,106 @@ function processUploadedFile(file) {
   if(pasteSection) pasteSection.style.display = 'none';
   var btn = document.getElementById('rw-next-btn');
   if(btn) { btn.disabled = false; btn.style.opacity = '1'; }
+  uploadedFileText = content;
+}
 
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var content = e.target.result;
-    // If HTML, strip tags for clean text
-    if(ext === 'html' || ext === 'htm') {
-      var div = document.createElement('div');
-      div.innerHTML = content;
-      content = div.textContent || div.innerText || content;
-    }
-    uploadedFileText = content;
-  };
-  reader.onerror = function() {
-    showToast('Could not read file — try a different one');
-    clearFile();
-  };
-  reader.readAsText(file);
+// ── PDF text extraction (lazy-loaded pdf.js) ────────────────────────────────
+var _pdfjsLoaded = false;
+var _pdfjsLoading = null;
+function loadPdfJs() {
+  if(_pdfjsLoaded) return Promise.resolve();
+  if(_pdfjsLoading) return _pdfjsLoading;
+  _pdfjsLoading = new Promise(function(resolve, reject) {
+    var script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    script.onload = function() {
+      _pdfjsLoaded = true;
+      if(window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      }
+      resolve();
+    };
+    script.onerror = function() {
+      _pdfjsLoading = null;
+      reject(new Error('Failed to load PDF reader'));
+    };
+    document.head.appendChild(script);
+  });
+  return _pdfjsLoading;
+}
+async function extractPdfText(file) {
+  await loadPdfJs();
+  if(!window.pdfjsLib) throw new Error('PDF reader not available');
+  var arrayBuf = await new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function(e) { resolve(e.target.result); };
+    reader.onerror = function() { reject(new Error('Could not read file')); };
+    reader.readAsArrayBuffer(file);
+  });
+  var pdf = await window.pdfjsLib.getDocument({ data: arrayBuf }).promise;
+  var pageTexts = [];
+  // Cap at 30 pages to keep extraction fast — typical SOPs are much shorter
+  var maxPages = Math.min(pdf.numPages, 30);
+  for(var i = 1; i <= maxPages; i++) {
+    var page = await pdf.getPage(i);
+    var content = await page.getTextContent();
+    var pageText = content.items.map(function(it) { return it.str; }).join(' ');
+    pageTexts.push(pageText);
+  }
+  return pageTexts.join('\n\n');
+}
+
+// ── DOCX text extraction (lazy-loaded mammoth.js) ───────────────────────────
+var _mammothLoaded = false;
+var _mammothLoading = null;
+function loadMammoth() {
+  if(_mammothLoaded) return Promise.resolve();
+  if(_mammothLoading) return _mammothLoading;
+  _mammothLoading = new Promise(function(resolve, reject) {
+    var script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
+    script.onload = function() { _mammothLoaded = true; resolve(); };
+    script.onerror = function() {
+      _mammothLoading = null;
+      reject(new Error('Failed to load DOCX reader'));
+    };
+    document.head.appendChild(script);
+  });
+  return _mammothLoading;
+}
+async function extractDocxText(file) {
+  await loadMammoth();
+  if(!window.mammoth) throw new Error('DOCX reader not available');
+  var arrayBuf = await new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function(e) { resolve(e.target.result); };
+    reader.onerror = function() { reject(new Error('Could not read file')); };
+    reader.readAsArrayBuffer(file);
+  });
+  var result = await window.mammoth.extractRawText({ arrayBuffer: arrayBuf });
+  return result.value || '';
+}
+
+// Show a small "extracting..." indicator while async extraction runs
+function showExtractingState(fileName, formatName) {
+  hideExtractingState();
+  var preview = document.getElementById('uploaded-file-preview');
+  if(!preview) return;
+  preview.style.display = '';
+  preview.innerHTML = '<div id="extract-state" style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--surface);border:1.5px solid var(--accent);border-radius:12px">'
+    + '<div style="font-size:24px;flex-shrink:0">📄</div>'
+    + '<div style="flex:1;min-width:0">'
+    + '  <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(fileName) + '</div>'
+    + '  <div style="font-size:11px;color:var(--accent);margin-top:3px;font-weight:600">⏳ Reading ' + esc(formatName) + ' text…</div>'
+    + '</div></div>';
+}
+function hideExtractingState() {
+  var el = document.getElementById('extract-state');
+  if(el) el.remove();
 }
 
 // Show a friendly modal when the user uploads a format we can't yet read directly
-function showUploadFormatHelp(ext, fileName) {
+function showUploadFormatHelp(ext, fileName, customMessage) {
   var existing = document.getElementById('m-upload-help');
   if(existing) existing.remove();
   var modal = document.createElement('div');
@@ -13715,10 +13988,15 @@ function showUploadFormatHelp(ext, fileName) {
   var formatName = ({pdf:'PDF', doc:'Word', docx:'Word', rtf:'RTF'})[ext] || (ext || 'this file format').toUpperCase();
   var card = document.createElement('div');
   card.style.cssText = 'background:var(--surface);border-radius:16px;max-width:420px;width:100%;padding:24px;box-shadow:0 12px 40px rgba(0,0,0,.4)';
+  // Custom message used when extraction was attempted but failed (e.g.
+  // scanned PDF). Otherwise default copy says we can't read this format.
+  var bodyMessage = customMessage
+    ? customMessage
+    : 'For now, the fastest way is to copy the text from your file and paste it below.';
   card.innerHTML =
       '<div style="font-size:32px;text-align:center;margin-bottom:8px">📄</div>'
-    + '<div style="font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text);margin-bottom:6px;text-align:center">' + formatName + ' files coming soon</div>'
-    + '<div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;text-align:center">We\'re wiring up direct ' + formatName + ' reading. For now, the fastest way is to copy the text from your file and paste it below.</div>'
+    + '<div style="font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text);margin-bottom:6px;text-align:center">' + (customMessage ? 'Need a bit of help' : formatName + ' files coming soon') + '</div>'
+    + '<div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;text-align:center">' + esc(bodyMessage) + '</div>'
     + '<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:16px;font-size:12px;color:var(--text2);line-height:1.5">'
     +   '<strong style="color:var(--text)">Quick steps:</strong><br>'
     +   '1. Open <em>' + esc(fileName) + '</em><br>'
@@ -14135,19 +14413,49 @@ async function prefetchSmartQuestions(title) {
     + (cat ? ' (Category: ' + cat + ')' : '')
     + industryContext
     + '.\n\n'
+    + '═══════════════════════════════════════════════════════════════\n'
+    + 'STEP 1 — TOPIC DECOMPOSITION (think before you write questions):\n'
+    + '═══════════════════════════════════════════════════════════════\n'
+    + 'Before generating questions, identify what KIND of SOP this is and what its CRITICAL DECISION POINTS are.\n'
+    + 'Different SOP types have completely different question patterns. Examples:\n'
+    + '  • SHIPPING/LOGISTICS SOP (e.g. "Trading card shipping to PSA")\n'
+    + '    → decisions: packaging materials, insurance thresholds, carrier choice, tracking, fragile handling, customer comms when delays happen\n'
+    + '  • CASH/MONEY HANDLING SOP (e.g. "Daily cash deposit")\n'
+    + '    → decisions: dollar thresholds requiring dual control, who has safe access, deposit timing, reconciliation cadence, fraud red flags\n'
+    + '  • CUSTOMER COMPLAINT SOP\n'
+    + '    → decisions: severity tiers, refund authority by dollar amount, escalation triggers, response SLA, when to involve legal\n'
+    + '  • HIRING/ONBOARDING SOP\n'
+    + '    → decisions: interview panel composition, reference check requirements, offer approval, first-day equipment, 30/60/90 milestones\n'
+    + '  • INCIDENT/EMERGENCY SOP\n'
+    + '    → decisions: who declares severity, escalation chain by time elapsed, communication channels, root cause cadence, post-mortem owners\n'
+    + '  • SALES/OUTREACH SOP\n'
+    + '    → decisions: target volume, qualifying criteria, multi-touch cadence, CRM tools, compliance (CAN-SPAM, TCPA, GDPR), opt-out handling\n'
+    + '  • COMPLIANCE/AUDIT SOP\n'
+    + '    → decisions: applicable regulations, audit frequency, evidence retention, designated officer, remediation timelines\n'
+    + 'YOUR FIRST INTERNAL STEP: read the SOP title carefully and identify which CATEGORY of decisions it belongs to. Then build questions around THOSE specific decisions.\n\n'
+    + '═══════════════════════════════════════════════════════════════\n'
+    + 'STEP 2 — SPECIFICITY TEST FOR EACH QUESTION:\n'
+    + '═══════════════════════════════════════════════════════════════\n'
+    + 'Every question MUST fail this test: "Could this question be asked for ANY SOP?"\n'
+    + 'If yes → the question is too generic. Throw it out and write a topic-specific one instead.\n'
+    + 'Examples:\n'
+    + '  GENERIC (bad): "Who is responsible for this process?"\n'
+    + '  TOPIC-SPECIFIC (good for shipping): "Who packages high-value items, and who verifies the packaging before pickup?"\n'
+    + '  GENERIC (bad): "What tools do you use?"\n'
+    + '  TOPIC-SPECIFIC (good for cash handling): "What POS system records the day\'s sales, and what safe/drop-box stores cash until deposit?"\n\n'
     + 'QUESTION DESIGN RULES:\n'
     + '1. Write in procedural tense — ask about HOW the process works, not past events\n'
     + '2. Ask ONLY things the AI cannot know — org structure, specific tools, approval thresholds, escalation contacts\n'
     + '3. NEVER ask about: steps/procedures (AI knows these), legal requirements (AI knows these), volume or quantity (irrelevant to the SOP), generic descriptions\n'
     + '4. NEVER ask: "What are the steps?", "Describe the process", "How many X per week/month?", "What happens?"\n'
     + '5. Every question must help PERSONALIZE the SOP — if the answer would be the same for any company, it is a bad question\n'
-    + '6. Cover: WHO is responsible/approves, WHAT specific tool/system is used, WHAT triggers it, WHAT are the escalation rules, any compliance/industry-specific requirements\n'
-    + '7. Keep each question under 12 words — short, direct, actionable\n'
-    + '8. Think: if a consultant were onboarding at this company, what would they need to know to write this SOP?\n\n'
-    + 'GOOD EXAMPLE for "Sexual Harassment Policy":\n'
-    + '["Who do employees report harassment complaints to?","Does your company have a dedicated HR person?","How many employees does this policy cover?","Do you use any anonymous reporting tools or hotlines?","What industry are you in?","Have you had any prior incidents that shaped this policy?"]\n\n'
-    + 'BAD EXAMPLE (do not do this — these are things the AI already knows):\n'
-    + '["What is sexual harassment?","What does Title VII require?","What are the investigation steps?"]\n\n'
+    + '6. Each of the 6 questions should target a DIFFERENT decision point from your Step 1 decomposition — do not ask 6 variations of "who is responsible"\n'
+    + '7. Keep each question under 14 words — short, direct, actionable\n'
+    + '8. Think: if a consultant were onboarding at this company, what would they need to know to write THIS specific SOP?\n\n'
+    + 'GOOD EXAMPLE for "Trading card shipping to PSA":\n'
+    + '["What packaging materials do you use for high-value cards?","Above what dollar value do you add shipping insurance?","Which carrier do you use, and do you require signature on delivery?","Who approves shipments above your normal insurance limit?","How do you communicate tracking info to customers?","What\'s the return process if PSA rejects a card?"]\n\n'
+    + 'BAD EXAMPLE for the same SOP (too generic, fails the specificity test):\n'
+    + '["Who is responsible for shipping?","What tools do you use?","How often do you ship?","What are the steps?","Who approves shipments?","What happens if something goes wrong?"]\n\n'
     + 'Return ONLY a valid JSON array of exactly 6 strings. No other text.';
 
   try {
@@ -14159,7 +14467,7 @@ async function prefetchSmartQuestions(title) {
         userPrompt: prompt,
         userId: currentUser ? currentUser.uid : 'anon',
         plan: userPlanData ? userPlanData.plan : 'trial',
-        maxTokens: 400,
+        maxTokens: 500,
         // Speed hint: smart-questions don't need Sonnet's depth — Haiku
         // returns the same JSON 5-10x faster (~1s vs ~5s). The backend
         // checks this flag and swaps models accordingly.
@@ -14284,17 +14592,38 @@ async function prefetchWizardContext(title) {
 
   // The prompt asks for a single JSON object with 3 keys: questions, compliance, formatHints.
   // Conservative on compliance — better to under-suggest than hallucinate.
+  // FIX #16 (real fix — previous attempt landed in the legacy unused path):
+  // Add topic decomposition + specificity test for questions so we get
+  // truly topic-specific questions (shipping → packaging/insurance, cash →
+  // dollar thresholds/dual control), not generic "who is responsible".
   var prompt = 'You are a senior operations consultant helping a small business owner create an SOP.\n\n'
     + 'SOP TITLE: "' + title + '"\n'
     + 'CATEGORY: ' + cat
     + industryContext + '\n\n'
     + 'Return a SINGLE valid JSON object with exactly these 3 keys:\n\n'
-    + '1. "questions" — array of EXACTLY 6 short, targeted questions (under 12 words each).\n'
+    + '1. "questions" — array of EXACTLY 6 topic-specific, targeted questions.\n'
+    + '   FIRST: identify what KIND of SOP this is. Different SOP types need different question patterns:\n'
+    + '     • Shipping/logistics → packaging, insurance, carrier, tracking, customer comms\n'
+    + '     • Cash/money handling → dollar thresholds, dual control, deposit timing, reconciliation\n'
+    + '     • Customer complaint → severity tiers, refund authority, escalation, response SLA\n'
+    + '     • Hiring/onboarding → panel composition, reference checks, offer approval, milestones\n'
+    + '     • Incident/emergency → severity declaration, escalation chain, comms channels, post-mortem\n'
+    + '     • Sales/outreach → target volume, qualifying criteria, cadence, CRM, opt-out handling\n'
+    + '     • Compliance/audit → applicable regs, frequency, evidence retention, designated officer\n'
+    + '     • Safety/PPE → hazard types, PPE required, training cadence, incident reporting\n'
+    + '     • HR policy → reporting chain, investigation steps, documentation, anonymous channels\n'
+    + '   Pick the category, then ask questions about THAT category\'s decision points.\n'
+    + '   THEN: every question must FAIL this test: "Could this be asked for ANY SOP?"\n'
+    + '   If yes → too generic, throw it out. Examples:\n'
+    + '     GENERIC (bad): "Who is responsible for this process?"\n'
+    + '     SPECIFIC (good, for shipping): "Above what dollar value do you require shipping insurance?"\n'
     + '   Rules:\n'
-    + '   • Ask only what the AI cannot know: org structure, specific tools, approval thresholds, escalation contacts, who-does-what.\n'
+    + '   • Ask ONLY what AI cannot know: org structure, specific tools, dollar thresholds, escalation contacts, who-does-what specifics.\n'
     + '   • NEVER ask: "What are the steps?", legal definitions, volume questions, generic descriptions.\n'
-    + '   • Every question must PERSONALIZE the SOP. If the answer is the same for any company, it is a bad question.\n'
-    + '   • Cover: WHO is responsible/approves, WHAT specific tool/system is used, WHAT triggers it, WHAT are the escalation rules, any compliance/industry-specific requirements.\n\n'
+    + '   • Each of the 6 questions targets a DIFFERENT decision point — not 6 variations of one.\n'
+    + '   • Keep each under 14 words. Short, direct, actionable.\n\n'
+    + '   EXAMPLE for "Trading card shipping to PSA" (good):\n'
+    + '   ["What packaging materials for high-value cards?","Above what dollar value do you add insurance?","Which carrier, and do you require signature on delivery?","Who approves shipments above your normal insurance limit?","How do you communicate tracking info to customers?","What\'s the return process if PSA rejects a card?"]\n\n'
     + '2. "compliance" — array of 2 to 4 LIKELY-RELEVANT compliance items for this SOP + industry + state.\n'
     + '   Rules:\n'
     + '   • Only suggest WELL-KNOWN, real regulations (OSHA, HIPAA, FDA, EPA, PCI-DSS, GDPR, FLSA, Title VII, state-specific common ones).\n'
@@ -14472,6 +14801,15 @@ function wnReset() {
     answers: ['','','','','','',''],   // text answers for Q1..Q6 (idx 6 unused for textarea Q7)
     skipped: [false, false, false, false, false, false, false],
     visited: [true, false, false, false, false, false, false],
+    // ── FIX: lock question text once shown.
+    // Without this, if the AI prefetch returns AFTER the user has already
+    // started answering, wizCtx.questions gets overwritten — and when the
+    // user navigates back to a previously-answered question, they see a
+    // DIFFERENT question text than what they originally answered. That's
+    // disorienting and could invalidate their answer. So we snapshot the
+    // question text the FIRST time it's shown, and always render that
+    // snapshot on revisits. AI improvements only affect unshown questions.
+    shownQuestions: [null, null, null, null, null, null, null],
     complianceSelections: [], // array of {name, desc} that user has checked on Q7
     customCompliance: [],     // user-added strings on Q7
     customDetails: [],        // "+ Add another detail" entries on review screen
@@ -14556,23 +14894,88 @@ function wnUpdateStep1Continue() {
 async function wnContinueFromStep1() {
   if(!wn.title || !wn.categories.length) return;
   logWizardEvent('screen_completed', { screen: 's-wn-1' });
-  // Trigger AI prefetch (questions + compliance + format hints). Don't await it —
-  // user can already start filling answers; fallback is in place from t=0.
+  // FIX #1 (Option B) + #5: kick off AI prefetch, show loading state on Q1,
+  // wait for AI to return OR 3.5-second timeout to fire — whichever first.
+  // This means the user always sees the SAME question on Q1 throughout the
+  // session (no mid-flow swap), and most of the time they see the personalized
+  // AI version rather than the generic fallback.
   try {
-    // Set wiz.cat so prefetchWizardContext can reference it (it uses wiz.cat to infer industry)
     wiz.cat = wn.categories[0] || '';
     prefetchWizardContext(wn.title);
   } catch(e) {}
-  // Move to step 2
+  // Navigate to Step 2 first
   go('s-wn-2');
   logWizardEvent('screen_reached', { screen: 's-wn-2' });
-  // Set step 2 title to the SOP title
   var t = document.getElementById('wn2-title');
   if(t) t.textContent = wn.title.length > 30 ? wn.title.slice(0,28)+'…' : wn.title;
-  // Render Q1 immediately using fallback while AI loads
   wn.qIndex = 0;
   wn.visited[0] = true;
+  // Wait for AI prefetch to complete before rendering Q1
+  await wnWaitForPrefetch(3500);
   wnRenderQuestion();
+}
+
+// ── Loading-state UI for Step 2 while AI prefetch is in flight ──────────────
+// Returns a promise that resolves when either:
+//   • wizCtx.usedFallback flips to false (AI returned)
+//   • timeout (ms) elapses (we proceed with fallback)
+// Shows a friendly loading state on Step 2 during the wait.
+function wnWaitForPrefetch(timeoutMs) {
+  return new Promise(function(resolve) {
+    // If AI already finished (cached / instant), proceed
+    if(wizCtx && wizCtx.ready && wizCtx.usedFallback === false) {
+      return resolve();
+    }
+    // Show loading UI on Step 2 — replace the question content area
+    var qMode = document.getElementById('wn2-question-mode');
+    var rMode = document.getElementById('wn2-review-mode');
+    if(qMode) qMode.style.display = 'flex';
+    if(rMode) rMode.style.display = 'none';
+    var taWrap = document.getElementById('wn2-q-textarea-wrap');
+    var cmpWrap = document.getElementById('wn2-q-compliance-wrap');
+    if(taWrap) taWrap.style.display = 'none';
+    if(cmpWrap) cmpWrap.style.display = 'none';
+    var stepLabel = document.getElementById('wn2-step-label');
+    if(stepLabel) stepLabel.textContent = 'Getting smart questions ready…';
+    var qText = document.getElementById('wn2-q-text');
+    var qHint = document.getElementById('wn2-q-hint');
+    if(qText) {
+      qText.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:30px 20px;text-align:center">'
+        + '<div style="width:36px;height:36px;border:3px solid var(--surface3);border-top-color:var(--accent);border-radius:50%;animation:wn-spin 1s linear infinite"></div>'
+        + '<div style="font-family:var(--font);font-size:14px;font-weight:600;color:var(--text2);max-width:280px;line-height:1.4">Personalizing this SOP for <span style="color:var(--text);font-weight:700">' + esc(wn.title || 'your business') + '</span>…</div>'
+        + '</div>';
+    }
+    if(qHint) qHint.textContent = '';
+    // Also disable nav buttons during wait
+    var nextBtn = document.getElementById('wn2-next-btn');
+    var skipBtn = document.getElementById('wn2-skip-btn');
+    var prevBtn = document.getElementById('wn2-prev-btn');
+    if(nextBtn) nextBtn.disabled = true;
+    if(skipBtn) skipBtn.disabled = true;
+    if(prevBtn) prevBtn.style.visibility = 'hidden';
+    // Inject the spinner keyframes once (idempotent)
+    if(!document.getElementById('wn-spin-kf')) {
+      var st = document.createElement('style');
+      st.id = 'wn-spin-kf';
+      st.textContent = '@keyframes wn-spin{to{transform:rotate(360deg)}}';
+      document.head.appendChild(st);
+    }
+    // Poll for completion or timeout
+    var start = Date.now();
+    var checkInterval = setInterval(function() {
+      var elapsed = Date.now() - start;
+      var aiDone = wizCtx && wizCtx.ready && wizCtx.usedFallback === false;
+      if(aiDone || elapsed >= timeoutMs) {
+        clearInterval(checkInterval);
+        // Re-enable nav buttons before render
+        if(nextBtn) nextBtn.disabled = false;
+        if(skipBtn) skipBtn.disabled = false;
+        // Log latency for debugging
+        try { logWizardEvent('q1_render_after_wait', { ms: elapsed, ai_ready: !!aiDone }); } catch(e) {}
+        resolve();
+      }
+    }, 100);
+  });
 }
 
 // ── STEP 2: Question flow ──────────────────────────────────────────────────
@@ -14603,7 +15006,18 @@ function wnRenderQuestion() {
     if(taWrap) taWrap.style.display = '';
     if(cmpWrap) cmpWrap.style.display = 'none';
     if(stepLabel) stepLabel.textContent = 'Tell us about your operation';
-    var q = (wizCtx.questions && wizCtx.questions[idx]) || 'Tell us about this step.';
+    // ── FIX: lock question text on first show.
+    // If we've shown this question before, use the snapshot — never let an
+    // AI prefetch that arrived mid-session swap the wording out from under
+    // the user. If this is the first show, capture the current text into
+    // the snapshot so it stays stable across all future revisits.
+    var q;
+    if(wn.shownQuestions[idx]) {
+      q = wn.shownQuestions[idx];
+    } else {
+      q = (wizCtx.questions && wizCtx.questions[idx]) || 'Tell us about this step.';
+      wn.shownQuestions[idx] = q;
+    }
     if(qText) qText.textContent = q;
     if(qHint) qHint.textContent = 'Skip if it doesn\'t apply.';
     if(ta) {
@@ -14793,14 +15207,18 @@ function wnToggleCompliance(idx) {
   wnRenderComplianceList();
 }
 function wnAddCustomCompliance() {
-  var v = prompt('Regulation name (e.g. "Local fire code"):');
-  if(!v) return;
-  v = String(v).trim();
-  if(!v) return;
-  wn.customCompliance.push(v);
-  wn.skipped[6] = false;
-  wnRenderComplianceList();
-  logWizardEvent('compliance_custom_added', { len: v.length });
+  wnTextPrompt({
+    title: 'Add a regulation',
+    placeholder: 'e.g. Local fire code',
+    saveLabel: 'Add',
+    onSave: function(v) {
+      if(!v) return;
+      wn.customCompliance.push(v);
+      wn.skipped[6] = false;
+      wnRenderComplianceList();
+      logWizardEvent('compliance_custom_added', { len: v.length });
+    }
+  });
 }
 function wnRemoveCustomCompliance(idx) {
   wn.customCompliance.splice(idx, 1);
@@ -14826,7 +15244,9 @@ function wnRenderReviewList() {
     var numContent = hasAns ? String(i + 1) : '—';
     var qText, aText;
     if(i < 6) {
-      qText = (wizCtx.questions && wizCtx.questions[i]) || 'Question ' + (i+1);
+      // Use locked snapshot if user has seen this question; otherwise fall back
+      // to current wizCtx (which will only happen for questions never shown).
+      qText = wn.shownQuestions[i] || (wizCtx.questions && wizCtx.questions[i]) || 'Question ' + (i+1);
       aText = hasAns ? wn.answers[i] : 'Skipped';
     } else {
       qText = 'Compliance & regulations';
@@ -14868,22 +15288,32 @@ function wnEditFromReview(qIdx) {
   wnRenderQuestion();
 }
 function wnAddCustomDetail() {
-  var v = prompt('What else should this SOP cover?');
-  if(!v) return;
-  v = String(v).trim();
-  if(!v) return;
-  wn.customDetails.push(v);
-  logWizardEvent('add_detail_clicked', { len: v.length });
-  wnRenderReviewList();
+  wnTextPrompt({
+    title: 'Add another detail',
+    placeholder: 'e.g. Always log temperature before unlocking front doors',
+    saveLabel: 'Add detail',
+    onSave: function(v) {
+      if(!v) return;
+      wn.customDetails.push(v);
+      logWizardEvent('add_detail_clicked', { len: v.length });
+      wnRenderReviewList();
+    }
+  });
 }
 function wnEditCustomDetail(i) {
   var current = wn.customDetails[i] || '';
-  var v = prompt('Edit this detail:', current);
-  if(v === null) return;
-  v = String(v).trim();
-  if(!v) { wn.customDetails.splice(i, 1); }
-  else { wn.customDetails[i] = v; }
-  wnRenderReviewList();
+  wnTextPrompt({
+    title: 'Edit detail',
+    placeholder: '',
+    initial: current,
+    saveLabel: 'Save',
+    onSave: function(v) {
+      if(v === null) return; // user cancelled
+      if(!v) wn.customDetails.splice(i, 1);
+      else wn.customDetails[i] = v;
+      wnRenderReviewList();
+    }
+  });
 }
 function wnReviewBack() {
   // Going "back" from review = return to Q7
@@ -14913,35 +15343,205 @@ function wnRenderStep3() {
   document.getElementById('wn3-detail-val').textContent = wn.format.detail || 'Standard procedure';
   document.getElementById('wn3-tone-val').textContent = wn.format.tone || 'Professional';
 }
+// ════════════════════════════════════════════════════════════════════════════
+// wnTextPrompt — custom in-app text input modal (FIX #6 extended)
+// ────────────────────────────────────────────────────────────────────────────
+// Drop-in replacement for window.prompt() that matches the app's visual
+// language. Used for "+ Add a regulation", "+ Add another detail", and
+// edit-detail flows. Centered modal with a single text input + Cancel/Save.
+//
+// Usage:
+//   wnTextPrompt({
+//     title: 'Add a regulation',
+//     placeholder: 'e.g. Local fire code',
+//     initial: '',
+//     saveLabel: 'Add',
+//     onSave: function(value) { ... }   // value is trimmed; null on cancel
+//   });
+// ════════════════════════════════════════════════════════════════════════════
+function wnTextPrompt(opts) {
+  opts = opts || {};
+  var title = opts.title || 'Enter value';
+  var placeholder = opts.placeholder || '';
+  var initial = opts.initial || '';
+  var saveLabel = opts.saveLabel || 'Save';
+  var onSave = opts.onSave || function(){};
+
+  var existing = document.getElementById('wn-textprompt');
+  if(existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'wn-textprompt';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);opacity:0;transition:opacity .18s;backdrop-filter:blur(2px);padding:20px';
+
+  overlay.innerHTML = ''
+    + '<div id="wn-textprompt-card" style="background:var(--bg);'
+    +   'width:100%;max-width:420px;border-radius:18px;padding:20px;'
+    +   'transform:scale(.95);transition:transform .18s cubic-bezier(.2,.8,.2,1);'
+    +   'box-shadow:0 20px 60px rgba(0,0,0,.5);'
+    +   'border:1px solid var(--border)">'
+    +   '<div style="font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--text);margin-bottom:12px;line-height:1.3">'
+    +     esc(title)
+    +   '</div>'
+    +   '<input id="wn-textprompt-input" type="text" placeholder="' + esc(placeholder) + '" value="' + esc(initial) + '" '
+    +     'style="width:100%;background:var(--surface2);border:1.5px solid var(--border);'
+    +     'border-radius:10px;padding:12px 14px;color:var(--text);'
+    +     'font-family:var(--font);font-size:14px;font-weight:500;'
+    +     'box-sizing:border-box;outline:none;margin-bottom:16px"/>'
+    +   '<div style="display:flex;gap:8px">'
+    +     '<button id="wn-textprompt-cancel" style="flex:1;padding:12px;'
+    +       'background:var(--surface2);border:1.5px solid var(--border2);'
+    +       'border-radius:11px;color:var(--text);'
+    +       'font-family:var(--font);font-size:14px;font-weight:700;'
+    +       'cursor:pointer">Cancel</button>'
+    +     '<button id="wn-textprompt-save" style="flex:1;padding:12px;'
+    +       'background:var(--accent);border:none;border-radius:11px;'
+    +       'color:#fff;font-family:var(--font);font-size:14px;font-weight:800;'
+    +       'cursor:pointer">' + esc(saveLabel) + '</button>'
+    +   '</div>'
+    + '</div>';
+
+  document.body.appendChild(overlay);
+
+  setTimeout(function() {
+    overlay.style.opacity = '1';
+    var card = document.getElementById('wn-textprompt-card');
+    if(card) card.style.transform = 'scale(1)';
+    var input = document.getElementById('wn-textprompt-input');
+    if(input) { input.focus(); input.select(); }
+  }, 10);
+
+  function close(value) {
+    var card = document.getElementById('wn-textprompt-card');
+    if(card) card.style.transform = 'scale(.95)';
+    overlay.style.opacity = '0';
+    setTimeout(function() {
+      if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      onSave(value);
+    }, 200);
+  }
+
+  function save() {
+    var input = document.getElementById('wn-textprompt-input');
+    var v = input ? input.value.trim() : '';
+    close(v || null);
+  }
+
+  document.getElementById('wn-textprompt-save').onclick = save;
+  document.getElementById('wn-textprompt-cancel').onclick = function() { close(null); };
+  overlay.onclick = function(e) { if(e.target === overlay) close(null); };
+  document.getElementById('wn-textprompt-input').addEventListener('keydown', function(e) {
+    if(e.key === 'Enter') save();
+    else if(e.key === 'Escape') close(null);
+  });
+}
+
 function wnOpenDropdown(which) {
-  // Simple OS-friendly dropdown via window.prompt (works on all platforms; not pretty
-  // but ships v1 — replace with custom UI in a later pass).
-  var options, current, key;
+  // FIX #6: Custom bottom-sheet picker.
+  // Replaces the previous window.prompt() implementation which looked
+  // like a native OS modal (out of place in the app). This shows a
+  // sliding bottom-sheet of options that matches the app's visual language.
+  var options, current, key, label;
   if(which === 'audience') {
     options = ['Just me','My team','My department','Whole company'];
     current = wn.format.audience;
     key = 'audience';
+    label = 'Who\'s this SOP for?';
   } else if(which === 'format') {
     options = ['Step-by-step','Checklist','Role-based','Narrative'];
     current = wn.format.formatStyle;
     key = 'formatStyle';
+    label = 'Format style';
   } else if(which === 'detail') {
     options = ['Quick reference','Standard procedure','Training manual'];
     current = wn.format.detail;
     key = 'detail';
+    label = 'Detail level';
   } else if(which === 'tone') {
     options = ['Formal','Professional','Plain & simple'];
     current = wn.format.tone;
     key = 'tone';
+    label = 'Tone';
   } else return;
-  var msg = 'Choose ' + which + ':\n\n' + options.map(function(o,i){ return (i+1) + '. ' + o + (o === current ? ' (current)' : ''); }).join('\n') + '\n\nEnter number (1-' + options.length + '):';
-  var v = prompt(msg, options.indexOf(current) + 1);
-  if(!v) return;
-  var n = parseInt(v, 10);
-  if(isNaN(n) || n < 1 || n > options.length) return;
-  wn.format[key] = options[n - 1];
-  wnRenderStep3();
-  logWizardEvent('dropdown_changed', { key: which, value: wn.format[key] });
+
+  // Build and show the bottom-sheet picker
+  var existing = document.getElementById('wn-picker');
+  if(existing) existing.remove();
+
+  var sheet = document.createElement('div');
+  sheet.id = 'wn-picker';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55);opacity:0;transition:opacity .18s;backdrop-filter:blur(2px)';
+
+  var optionsHtml = options.map(function(o) {
+    var isCurrent = (o === current);
+    return '<button class="wn-picker-opt" data-value="' + esc(o) + '" '
+      + 'style="display:flex;align-items:center;justify-content:space-between;width:100%;'
+      + 'padding:16px 18px;background:' + (isCurrent ? 'rgba(108,99,255,.10)' : 'transparent') + ';'
+      + 'border:none;border-bottom:1px solid var(--border);'
+      + 'color:var(--text);font-family:var(--font);font-size:15px;font-weight:' + (isCurrent ? '700' : '500') + ';'
+      + 'cursor:pointer;text-align:left">'
+      + '<span>' + esc(o) + '</span>'
+      + (isCurrent
+          ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>'
+          : '')
+      + '</button>';
+  }).join('');
+
+  sheet.innerHTML = ''
+    + '<div id="wn-picker-card" style="background:var(--bg);'
+    +   'width:100%;max-width:480px;'
+    +   'border-radius:18px 18px 0 0;'
+    +   'padding:8px 0 calc(8px + var(--safe-bottom,0px));'
+    +   'transform:translateY(100%);transition:transform .22s cubic-bezier(.2,.8,.2,1);'
+    +   'box-shadow:0 -10px 40px rgba(0,0,0,.4);'
+    +   'border-top:1px solid var(--border)">'
+    +   '<div style="display:flex;justify-content:center;padding:8px 0 4px">'
+    +     '<div style="width:36px;height:4px;border-radius:2px;background:var(--surface3)"></div>'
+    +   '</div>'
+    +   '<div style="padding:8px 18px 14px;font-family:var(--font);font-size:12px;font-weight:800;'
+    +     'text-transform:uppercase;letter-spacing:.06em;color:var(--text2)">'
+    +     esc(label)
+    +   '</div>'
+    +   '<div id="wn-picker-list" style="max-height:50vh;overflow-y:auto">'
+    +     optionsHtml
+    +   '</div>'
+    +   '<button id="wn-picker-cancel" style="width:calc(100% - 36px);margin:14px 18px 4px;padding:14px;'
+    +     'background:var(--surface2);border:none;border-radius:11px;'
+    +     'color:var(--text);font-family:var(--font);font-size:14px;font-weight:700;'
+    +     'cursor:pointer">Cancel</button>'
+    + '</div>';
+
+  document.body.appendChild(sheet);
+
+  // Animate in
+  setTimeout(function() {
+    sheet.style.opacity = '1';
+    var card = document.getElementById('wn-picker-card');
+    if(card) card.style.transform = 'translateY(0)';
+  }, 10);
+
+  function close() {
+    var card = document.getElementById('wn-picker-card');
+    if(card) card.style.transform = 'translateY(100%)';
+    sheet.style.opacity = '0';
+    setTimeout(function() { if(sheet.parentNode) sheet.parentNode.removeChild(sheet); }, 220);
+  }
+
+  // Wire option clicks
+  sheet.querySelectorAll('.wn-picker-opt').forEach(function(btn) {
+    btn.onclick = function() {
+      var v = btn.getAttribute('data-value');
+      if(v && v !== current) {
+        wn.format[key] = v;
+        wnRenderStep3();
+        logWizardEvent('dropdown_changed', { key: which, value: v });
+      }
+      close();
+    };
+  });
+  // Cancel + backdrop click
+  document.getElementById('wn-picker-cancel').onclick = close;
+  sheet.onclick = function(e) { if(e.target === sheet) close(); };
 }
 function wnContinueFromStep3() {
   logWizardEvent('screen_completed', { screen: 's-wn-3' });
@@ -14994,13 +15594,23 @@ function wnGenerateNow() {
   // our structured Q&A into it so the AI gets full context.
   var descLines = [];
   for(var i = 0; i < 6; i++) {
-    var q = (wizCtx.questions && wizCtx.questions[i]) || ('Question ' + (i+1));
+    // Use the locked question text the user actually saw — not whatever
+    // wizCtx.questions currently holds. The user's answer is paired to the
+    // question they actually read; the prompt to the SOP-generating AI must
+    // reflect that pairing, not an AI-suggested replacement they never saw.
+    var q = wn.shownQuestions[i] || (wizCtx.questions && wizCtx.questions[i]) || ('Question ' + (i+1));
     var a = wn.answers[i];
     if(a && a.trim()) descLines.push('Q: ' + q + '\nA: ' + a.trim());
   }
   if(wn.complianceSelections.length || wn.customCompliance.length) {
     var cmp = wn.complianceSelections.map(function(s){ return s.name; }).concat(wn.customCompliance);
     descLines.push('Compliance: ' + cmp.join(', '));
+    // FIX #11: also write to wiz.compliance so the generation prompt
+    // treats compliance as a first-class field. Without this, the items
+    // were only buried in the wiz.desc Q&A blob — the AI sometimes
+    // missed them when generating the final SOP. With this, they hit
+    // effectiveCompliance directly and reliably appear in the output.
+    if(!wiz.compliance) wiz.compliance = cmp.join(', ');
   }
   (wn.customDetails || []).forEach(function(d){ descLines.push('Additional detail: ' + d); });
   wiz.desc = descLines.join('\n\n');
@@ -16134,10 +16744,16 @@ function renderRecentSOPs() {
 loadTheme();
 loadProfile();
 loadSavedCard();
-// Pre-load API key for testing
-if(!localStorage.getItem('sotg_apikey')) {
-  localStorage.setItem('sotg_apikey', '');
-}
+// FIX #3: clean up legacy sotg_apikey key. Previously the app wrote an empty
+// string to this slot on every boot — leftover from a pre-API-backend era
+// when users typed their own Anthropic key. We don't use it anymore. Remove
+// the empty key if present so it doesn't clutter the user's localStorage.
+try {
+  var legacyKey = localStorage.getItem('sotg_apikey');
+  if(legacyKey === '' || legacyKey === null) {
+    localStorage.removeItem('sotg_apikey');
+  }
+} catch(e) {}
 syncApiKeyBanner();
 loadLib();
 setGreeting();
@@ -16708,7 +17324,14 @@ async function doAiRevision() {
   if(inputEl) inputEl.disabled = true;
   // Save to version history before revising
   saveVersionHistory(currentSOP);
-  var systemPrompt = 'You are an expert SOP editor. Apply the revision instruction to the SOP and return the complete revised SOP. Maintain the same format and structure unless the instruction changes it. Output only the revised SOP, no preamble, no commentary.';
+  var systemPrompt = 'You are an expert SOP editor. Apply the revision instruction to the SOP and return the complete revised SOP. '
+    + 'Maintain the same overall format and structure unless the instruction changes it. '
+    + 'FORMATTING RULES (CRITICAL — same rules as original SOP generation):\n'
+    + '• Use numbered lists (1. 2. 3.) ONLY for sequential procedural steps.\n'
+    + '• For standalone labels (Purpose, Scope, Escalation, Notes) use **Bold:** labels, NOT "1. Purpose:".\n'
+    + '• For compliance/regulation lists, format as bullet points (- item), never a dense paragraph.\n'
+    + '• Do NOT add "Last updated", "Version 1.0", or "Revision History" lines — the document footer handles version tracking separately.\n'
+    + 'Output ONLY the revised SOP, no preamble, no commentary.';
   var userPrompt = 'REVISION INSTRUCTION: ' + instruction + '\n\nCURRENT SOP:\n' + currentSOP;
   try {
     var resp = await fetch(BACKEND_URL + '/generate', {
@@ -16941,13 +17564,55 @@ function updateSopMetaStamp() {
     var icons = { 'Just me':'🧑', 'My team':'👥', 'My department':'🏢', 'Whole company':'🏛️' };
     audLabel = (icons[wiz.audience] || '') + ' ' + wiz.audience;
   }
+  // FIX #15: surface the doc ID prominently with a copy-to-clipboard button.
+  // This lets users grab the ID for filing systems / emails before printing.
+  // Lazily generate it if not set yet (first view of output screen).
+  if(!currentDocId && (currentSopCat || (wiz && wiz.cat))) {
+    generateDocumentId(currentSopCat || wiz.cat || 'General');
+  }
+  var docIdLine = currentDocId
+    ? '<div style="margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-family:Georgia,serif;font-size:11px;color:var(--text2);letter-spacing:.05em;font-variant-numeric:tabular-nums">'
+      + '<span style="color:var(--text3);font-size:9.5px;text-transform:uppercase;letter-spacing:.08em">ID</span>'
+      + '<span style="color:var(--text)">' + esc(currentDocId) + '</span>'
+      + '<button onclick="copyDocIdToClipboard()" title="Copy document ID" style="background:none;border:none;cursor:pointer;color:var(--accent);padding:0 2px;font-size:11px;display:flex;align-items:center">'
+      + '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'
+      + '</button>'
+    + '</div>'
+    : '';
   stampEl.innerHTML = '<span style="color:var(--text3);font-size:11px">'
     + (company ? company + ' &nbsp;·&nbsp; ' : '')
     + 'Created by ' + name
     + ' &nbsp;·&nbsp; ' + date
     + ' &nbsp;·&nbsp; ' + verNum
     + (audLabel ? ' &nbsp;·&nbsp; ' + audLabel : '')
-    + '</span>';
+    + '</span>'
+    + docIdLine;
+}
+
+// Copy current document ID to clipboard with a small toast confirmation
+function copyDocIdToClipboard() {
+  if(!currentDocId) return;
+  try {
+    if(navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(currentDocId).then(function() {
+        showToast('Copied ' + currentDocId);
+      }).catch(function() {
+        fallbackCopyDocId();
+      });
+    } else {
+      fallbackCopyDocId();
+    }
+  } catch(e) { fallbackCopyDocId(); }
+}
+function fallbackCopyDocId() {
+  var ta = document.createElement('textarea');
+  ta.value = currentDocId;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); showToast('Copied ' + currentDocId); } catch(e) {}
+  document.body.removeChild(ta);
 }
 
 // ── PRINT PREVIEW ─────────────────────────────────────────────────────────────
@@ -17710,7 +18375,7 @@ function showStripePortalPlaceholder() {
     + '<div style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:16px">To update payment, change plans, view invoices, or cancel — email us and we\'ll get back to you within 1 business day.</div>'
     + '<div style="background:var(--surface2);border:1.5px solid var(--accent);border-radius:12px;padding:14px;margin-bottom:16px">'
     +   '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">Email us at:</div>'
-    +   '<div style="font-size:15px;font-weight:800;color:var(--accent)">brad@soponthego.com</div>'
+    +   '<div style="font-size:15px;font-weight:800;color:var(--accent)">hello@soponthego.com</div>'
     + '</div>'
     + '<button onclick="document.getElementById(\'m-portal-placeholder\').remove()" style="width:100%;padding:12px;background:var(--accent);border:none;border-radius:10px;color:white;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer">Got it</button>';
   modal.appendChild(card);
@@ -17735,15 +18400,15 @@ var LEGAL_DOCS = {
       '<li><strong>Vercel</strong> — Frontend hosting</li>' +
       '</ul>' +
       '<p><strong>Data retention:</strong> We retain your account and associated data as long as your account is active. If you delete your account, we remove your authentication record immediately and purge any associated server-side data within 90 days. Stripe retains transaction records as required by tax and financial regulations (typically 7 years). Anonymized analytics data may be retained longer.</p>' +
-      '<p><strong>Your rights:</strong> You can export all your data at any time using the "Export all my data" option in your account settings. You can permanently delete your account and all associated data using the "Delete my account" option. To exercise any other rights, email <strong>brad@soponthego.com</strong>.</p>' +
-      '<p><strong>California residents (CCPA / CPRA):</strong> If you are a California resident, you have the right to know what personal information we collect about you, to request deletion of your personal information, to correct inaccurate personal information, and to opt out of any "sale" or "sharing" of your personal information. We do not sell or share personal information as defined under California law. To exercise these rights, email <strong>brad@soponthego.com</strong>. We will not discriminate against you for exercising these rights.</p>' +
-      '<p><strong>European residents (GDPR):</strong> If you are in the European Economic Area, United Kingdom, or Switzerland, you have rights of access, rectification, erasure, restriction, portability, and objection regarding your personal data. Our lawful basis for processing is the performance of our contract with you (delivering the service you subscribed to) and our legitimate interests in operating and securing the service. To exercise these rights, email <strong>brad@soponthego.com</strong>.</p>' +
+      '<p><strong>Your rights:</strong> You can export all your data at any time using the "Export all my data" option in your account settings. You can permanently delete your account and all associated data using the "Delete my account" option. To exercise any other rights, email <strong>hello@soponthego.com</strong>.</p>' +
+      '<p><strong>California residents (CCPA / CPRA):</strong> If you are a California resident, you have the right to know what personal information we collect about you, to request deletion of your personal information, to correct inaccurate personal information, and to opt out of any "sale" or "sharing" of your personal information. We do not sell or share personal information as defined under California law. To exercise these rights, email <strong>hello@soponthego.com</strong>. We will not discriminate against you for exercising these rights.</p>' +
+      '<p><strong>European residents (GDPR):</strong> If you are in the European Economic Area, United Kingdom, or Switzerland, you have rights of access, rectification, erasure, restriction, portability, and objection regarding your personal data. Our lawful basis for processing is the performance of our contract with you (delivering the service you subscribed to) and our legitimate interests in operating and securing the service. To exercise these rights, email <strong>hello@soponthego.com</strong>.</p>' +
       '<p><strong>Security:</strong> We use industry-standard measures to protect your data, including encrypted transport (HTTPS), encrypted authentication tokens, and reputable cloud providers. No method of electronic storage or transmission is 100% secure, however, and we cannot guarantee absolute security.</p>' +
       '<p><strong>Cookies:</strong> We use necessary browser storage to keep you signed in and store your SOPs locally. We do not use tracking or advertising cookies.</p>' +
       '<p><strong>Children:</strong> SOPONTHEGO is not intended for users under 13. We do not knowingly collect data from children under 13. If we learn we have collected such information, we will delete it.</p>' +
       '<p><strong>International transfers:</strong> Your data may be processed in the United States or other countries where our subprocessors operate. By using the service, you consent to this transfer.</p>' +
       '<p><strong>Changes to this policy:</strong> We may update this policy over time. Material changes will be communicated by email or in-app notice. Continued use of the service after changes means you accept the updated policy.</p>' +
-      '<p><strong>Contact:</strong> Questions about privacy? Email <strong>brad@soponthego.com</strong>. Mail: JBC Holdings LLC, Indiana, USA.</p>'
+      '<p><strong>Contact:</strong> Questions about privacy? Email <strong>hello@soponthego.com</strong>. Mail: JBC Holdings LLC, Indiana, USA.</p>'
   },
   terms: {
     title: 'Terms of Service',
@@ -17759,10 +18424,10 @@ var LEGAL_DOCS = {
       '<p><strong>Subscriptions &amp; billing:</strong> Paid plans (Solo, Pro, Team) are billed in advance on a recurring basis — monthly or yearly depending on your selection. Your subscription automatically renews at the end of each billing period unless you cancel. All payments are processed by Stripe; by subscribing, you agree to Stripe\'s terms of service.</p>' +
       '<p><strong>Usage limits:</strong> Each plan includes a monthly cap on SOP generations as disclosed at the time of purchase. Generation usage resets at the start of each billing period. Unused generations do not carry over.</p>' +
       '<p><strong>Cancellation:</strong> You can cancel anytime through the Manage Subscription portal in your account. When you cancel, your subscription remains active until the end of your current billing period — you keep full access to your paid plan until that date. After that, your account automatically reverts to the free trial.</p>' +
-      '<p><strong>Refunds:</strong> All sales are final. We do not provide refunds for partial billing periods, unused time after cancellation, or for any reason after a charge has been processed. Your free trial (3 SOPs) is designed to let you fully evaluate the service before subscribing. Exceptions may be considered in cases of duplicate charges or technical errors — email brad@soponthego.com.</p>' +
+      '<p><strong>Refunds:</strong> All sales are final. We do not provide refunds for partial billing periods, unused time after cancellation, or for any reason after a charge has been processed. Your free trial (3 SOPs) is designed to let you fully evaluate the service before subscribing. Exceptions may be considered in cases of duplicate charges or technical errors — email hello@soponthego.com.</p>' +
       '<p><strong>Your data after cancellation:</strong> Your SOPs and account data remain stored and accessible to you after cancellation. If you re-subscribe in the future, your existing SOPs, profile, and settings will still be there. The Trial plan caps your library at 10 SOPs — if you had more than 10 on a paid plan, you\'ll still see them all but won\'t be able to save new SOPs until you upgrade again or remove some.</p>' +
       '<p><strong>Price changes:</strong> We may change subscription prices with at least 30 days\' notice. Price changes take effect at your next renewal — your current billing period is unaffected.</p>' +
-      '<p><strong>Billing email changes:</strong> The email address on your subscription is tied to your account at signup. To change your billing email, email brad@soponthego.com.</p>' +
+      '<p><strong>Billing email changes:</strong> The email address on your subscription is tied to your account at signup. To change your billing email, email hello@soponthego.com.</p>' +
       '<p><strong>Failed payments:</strong> If a recurring payment fails, we will attempt to recharge in accordance with Stripe\'s standard retry schedule. If payment is not resolved, your subscription may be paused or downgraded to the free trial until payment is restored.</p>' +
       '<p><strong>Termination:</strong> We may suspend or terminate accounts that violate these Terms, including without prior notice in cases of fraud, abuse, or legal risk. You may delete your account at any time through the Manage Subscription portal or by emailing us.</p>' +
       '<p><strong>Disclaimer of warranties:</strong> THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, ACCURACY, OR UNINTERRUPTED OPERATION. WE DO NOT WARRANT THAT THE SERVICE WILL BE ERROR-FREE OR THAT GENERATED CONTENT WILL MEET YOUR REQUIREMENTS.</p>' +
@@ -17775,7 +18440,7 @@ var LEGAL_DOCS = {
       '<p><strong>No waiver:</strong> Our failure to enforce any right or provision of these Terms is not a waiver of that right or provision.</p>' +
       '<p><strong>Entire agreement:</strong> These Terms, together with the Privacy Policy, constitute the entire agreement between you and us regarding the service and supersede any prior agreements.</p>' +
       '<p><strong>Changes:</strong> We may update these Terms. Material changes will be communicated by email or in-app notice and will take effect upon posting. Continued use after the effective date constitutes acceptance.</p>' +
-      '<p><strong>Contact:</strong> Questions? Email <strong>brad@soponthego.com</strong>. Mail: JBC Holdings LLC, Indiana, USA.</p>'
+      '<p><strong>Contact:</strong> Questions? Email <strong>hello@soponthego.com</strong>. Mail: JBC Holdings LLC, Indiana, USA.</p>'
   }
 };
 
