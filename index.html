@@ -985,7 +985,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 .wn-pill-tip{font-size:10.5px;color:var(--text2);text-align:center;padding:0 20px 14px;border-bottom:1px solid var(--border);line-height:1.4}
 /* Question screen body */
 .wn-q-num{font-size:11px;color:var(--accent);font-weight:800;letter-spacing:.1em;margin-bottom:8px;text-transform:uppercase}
-.wn-q-text{font-family:var(--font-display);font-size:18px;font-weight:700;line-height:1.25;letter-spacing:-.02em;color:var(--text);margin-bottom:8px}
+.wn-q-text{font-family:var(--font-display);font-size:18px;font-weight:700;line-height:1.35;letter-spacing:-.02em;color:var(--text);margin-bottom:10px;padding-bottom:2px}
 .wn-q-hint{font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.5}
 .wn-q-input{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:14px;color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;min-height:96px;box-sizing:border-box;resize:vertical;outline:none}
 .wn-q-input:focus{border-color:var(--accent)}
@@ -1509,6 +1509,11 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
         <!-- Sign-Off Row -->
     <!-- SOP Metadata Stamp -->
     <div id="sop-meta-stamp" style="padding:6px 16px;text-align:center"></div>
+    <!-- Time-sensitive info callout: honest expectation-setting before they share/print -->
+    <div id="sop-verify-banner" style="margin:8px 16px 0;padding:8px 12px;background:rgba(255,193,7,.10);border:1px solid rgba(255,193,7,.35);border-radius:8px;font-size:11.5px;color:var(--text2);line-height:1.45">
+      <strong style="color:var(--text)">⚠ Before adopting:</strong>
+      Verify any dollar amounts, regulatory citations, or jurisdiction-specific rules against current guidance. AI-assisted drafts may contain values that have changed.
+    </div>
     <!-- Action Row: Revert + Version History + Print Preview -->
     <div style="padding:8px 16px 0;display:flex;gap:6px;flex-wrap:wrap">
       <button onclick="revertToOriginal()" style="flex:1;min-width:90px;padding:9px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">↩ Revert</button>
@@ -2439,6 +2444,10 @@ function syncPlanFromServer() {
     var serverPlan = serverData.plan || 'trial';
     var serverStatus = serverData.status || 'none';
     var localPlan = (userPlanData && userPlanData.plan) || 'trial';
+    // ABUSE-PREVENTION FIX: read server-side usage (truth) and override the
+    // local cache. Without this, clearing cache or using incognito gave the
+    // user a fresh quota.
+    var serverUsage = serverData.usage || {};
 
     // If server says they're cancelled or downgraded, drop them to trial
     if(serverStatus === 'cancelled' || serverPlan === 'trial') {
@@ -2446,16 +2455,21 @@ function syncPlanFromServer() {
         console.log('[plan-sync] Server says cancelled/trial, downgrading from', localPlan);
         userPlanData = {
           plan: 'trial',
-          sopsUsed: userPlanData.sopsUsed || 3, // preserve usage; treat as exhausted
+          // Use server-side trial counter, not local. Prevents users from
+          // resetting their trial by clearing cache.
+          sopsUsed: serverUsage.trialSopsUsed || 3,
           sopsAllowed: 3,
-          sopsThisMonth: 0,
-          monthAnchor: '',
+          sopsThisMonth: serverUsage.sopsThisMonth || 0,
+          monthAnchor: serverUsage.monthAnchor || '',
           billingCycle: 'monthly'
         };
         userPlan = 'trial';
         saveUserPlan();
         updateSubBanner();
         try { syncAccountUI(); } catch(e) {}
+      } else {
+        // Same plan but still sync usage from server in case user cleared cache
+        applyServerUsage(serverUsage);
       }
       return;
     }
@@ -2467,16 +2481,24 @@ function syncPlanFromServer() {
       var planLimits = PLAN_LIMITS[serverPlan] || PLAN_LIMITS.trial;
       userPlanData = {
         plan: serverPlan,
-        sopsUsed: 0,
+        // ABUSE-PREVENTION FIX: use server-side counters here too, not zero.
+        // Previously this reset usage to 0 on every login from a fresh
+        // browser, which let users skirt the SOP limit by clearing cache
+        // or going incognito.
+        sopsUsed: serverUsage.sopsLifetime || 0,
         sopsAllowed: planLimits.sopsPerMonth,
-        sopsThisMonth: 0,
-        monthAnchor: (new Date().toISOString().slice(0,7)),
+        sopsThisMonth: serverUsage.sopsThisMonth || 0,
+        monthAnchor: serverUsage.monthAnchor || (new Date().toISOString().slice(0,7)),
         billingCycle: serverData.cycle || 'monthly'
       };
       userPlan = serverPlan;
       saveUserPlan();
       updateSubBanner();
       try { syncAccountUI(); } catch(e) {}
+    } else {
+      // Plan matches what we have locally — still sync usage in case the user
+      // generated SOPs on another device or cleared their cache.
+      applyServerUsage(serverUsage);
     }
 
     // Capture cancel-at-period-end status so Account screen can show
@@ -2500,6 +2522,42 @@ function syncPlanFromServer() {
     // state until next page load when we retry.
     console.warn('[plan-sync] Failed to sync with backend:', err.message);
   });
+}
+
+// ABUSE-PREVENTION: applies server-side usage to local state. Used when
+// plan unchanged but we want to refresh usage counters (e.g. user generated
+// SOPs on another device, or cleared cache and we want to restore truth).
+function applyServerUsage(serverUsage) {
+  if(!serverUsage || typeof serverUsage !== 'object') return;
+  var changed = false;
+  var currentPlan = (userPlanData && userPlanData.plan) || 'trial';
+  if(currentPlan === 'trial') {
+    // Trial uses sopsUsed as a LIFETIME counter (3 SOPs ever)
+    if(typeof serverUsage.trialSopsUsed === 'number' && serverUsage.trialSopsUsed !== userPlanData.sopsUsed) {
+      console.log('[plan-sync] Syncing trial usage from server:', userPlanData.sopsUsed, '→', serverUsage.trialSopsUsed);
+      userPlanData.sopsUsed = serverUsage.trialSopsUsed;
+      changed = true;
+    }
+  } else {
+    // Paid plans use sopsThisMonth (resets monthly)
+    if(typeof serverUsage.sopsThisMonth === 'number' && serverUsage.sopsThisMonth !== userPlanData.sopsThisMonth) {
+      console.log('[plan-sync] Syncing monthly usage from server:', userPlanData.sopsThisMonth, '→', serverUsage.sopsThisMonth);
+      userPlanData.sopsThisMonth = serverUsage.sopsThisMonth;
+      changed = true;
+    }
+    if(serverUsage.monthAnchor && serverUsage.monthAnchor !== userPlanData.monthAnchor) {
+      userPlanData.monthAnchor = serverUsage.monthAnchor;
+      changed = true;
+    }
+    if(typeof serverUsage.sopsLifetime === 'number') {
+      userPlanData.sopsUsed = serverUsage.sopsLifetime;
+    }
+  }
+  if(changed) {
+    saveUserPlan();
+    try { updateSubBanner(); } catch(e) {}
+    try { updateStats(); } catch(e) {}
+  }
 }
 
 function saveUserPlan() {
@@ -2692,6 +2750,23 @@ function incrementSopCount() {
   // SOPs tick down in real time, not 5 seconds later when generation finishes.
   try { updateSubBanner(); } catch(e) {}
   try { updateStats(); } catch(e) {}
+  // ABUSE-PREVENTION FIX: also bump the server-side counter. Without this,
+  // local count was the only truth and could be reset by clearing cache.
+  // Fire-and-forget — if it fails, the next syncPlanFromServer will reconcile.
+  if(currentUser && currentUser.uid) {
+    fetch(BACKEND_URL + '/usage-increment', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.uid })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      if(data && data.usage) {
+        // Trust server's number over local — handles cross-device usage too
+        applyServerUsage(data.usage);
+      }
+    }).catch(function(err) {
+      console.warn('[usage-increment] failed:', err.message);
+    });
+  }
   // After the FIRST SOP, nudge the user toward adjacent SOPs they'll likely
   // need. This drives engagement and bumps trial-to-paid conversion.
   if(userPlanData.sopsUsed === 1) {
@@ -2713,6 +2788,18 @@ function decrementSopCount() {
   saveUserPlan();
   try { updateSubBanner(); } catch(e) {}
   try { updateStats(); } catch(e) {}
+  // ABUSE-PREVENTION FIX: also decrement server-side
+  if(currentUser && currentUser.uid) {
+    fetch(BACKEND_URL + '/usage-decrement', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.uid })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      if(data && data.usage) applyServerUsage(data.usage);
+    }).catch(function(err) {
+      console.warn('[usage-decrement] failed:', err.message);
+    });
+  }
 }
 
 // Industry → likely-next SOPs they'd want. Hand-curated for accuracy.
@@ -11644,6 +11731,27 @@ async function generateSOP() {
   var prompt = '## SOP GENERATION REQUEST\n\n'
     + 'TITLE: ' + wiz.title + '\n'
     + 'CATEGORY: ' + (wiz.cat || 'General') + '\n\n'
+    + '╔══════════════════════════════════════════════════════════╗\n'
+    + '║  FORMATTING RULES (CRITICAL — re-read these before writing) ║\n'
+    + '╚══════════════════════════════════════════════════════════╝\n'
+    + 'RULE A: Use numbered lists ONLY for sequential procedural steps.\n'
+    + '  - GOOD: "1. Receive the package. 2. Inspect for damage. 3. Log the SKU."\n'
+    + '  - BAD: "1. Purpose: To streamline grading." ← THIS IS NOT A LIST ITEM.\n'
+    + '  - BAD: "1. Note: Turnaround takes 60 days." ← THIS IS NOT A LIST ITEM.\n\n'
+    + 'RULE B: For standalone labeled callouts (Purpose, Scope, Note, Escalation,\n'
+    + '  Definitions), use BOLD MARKDOWN LABELS, not numbered list items:\n'
+    + '  - WRITE: "**Purpose:** To streamline grading and tracking."\n'
+    + '  - NOT:   "1. Purpose: To streamline grading and tracking."\n'
+    + '  - WRITE: "**Note:** PSA turnaround varies by tier (10-60 days)."\n'
+    + '  - NOT:   "1. Note: PSA turnaround varies by tier (10-60 days)."\n\n'
+    + 'RULE C: For non-sequential lists (materials, contacts, compliance items),\n'
+    + '  use BULLET POINTS (- item) on separate lines. Never run them as one\n'
+    + '  dense paragraph.\n\n'
+    + 'RULE D: Use ## for section headers. Use **bold** for emphasis within\n'
+    + '  paragraphs. NEVER prefix section headers with a number ("## Pre-Submission"\n'
+    + '  not "## 1. Pre-Submission").\n\n'
+    + 'RULE E: Never include "Last updated", "Version 1.0", or "Revision History"\n'
+    + '  lines. The document footer handles version tracking separately.\n\n'
     + industryBlock
     + '## TOPIC-SPECIFIC REQUIREMENTS (read this BEFORE writing)\n'
     + 'Different KINDS of SOPs need different content. Before drafting, identify which category this SOP belongs to and make sure the content addresses THAT category\'s critical decision points:\n'
@@ -11674,12 +11782,7 @@ async function generateSOP() {
     + '- Use ## for section headers\n'
     + '- Every procedural step starts with an action verb\n'
     + '- Include specific timeframes wherever possible (within 24 hours, by end of shift, etc.)\n'
-    + '- FORMATTING RULES (CRITICAL):\n'
-    + '  • Use numbered lists (1. 2. 3.) ONLY for sequential procedural steps that must be done in order.\n'
-    + '  • For standalone labeled callouts (Purpose, Scope, Escalation, Notes) use **Bold:** labels, NOT "1. Purpose:" — never number a single standalone item.\n'
-    + '  • For compliance/regulation lists, format as bullet points (- item), one per line. Never as a dense paragraph.\n'
-    + '  • For non-sequential lists (materials, contacts, tools), use bullet points (- item), not numbered lists.\n'
-    + '  • When a section has only one item, write it as a paragraph or bold-labeled line — never as "1. <item>".\n'
+    + '- Formatting rules at the top of this prompt are non-negotiable — re-read them before writing your output.\n'
     + (isLeanAudience
         ? '- DO NOT include a "Review & Update" or "Revision History" section — this SOP is for a small audience; skip enterprise housekeeping sections.'
         : '- End with a Review & Update section (how often, who reviews) — but do NOT add "Last updated", "Version 1.0", or "Revision History" lines. The document footer handles version tracking separately.')
@@ -11765,7 +11868,7 @@ async function generateSOP() {
       signal: genController.signal,
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        systemPrompt: 'You are a senior operations consultant and SOP writing specialist. Your top priority is to follow the AUDIENCE REQUIREMENT — an SOP for "Just me" or "My team" should be short and lean; an SOP for "Whole company" should include all enterprise sections. The audience drives complexity. Separately, the COMPLIANCE ENVIRONMENT drives regulatory language — a 6-person team at a 500-person regulated manufacturer still needs proper compliance terminology even though the SOP is short. Then follow FORMAT, DETAIL LEVEL, and TONE instructions. If audience says "skip Scope and Responsibilities", you must skip them — do NOT add them back. If format is Checklist, produce markdown checkboxes ("- [ ] action"), not numbered steps. If detail is Quick reference, keep it under 250 words. Output the SOP document only — no preamble, no meta-commentary.',
+        systemPrompt: 'You are a senior operations consultant and SOP writing specialist. TODAY\'S DATE: ' + (new Date().toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'})) + '. Your training data has a cutoff that is in the past relative to today — DO NOT reference specific year-bound numbers (current minimum wage, tax brackets, OSHA penalty amounts, mileage rates, etc.) as confident facts. Instead, write "verify current amount" or "as of recent guidance" when referencing rates/thresholds that change over time. Do NOT write phrases like "as of 2024" — use the actual current year (' + new Date().getFullYear() + ') if a year reference is needed, or omit dates entirely. Your top priority is to follow the AUDIENCE REQUIREMENT — an SOP for "Just me" or "My team" should be short and lean; an SOP for "Whole company" should include all enterprise sections. The audience drives complexity. Separately, the COMPLIANCE ENVIRONMENT drives regulatory language — a 6-person team at a 500-person regulated manufacturer still needs proper compliance terminology even though the SOP is short. Then follow FORMAT, DETAIL LEVEL, and TONE instructions. If audience says "skip Scope and Responsibilities", you must skip them — do NOT add them back. If format is Checklist, produce markdown checkboxes ("- [ ] action"), not numbered steps. If detail is Quick reference, keep it under 250 words. Output the SOP document only — no preamble, no meta-commentary.',
         userPrompt: prompt,
         userId: currentUser ? currentUser.uid : 'anonymous',
         plan: userPlanData.plan
@@ -12064,13 +12167,44 @@ function renderMarkdownBody(rawBody, opts) {
       // FIX #17: strip AI's number prefix and let <ol> handle numbering.
       // FIX #14b: switch list type if previous was unordered.
       // FIX #17: continue numbering across paragraph breaks.
-      if(inList && listKind !== 'ol') html += closeList();
-      if(!inList) {
-        html += '<ol start="' + (orderedCount + 1) + '">';
-        inList = true; listKind = 'ol';
+      //
+      // ADDITIONAL FIX (post-smoke-test): detect when a "1. Label:" is
+      // actually a labeled callout (Purpose:, Note:, Escalate to:, etc.)
+      // rather than a real list item. Heuristic: starts with "1. ",
+      // contains a colon early in the line (within ~30 chars), AND either
+      // (a) the next non-empty line is NOT a numbered item, OR (b) we're
+      // not already inside an <ol>. Render those as bold-labeled paragraphs.
+      var isLabeledCallout = false;
+      var calloutMatch = trimmed.match(/^(\d+)\.\s+([A-Z][\w &-]{2,30}):\s+(.*)$/);
+      if(calloutMatch) {
+        // Look at next non-empty line to see if this is a standalone callout
+        // or part of a real sequence of numbered steps.
+        var j = i + 1;
+        while(j < lines.length && !lines[j].trim()) j++;
+        var nextLine = (j < lines.length) ? lines[j].trim() : '';
+        var nextIsNumberedItem = /^\d+\.\s+/.test(nextLine);
+        // Standalone if next line isn't another numbered item AND we're not
+        // currently extending an ordered list.
+        if(!nextIsNumberedItem && (!inList || listKind !== 'ol')) {
+          isLabeledCallout = true;
+        }
       }
-      orderedCount++;
-      html += '<li>' + renderMarkdownInline(trimmed.replace(/^\d+\.\s+/, '')) + '</li>';
+      if(isLabeledCallout) {
+        // Render as a bold-labeled paragraph instead of <ol><li>
+        html += closeList();
+        var labelText = calloutMatch[2];
+        var bodyText = calloutMatch[3];
+        html += '<p><strong>' + esc(labelText) + ':</strong> ' + renderMarkdownInline(bodyText) + '</p>';
+      } else {
+        // Real numbered list item
+        if(inList && listKind !== 'ol') html += closeList();
+        if(!inList) {
+          html += '<ol start="' + (orderedCount + 1) + '">';
+          inList = true; listKind = 'ol';
+        }
+        orderedCount++;
+        html += '<li>' + renderMarkdownInline(trimmed.replace(/^\d+\.\s+/, '')) + '</li>';
+      }
     // Unordered list item (- or * or •)
     } else if(trimmed.match(/^[-*\u2022]\s+/)) {
       if(inList && listKind !== 'ul') html += closeList();
@@ -12801,6 +12935,18 @@ function buildPrintableSopHtml() {
     + '<h1 style="font-size:22px;font-weight:700;border-bottom:2px solid #222;padding-bottom:8px;margin:0 0 4px;color:#111">' + title + '</h1>'
     + '<div style="font-size:11px;color:#666;margin-bottom:20px">' + meta + '</div>';
 
+  // Time-sensitive info callout. Sets honest expectations that the AI
+  // doesn't know "today's" specific dollar amounts, rates, or regulations.
+  // Lives near the top of the doc so a reader sees it before adopting any
+  // specifics. Reduces support burden and protects users from acting on
+  // stale numbers the AI may have generated from older training data.
+  var timeSensitiveCallout = '<div style="background:#fff8e1;border-left:3px solid #f0b400;'
+    + 'padding:10px 14px;margin:0 0 18px;font-size:11.5px;color:#5a4a00;line-height:1.5;font-family:Georgia,serif">'
+    + '<strong>Before adopting:</strong> Verify any specific dollar amounts, regulatory citations, '
+    + 'or jurisdiction-specific rules in this SOP against current published guidance. '
+    + 'AI-assisted drafts may contain values that have changed since this document was generated.'
+    + '</div>';
+
   // FIX #15 (final): real document ID footer.
   // Format: SOP-{CAT}-{YYMMDD}-{NNN}
   //   • SOP-           — universal prefix, instantly identifies document type
@@ -12836,6 +12982,7 @@ function buildPrintableSopHtml() {
     +     'th{background:#f4f4f8;font-weight:700}'
     +   '</style>'
     +   headerBlock
+    +   timeSensitiveCallout
     +   bodyHtml
     +   footerBlock
     + '</div>';
@@ -14600,10 +14747,26 @@ async function prefetchWizardContext(title) {
     + 'SOP TITLE: "' + title + '"\n'
     + 'CATEGORY: ' + cat
     + industryContext + '\n\n'
+    + '╔══════════════════════════════════════════════════════════╗\n'
+    + '║  THREE NON-NEGOTIABLE RULES (failure = bad output)        ║\n'
+    + '╚══════════════════════════════════════════════════════════╝\n'
+    + 'RULE 1: NO DUPLICATE QUESTIONS. Each of the 6 questions targets a DIFFERENT\n'
+    + '   decision point. If two questions could be answered with the same answer,\n'
+    + '   ONE OF THEM IS WRONG. Example of FAILURE: asking "Do you grade cards\n'
+    + '   in-house or use a third-party?" AND ALSO "Which grading company do you\n'
+    + '   use?" — these are the same question. Pick one.\n\n'
+    + 'RULE 2: COVER ALL SUB-PROCESSES. If the SOP involves multiple sub-processes\n'
+    + '   (e.g. "Trading card grading" involves intake, grading, PACKAGING, SHIPPING,\n'
+    + '   tracking, customer comms — that\'s 6+ sub-processes), questions MUST sample\n'
+    + '   across the sub-processes, not concentrate on one. If shipping is involved,\n'
+    + '   at least 1 question must address packaging/insurance/shipping decisions.\n\n'
+    + 'RULE 3: NO GENERIC QUESTIONS. Each question must FAIL the test "Could this\n'
+    + '   be asked for ANY SOP?" If a question would make sense for HR policy, cash\n'
+    + '   handling, AND food safety, it is too generic. Throw it out.\n\n'
     + 'Return a SINGLE valid JSON object with exactly these 3 keys:\n\n'
     + '1. "questions" — array of EXACTLY 6 topic-specific, targeted questions.\n'
-    + '   FIRST: identify what KIND of SOP this is. Different SOP types need different question patterns:\n'
-    + '     • Shipping/logistics → packaging, insurance, carrier, tracking, customer comms\n'
+    + '   STEP A: Identify the SOP type and ALL sub-processes it involves:\n'
+    + '     • Shipping/logistics → packaging, insurance, carrier, tracking, customer comms on delays\n'
     + '     • Cash/money handling → dollar thresholds, dual control, deposit timing, reconciliation\n'
     + '     • Customer complaint → severity tiers, refund authority, escalation, response SLA\n'
     + '     • Hiring/onboarding → panel composition, reference checks, offer approval, milestones\n'
@@ -14612,19 +14775,30 @@ async function prefetchWizardContext(title) {
     + '     • Compliance/audit → applicable regs, frequency, evidence retention, designated officer\n'
     + '     • Safety/PPE → hazard types, PPE required, training cadence, incident reporting\n'
     + '     • HR policy → reporting chain, investigation steps, documentation, anonymous channels\n'
-    + '   Pick the category, then ask questions about THAT category\'s decision points.\n'
-    + '   THEN: every question must FAIL this test: "Could this be asked for ANY SOP?"\n'
-    + '   If yes → too generic, throw it out. Examples:\n'
-    + '     GENERIC (bad): "Who is responsible for this process?"\n'
-    + '     SPECIFIC (good, for shipping): "Above what dollar value do you require shipping insurance?"\n'
+    + '     • Inventory/intake → SKU tracking, condition logging, valuation, storage\n'
+    + '   COMPOUND SOPs (most real ones): identify ALL applicable sub-processes.\n'
+    + '   Example: "Trading card grading" = intake + valuation + shipping + tracking + customer comms.\n'
+    + '   Example: "Restaurant opening" = unlocking + equipment + food prep + cash drawer + staff briefing.\n'
+    + '   STEP B: Allocate the 6 questions to cover ALL sub-processes (not 4 questions on one,\n'
+    + '   2 on another). One per sub-process is the goal if you have 6 sub-processes; if you\n'
+    + '   have fewer sub-processes, cover the most critical decisions within each.\n'
+    + '   STEP C: For each question, verify it\'s SPECIFIC, NOT GENERIC, NOT DUPLICATE.\n\n'
     + '   Rules:\n'
     + '   • Ask ONLY what AI cannot know: org structure, specific tools, dollar thresholds, escalation contacts, who-does-what specifics.\n'
     + '   • NEVER ask: "What are the steps?", legal definitions, volume questions, generic descriptions.\n'
-    + '   • Each of the 6 questions targets a DIFFERENT decision point — not 6 variations of one.\n'
     + '   • Keep each under 14 words. Short, direct, actionable.\n\n'
-    + '   EXAMPLE for "Trading card shipping to PSA" (good):\n'
-    + '   ["What packaging materials for high-value cards?","Above what dollar value do you add insurance?","Which carrier, and do you require signature on delivery?","Who approves shipments above your normal insurance limit?","How do you communicate tracking info to customers?","What\'s the return process if PSA rejects a card?"]\n\n'
+    + '   EXAMPLE for "Trading card grading procedure" (notice the sub-process coverage):\n'
+    + '     1. Intake → "What info do you log when you receive a card from a customer?"\n'
+    + '     2. Valuation/tier → "How do you decide which PSA service tier to use per card?"\n'
+    + '     3. PACKAGING → "What packaging materials do you require for cards over $500?"\n'
+    + '     4. SHIPPING → "Above what dollar value do you require shipping insurance?"\n'
+    + '     5. Tracking → "Where do you record the PSA order number and tracking number?"\n'
+    + '     6. Customer comms → "How and when do you update customers on grading status?"\n'
+    + '   These 6 cover 6 different sub-processes. NONE are duplicates of each other.\n\n'
     + '2. "compliance" — array of 2 to 4 LIKELY-RELEVANT compliance items for this SOP + industry + state.\n'
+    + '   IMPORTANT: if the SOP involves shipping anything valuable, ALSO consider carrier-specific\n'
+    + '   regulations (UPS/FedEx/USPS rules on declared value), state collectibles dealer\n'
+    + '   licensing if applicable, and federal regulations on interstate commerce when relevant.\n'
     + '   Rules:\n'
     + '   • Only suggest WELL-KNOWN, real regulations (OSHA, HIPAA, FDA, EPA, PCI-DSS, GDPR, FLSA, Title VII, state-specific common ones).\n'
     + '   • Each item is an object: {"name": "Short name", "desc": "Brief description in plain language under 60 chars"}.\n'
@@ -14639,6 +14813,8 @@ async function prefetchWizardContext(title) {
     + '   • Solo plumber + safety SOP → "Just me", "Step-by-step", "Quick reference", "Plain & simple"\n'
     + '   • Cafe with 10 staff + opening procedure → "My team", "Step-by-step", "Standard procedure", "Professional"\n'
     + '   • HR director + harassment policy → "Whole company", "Narrative", "Training manual", "Formal"\n\n'
+    + 'BEFORE RETURNING: re-read your 6 questions. For each pair, ask "would the user answer these the same way?"\n'
+    + 'If yes for any pair, REPLACE one with a question about a different sub-process.\n\n'
     + 'Return ONLY the JSON object. No markdown, no commentary, no code fences.\n\n'
     + 'EXAMPLE RESPONSE SHAPE:\n'
     + '{"questions":["Q1","Q2","Q3","Q4","Q5","Q6"],"compliance":[{"name":"Local health code","desc":"Food service inspections"}],"formatHints":{"audience":"My team","format":"Step-by-step","detail":"Standard procedure","tone":"Professional"}}';
@@ -14653,7 +14829,7 @@ async function prefetchWizardContext(title) {
         userPrompt: prompt,
         userId: currentUser ? currentUser.uid : 'anon',
         plan: userPlanData ? userPlanData.plan : 'trial',
-        maxTokens: 900,
+        maxTokens: 1200,
         useFastModel: true
       })
     });
@@ -17324,7 +17500,7 @@ async function doAiRevision() {
   if(inputEl) inputEl.disabled = true;
   // Save to version history before revising
   saveVersionHistory(currentSOP);
-  var systemPrompt = 'You are an expert SOP editor. Apply the revision instruction to the SOP and return the complete revised SOP. '
+  var systemPrompt = 'You are an expert SOP editor. TODAY\'S DATE: ' + (new Date().toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'})) + '. Your training cutoff is in the past relative to today — when revising, do NOT introduce year-bound numbers (minimum wage, tax brackets, OSHA penalties, etc.) as confident facts; use phrases like "verify current value" instead. Apply the revision instruction to the SOP and return the complete revised SOP. '
     + 'Maintain the same overall format and structure unless the instruction changes it. '
     + 'FORMATTING RULES (CRITICAL — same rules as original SOP generation):\n'
     + '• Use numbered lists (1. 2. 3.) ONLY for sequential procedural steps.\n'
