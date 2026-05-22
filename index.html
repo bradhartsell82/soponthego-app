@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SOPONTHEGO</title>
@@ -67,9 +67,12 @@ html,body{height:100%;overflow:hidden;background:#080808;font-family:var(--font)
 
 /* ── COMMON COMPONENTS ── */
 /* FIX #2: app-bars are used at the top of secondary screens (no scroll-area).
-   Add safe-top padding so back buttons and titles don't clip into the notch. */
+   Add safe-top padding so back buttons and titles don't clip into the notch.
+   FIX SOP-UI-01: title gets min-width:0 so flexbox lets it shrink rather than
+   overflow when combined with a back button and step badge. Ellipsis-truncate
+   if it still doesn't fit. */
 .app-bar{padding:calc(14px + var(--safe-top)) 20px 8px;display:flex;align-items:center;gap:12px;flex-shrink:0}
-.app-bar-title{font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--text);flex:1;text-align:center}
+.app-bar-title{font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--text);flex:1;text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em}
 .icon-btn{width:40px;height:40px;border-radius:50%;background:var(--surface2);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);transition:all .15s;flex-shrink:0}
 .icon-btn:active{transform:scale(.93)}
 .card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden}
@@ -177,7 +180,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 .file-remove{color:var(--accent2);background:none;border:none;cursor:pointer;font-size:18px;line-height:1}
 
 /* ── GENERATING ── */
-.gen-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:20px;padding:30px 24px}
+.gen-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:20px;padding:calc(30px + var(--safe-top)) 24px 30px}
 .gen-orb{width:110px;height:110px;border-radius:50%;background:radial-gradient(circle at 40% 40%,rgba(108,99,255,.7),rgba(155,89,182,.3));display:flex;align-items:center;justify-content:center;animation:orbPulse 2s ease-in-out infinite}
 @keyframes orbPulse{0%,100%{box-shadow:0 0 0 0 rgba(108,99,255,.4),0 0 0 20px rgba(108,99,255,.1)}50%{box-shadow:0 0 0 16px rgba(108,99,255,.2),0 0 0 32px rgba(108,99,255,.05)}}
 .gen-title{font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--text);text-align:center}
@@ -280,7 +283,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 @keyframes dotBlink{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* ── SOP OUTPUT ── */
-.sop-out-bar{padding:14px 20px 0;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.sop-out-bar{padding:calc(14px + var(--safe-top)) 20px 0;display:flex;align-items:center;gap:10px;flex-shrink:0}
 .sop-doc-card{margin:10px 20px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden}
 .sop-doc-top{padding:16px;background:linear-gradient(135deg,rgba(108,99,255,.12),rgba(155,89,182,.06));border-bottom:1px solid var(--border)}
 .sop-doc-company{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
@@ -439,11 +442,11 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 <!-- ════════════════════════════════════════ -->
 <!-- SCREEN: ONBOARDING (first launch only)  -->
 <!-- ════════════════════════════════════════ -->
-<div class="screen hidden" id="s-login" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:100vh;padding:120px 24px 60px;background:var(--bg);overflow-y:auto;position:relative">
+<div class="screen hidden" id="s-login" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:100vh;padding:calc(120px + var(--safe-top)) 24px 60px;background:var(--bg);overflow-y:auto;position:relative">
   <!-- Top-right sign-in pill: positioned below the 35px notch (top:44px) so it never gets hidden by it.
        Entire pill is the tap target (~40px height for fat-finger safety on mobile). -->
   <a href="javascript:void(0)" onclick="toggleAuthMode();return false;" id="topright-signin-pill"
-     style="position:absolute;top:44px;right:16px;display:flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid var(--border2);border-radius:999px;background:rgba(255,255,255,.025);text-decoration:none;cursor:pointer;transition:background .15s,border-color .15s,transform .1s;-webkit-tap-highlight-color:transparent;min-height:36px;z-index:10"
+     style="position:absolute;top:calc(44px + var(--safe-top));right:16px;display:flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid var(--border2);border-radius:999px;background:rgba(255,255,255,.025);text-decoration:none;cursor:pointer;transition:background .15s,border-color .15s,transform .1s;-webkit-tap-highlight-color:transparent;min-height:36px;z-index:10"
      onmouseover="this.style.background='rgba(136,129,255,.1)';this.style.borderColor='var(--accent)'"
      onmouseout="this.style.background='rgba(255,255,255,.025)';this.style.borderColor='var(--border2)'"
      ontouchstart="this.style.transform='scale(.96)'"
@@ -503,7 +506,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
   </div>
 </div>
 <div class="screen hidden" id="s-onboard">
-  <div style="flex:1;overflow-y:auto;padding:32px 24px 40px;display:flex;flex-direction:column">
+  <div style="flex:1;overflow-y:auto;padding:calc(32px + var(--safe-top)) 24px 40px;display:flex;flex-direction:column">
 
     <!-- Logo / brand -->
     <div style="text-align:center;margin-bottom:32px">
@@ -1773,7 +1776,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 </div>
 
 <div class="screen hidden" id="s-account">
-  <div class="scroll-area" style="padding-top:20px;padding-bottom:20px">
+  <div class="scroll-area" style="padding-top:calc(20px + var(--safe-top));padding-bottom:20px">
     <div class="acct-avatar" id="acct-avatar">JD</div>
     <div class="acct-name" id="acct-name">Your Name</div>
     <div class="acct-sub" id="acct-sub">Set up your profile</div>
@@ -11752,6 +11755,13 @@ async function generateSOP() {
     + '  not "## 1. Pre-Submission").\n\n'
     + 'RULE E: Never include "Last updated", "Version 1.0", or "Revision History"\n'
     + '  lines. The document footer handles version tracking separately.\n\n'
+    + 'RULE F: "Note:", "Review & Update:", "Escalation:", "Purpose:", "Scope:"\n'
+    + '  callouts must NEVER appear as continuation items in a procedural list.\n'
+    + '  If you have a Return Handling section with steps 1-4, do NOT add\n'
+    + '  "5. Note: ..." or "6. Review & Update: ..." as items 5 and 6.\n'
+    + '  Instead: end the procedural list at item 4 with a blank line, then write\n'
+    + '  "**Note:** ..." as a standalone paragraph, then "**Review & Update:** ..."\n'
+    + '  as another standalone paragraph (or its own ## section header).\n\n'
     + industryBlock
     + '## TOPIC-SPECIFIC REQUIREMENTS (read this BEFORE writing)\n'
     + 'Different KINDS of SOPs need different content. Before drafting, identify which category this SOP belongs to and make sure the content addresses THAT category\'s critical decision points:\n'
@@ -12036,6 +12046,16 @@ function getToday() {
   return ['January','February','March','April','May','June','July','August','September','October','November','December'][d.getMonth()]+' '+d.getDate()+', '+d.getFullYear();
 }
 function getNextSopNum() {
+  // FIX SOP-DOC-01: prefer the new currentDocId (SOP-OPS-260522-001 format)
+  // when available. The cover page renderer calls this function; without
+  // this delegation, the cover used the OLD "SOP-0001" counter while the
+  // footer used the new format — inconsistent and confusing.
+  if(typeof currentDocId !== 'undefined' && currentDocId) return currentDocId;
+  // Lazy-generate if we have category context (output screen showing a fresh SOP)
+  if(typeof generateDocumentId === 'function' && (currentSopCat || (wiz && wiz.cat))) {
+    return generateDocumentId(currentSopCat || (wiz && wiz.cat) || 'General');
+  }
+  // Legacy fallback — only fires if the new system isn't ready
   var n = parseInt(localStorage.getItem('sotg_sopnum')||'0')+1;
   localStorage.setItem('sotg_sopnum', n);
   return 'SOP-'+String(n).padStart(4,'0');
@@ -12177,16 +12197,26 @@ function renderMarkdownBody(rawBody, opts) {
       var isLabeledCallout = false;
       var calloutMatch = trimmed.match(/^(\d+)\.\s+([A-Z][\w &-]{2,30}):\s+(.*)$/);
       if(calloutMatch) {
-        // Look at next non-empty line to see if this is a standalone callout
-        // or part of a real sequence of numbered steps.
-        var j = i + 1;
-        while(j < lines.length && !lines[j].trim()) j++;
-        var nextLine = (j < lines.length) ? lines[j].trim() : '';
-        var nextIsNumberedItem = /^\d+\.\s+/.test(nextLine);
-        // Standalone if next line isn't another numbered item AND we're not
-        // currently extending an ordered list.
-        if(!nextIsNumberedItem && (!inList || listKind !== 'ol')) {
+        var labelText = calloutMatch[2];
+        // ALWAYS-CALLOUT LABELS: these specific words are never legitimate
+        // continuation items in a procedural list. They're metadata sections
+        // that the AI sometimes mistakenly numbers (FIX SOP-FMT-02). If we
+        // see any of these as "N. Label: ...", render as bold callout
+        // regardless of context (open ordered list, next line, etc.).
+        var alwaysCalloutLabels = /^(Note|Notes|Review|Review & Update|Reviews|Escalate|Escalation|Purpose|Scope|Definition|Definitions|Important|Reminder|Warning|Caution|Disclaimer|Disclaimers|Audience|Owner|Owners|References|Reference|Last updated|Version|Revision History)$/i;
+        if(alwaysCalloutLabels.test(labelText)) {
           isLabeledCallout = true;
+        } else {
+          // Heuristic for OTHER labels (e.g. "Step 1:", "Phase 1:") — look ahead
+          // and check prev line.
+          var j = i + 1;
+          while(j < lines.length && !lines[j].trim()) j++;
+          var nextLine = (j < lines.length) ? lines[j].trim() : '';
+          var nextIsNumberedItem = /^\d+\.\s+/.test(nextLine);
+          var prevLineBlank = (i > 0 && !lines[i-1].trim());
+          if(!nextIsNumberedItem && ((!inList || listKind !== 'ol') || prevLineBlank)) {
+            isLabeledCallout = true;
+          }
         }
       }
       if(isLabeledCallout) {
@@ -17946,12 +17976,22 @@ function buildProfessionalDocumentHtml() {
     + '<span>' + (isEnterprise ? 'CONFIDENTIAL — INTERNAL USE ONLY' : 'Generated by SOPONTHEGO') + '</span>'
     + '</div>';
 
+  // FIX SOP-CALLOUT-01: time-sensitive info callout for enterprise output.
+  // Mirrors the one in buildPrintableSopHtml so all print paths get it.
+  var timeSensitiveCallout = '<div style="background:#fff8e1;border-left:3px solid #f0b400;'
+    + 'padding:10px 14px;margin:0 0 22px;font-size:11.5px;color:#5a4a00;line-height:1.5;font-family:Georgia,serif">'
+    + '<strong>Before adopting:</strong> Verify any specific dollar amounts, regulatory citations, '
+    + 'or jurisdiction-specific rules in this SOP against current published guidance. '
+    + 'AI-assisted drafts may contain values that have changed since this document was generated.'
+    + '</div>';
+
   return '<style>'
     + '@media print { @page { margin: 0.6in; } body { margin: 0 !important; } .sop-cover { padding: 0 !important; height: auto; min-height: 9in } }'
     + '</style>'
     + '<div style="font-family:Georgia,\'Times New Roman\',serif;max-width:7in;margin:0 auto;padding:0.5in;color:#1a1a2e;background:white">'
     + coverHtml
     + headerHtml
+    + timeSensitiveCallout
     + tocHtml
     + bodyHtml
     + footerHtml
