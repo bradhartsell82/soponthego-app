@@ -77,6 +77,16 @@ html,body{height:100%;overflow:hidden;background:#080808;font-family:var(--font)
 /* ── NAVBAR ── */
 .navbar{position:absolute;bottom:0;left:0;right:0;height:calc(76px + var(--safe-bottom));background:var(--nav-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-around;padding-top:10px;z-index:50}
 .nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:6px 14px;border:none;background:none;color:var(--text3);transition:all .2s}
+/* SOP-PROFILE-01: Tiny coral dot on the Account nav button when the user's
+   profile is incomplete (missing name or company). Discoverable without
+   being shouty. body.profile-incomplete is toggled by updateProfileBadge().
+   body.profile-badge-dismissed kills it permanently if user opts out. */
+.nav-item-account{position:relative}
+body.profile-incomplete:not(.profile-badge-dismissed) .nav-item-account::after{
+  content:"";position:absolute;top:4px;right:10px;width:8px;height:8px;
+  border-radius:50%;background:var(--accent2);border:1.5px solid var(--bg);
+  pointer-events:none
+}
 .nav-item.active{color:var(--accent)}
 .nav-item svg{width:22px;height:22px;stroke-width:1.8}
 .nav-label{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
@@ -445,6 +455,12 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 </style>
   <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-app-compat.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-auth-compat.min.js"></script>
+  <!-- SOP-SHARE-01: Firebase Storage SDK for hosting shareable PDFs.
+       Loaded once at startup since we use it whenever a user shares an SOP.
+       Direct frontend upload (no server proxy) using the user's Firebase Auth
+       token; bucket rules in Firebase Console enforce per-user folder isolation
+       and 5MB PDF-only validation. -->
+  <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.0/firebase-storage-compat.min.js"></script>
 </head>
 <body>
 <div class="phone-shell" data-theme="dark" id="app" data-theme="dark">
@@ -762,7 +778,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       <span class="nav-label">Upload</span>
     </button>
-    <button class="nav-item" onclick="go('s-account')">
+    <button class="nav-item nav-item-account" onclick="go('s-account')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       <span class="nav-label">Account</span>
     </button>
@@ -1072,8 +1088,13 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 <!-- ── SCREEN: NEW WIZARD STEP 1 — Title + Category ─────────────────────── -->
 <div class="screen hidden" id="s-wn-1" style="display:flex;flex-direction:column">
   <div class="app-bar">
-    <button class="icon-btn" onclick="wnGoBack(1)" id="wn1-back-btn">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    <!-- SOP-NAV-02: Step 1 top icon is an X (close) rather than a back-arrow.
+         Tapping this button exits the wizard entirely (with confirm if the user
+         has typed anything), so X — the universal "close, lose context" icon —
+         is more honest than a back-arrow that could be confused with "back one
+         step within wizard". -->
+    <button class="icon-btn" onclick="wnGoBack(1)" id="wn1-back-btn" aria-label="Close wizard">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
     <div class="app-bar-title">Create SOP</div>
     <div class="wn-step-badge">Step 1 of 4</div>
@@ -1107,7 +1128,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 <!-- ── SCREEN: NEW WIZARD STEP 2 — Conversational Questions + Review ─────── -->
 <div class="screen hidden" id="s-wn-2" style="display:flex;flex-direction:column">
   <div class="app-bar">
-    <button class="icon-btn" onclick="wnGoBack(2)">
+    <button class="icon-btn" onclick="wnGoBack(2)" aria-label="Back to Step 1: Basics" title="Back to basics">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
     </button>
     <div class="app-bar-title" id="wn2-title">SOP</div>
@@ -1175,7 +1196,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 <!-- ── SCREEN: NEW WIZARD STEP 3 — Format & Feel (AI-suggested dropdowns) ─── -->
 <div class="screen hidden" id="s-wn-3" style="display:flex;flex-direction:column">
   <div class="app-bar">
-    <button class="icon-btn" onclick="wnGoBack(3)">
+    <button class="icon-btn" onclick="wnGoBack(3)" aria-label="Back to Step 2: Questions" title="Back to questions">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
     </button>
     <div class="app-bar-title" id="wn3-title">SOP</div>
@@ -1223,7 +1244,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 <!-- ── SCREEN: NEW WIZARD STEP 4 — Recap + Generate ──────────────────────── -->
 <div class="screen hidden" id="s-wn-4" style="display:flex;flex-direction:column">
   <div class="app-bar">
-    <button class="icon-btn" onclick="wnGoBack(4)">
+    <button class="icon-btn" onclick="wnGoBack(4)" aria-label="Back to Step 3: Format" title="Back to format">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
     </button>
     <div class="app-bar-title">Almost done</div>
@@ -1516,9 +1537,11 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
     <div class="export-strip">
       <button class="exp-btn primary" onclick="doCopy()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button>
       <button class="exp-btn" onclick="doDownload()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download</button>
-      <button class="exp-btn" onclick="doEmail()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Email</button>
+      <!-- SOP-SHARE-01: Single Share button replacing Email + Text. Uses native
+           share sheet on mobile (Messages, Mail, AirDrop, WhatsApp) with PDF
+           attached, or falls back to email + copy-link options on desktop. -->
+      <button class="exp-btn" onclick="doShare()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Share</button>
           <button class="exp-btn" onclick="sendAcknowledgment()" title="Send for team sign-off"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>Sign-off</button>
-      <button class="exp-btn" onclick="doSMS()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Text</button>
       <button class="exp-btn" onclick="doPrint()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print/PDF</button>
       <button class="exp-btn" onclick="doSaveNewVersion()" title="Save updated version to library"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Re-save</button>
       <button class="exp-btn" onclick="doRegen()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Redo</button>
@@ -1531,11 +1554,9 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
         <!-- Sign-Off Row -->
     <!-- SOP Metadata Stamp -->
     <div id="sop-meta-stamp" style="padding:6px 16px;text-align:center"></div>
-    <!-- Time-sensitive info callout: honest expectation-setting before they share/print -->
-    <div id="sop-verify-banner" style="margin:8px 16px 0;padding:8px 12px;background:rgba(255,193,7,.10);border:1px solid rgba(255,193,7,.35);border-radius:8px;font-size:11.5px;color:var(--text2);line-height:1.45">
-      <strong style="color:var(--text)">⚠ Before adopting:</strong>
-      Verify any dollar amounts, regulatory citations, or jurisdiction-specific rules against current guidance. AI-assisted drafts may contain values that have changed.
-    </div>
+    <!-- SOP-WARN-01: Removed redundant "Before adopting" yellow callout.
+         The comprehensive "Review before use" disclaimer below the SOP body
+         already covers AI-output verification expectations. -->
     <!-- Action Row: Revert + Version History + Print Preview -->
     <div style="padding:8px 16px 0;display:flex;gap:6px;flex-wrap:wrap">
       <button onclick="revertToOriginal()" style="flex:1;min-width:90px;padding:9px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">↩ Revert</button>
@@ -1619,8 +1640,11 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
   <div class="cat-row" id="lib-cats"></div>
   <div id="lib-time-filters" style="padding:0 16px 10px;display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none"><div class="time-pill on" onclick="libTimeFilter(this,'all')">All time</div><div class="time-pill" onclick="libTimeFilter(this,'week')">This week</div><div class="time-pill" onclick="libTimeFilter(this,'month')">This month</div><div class="time-pill" onclick="libTimeFilter(this,'last')">Last month</div><div class="time-pill" onclick="libTimeFilter(this,'older')">Older</div></div>
   <div class="scroll-area" style="padding-bottom:20px" id="lib-list-wrap">
+    <!-- SOP-UI-02: removed duplicate lib-count-badge element. Two renderers
+         (renderLibList and renderLibraryWithFolders) updated different count
+         elements, causing the count to appear twice (one stale, one fresh).
+         lib-count is the active count element used by renderLibraryWithFolders. -->
     <div style="font-size:11px;color:var(--text3);padding:8px 0 4px;text-align:right" id="lib-count"></div>
-    <div id="lib-count-badge" style="font-size:11px;color:var(--text3);padding:6px 16px 4px;text-align:right"></div>
     <div id="lib-list"></div>
   </div>
   <div class="navbar">
@@ -1628,7 +1652,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
     <button class="nav-item active" onclick="go('s-library')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="nav-label">Library</span></button>
     <button class="nav-create" onclick="startNewWizard({sourceScreen:'s-home'})"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
     <button class="nav-item" onclick="if(checkFeatureAccess('Upload &amp; Rewrite SOPs','📤','rewrite')){go('s-upload');}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span class="nav-label">Upload</span></button>
-    <button class="nav-item" onclick="go('s-account')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="nav-label">Account</span></button>
+    <button class="nav-item nav-item-account" onclick="go('s-account')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="nav-label">Account</span></button>
   </div>
 </div>
 
@@ -1937,7 +1961,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
     <button class="nav-item" onclick="go('s-library')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="nav-label">Library</span></button>
     <button class="nav-create" onclick="startNewWizard({sourceScreen:'s-home'})"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
     <button class="nav-item" onclick="if(checkFeatureAccess('Upload &amp; Rewrite SOPs','📤','rewrite')){go('s-upload');}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span class="nav-label">Upload</span></button>
-    <button class="nav-item active" onclick="go('s-account')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="nav-label">Account</span></button>
+    <button class="nav-item nav-item-account active" onclick="go('s-account')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="nav-label">Account</span></button>
   </div>
 </div>
 
@@ -2002,6 +2026,12 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
     <button class="secondary-btn" onclick="dismissQuickSetup()">Skip for now</button>
     <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:10px;line-height:1.4">
       You can always update these in Account settings later.
+    </div>
+    <!-- SOP-PROFILE-01: opt-out for the persistent Account-icon dot. After the
+         user skips for now, a tiny red dot appears on the Account nav button as
+         a reminder. If they don't want that reminder, this kills it permanently. -->
+    <div style="text-align:center;margin-top:6px">
+      <a href="javascript:void(0)" onclick="dismissProfileBadgePermanently();dismissQuickSetup();" style="font-size:11px;color:var(--text3);text-decoration:underline;cursor:pointer">Don't show this reminder again</a>
     </div>
   </div>
 </div>
@@ -2290,6 +2320,10 @@ var firebaseConfig = {
 
 var firebaseApp = null;
 var firebaseAuth = null;
+// SOP-SHARE-01: Firebase Storage instance for shareable PDF hosting.
+// Lazily initialized once the SDK loads; nullable in case the user is
+// offline or the SDK script failed.
+var firebaseStorage = null;
 
 
 // Escape a JS string value so it can be safely embedded inside a double-quoted HTML attribute
@@ -2308,6 +2342,14 @@ function initFirebase() {
     }
     firebaseApp = firebase.initializeApp(firebaseConfig);
     firebaseAuth = firebase.auth();
+    // SOP-SHARE-01: Initialize Storage if the SDK is present. Graceful if
+    // the script tag failed to load — share-via-PDF just won't work, other
+    // features unaffected.
+    try {
+      if(firebase.storage) firebaseStorage = firebase.storage();
+    } catch(stErr) {
+      console.warn('[firebase] Storage init failed:', stErr.message);
+    }
     firebaseAuth.onAuthStateChanged(function(user) {
       if(user) {
         currentUser = user;
@@ -8758,12 +8800,28 @@ updateClock();
 
 // ── SCREEN NAV ────────────────────────────────────────────────────────────────
 function goTemplates() {
+  // SOP-NAV-01: Entering templates from a "what brings you here" home card
+  // should NEVER inherit a stale category from a previous session. Without
+  // this reset, users tapping "Building out processes" would land on whatever
+  // narrow category they last had selected — sometimes "Other" with zero
+  // matching templates, looking broken. Clearing wiz.cat ensures the user
+  // lands on the full category grid (showCategoryGrid in initTemplateScreen).
+  wiz.cat = '';
   wizSourceScreen = 's-home';
-  var cat = wiz.cat || 'All';
   go('s-templates');
 }
 
 function go(id) {
+  // SOP-SAVE-02: Detect when user navigates AWAY from generation while it's
+  // still streaming. If they do, the quota slot we reserved is wasted —
+  // refund it so they don't pay for an SOP they never received.
+  // Exception: navigating TO s-gen IS the start of generation; navigating to
+  // s-output is the success endpoint (in-flight flag will already be false).
+  if(window._inFlightGen === true && id !== 's-gen' && id !== 's-output') {
+    try { decrementSopCount(); } catch(_) {}
+    window._inFlightGen = false;
+    try { showToast('Generation cancelled. Your SOP quota was returned.'); } catch(_) {}
+  }
   if(id === 's-templates') {
     var _cat = wiz.cat || 'All';
     setTimeout(function(){
@@ -8867,6 +8925,8 @@ function loadProfile() {
   }
   try { syncAccountUI(); } catch(e) {}
   try { syncLogoUI(); } catch(e) {}
+  // SOP-PROFILE-01: refresh Account-icon dot to match current profile state
+  try { updateProfileBadge(); } catch(e) {}
   return profile;
 }
 function saveProfileData() {
@@ -8876,6 +8936,37 @@ function saveProfileData() {
   // so rapid edits (typing in a field with on-input save) don't spam the
   // backend.
   try { scheduleProfileCloudSync(); } catch(e) {}
+  // SOP-PROFILE-01: refresh the Account icon badge — if the user just filled
+  // in their name/company, the dot should disappear immediately.
+  try { updateProfileBadge(); } catch(e) {}
+}
+
+// SOP-PROFILE-01: Toggle a tiny notification dot on the Account nav button
+// when the user's profile is missing name OR company. Helps users who
+// dismissed the Quick Setup modal find their way back to fill it in.
+//
+// Threshold: missing name OR company. These two are the most-used fields in
+// generated SOPs (cover page, footer, sign-off pages). Other fields like role,
+// industry, address are "nice to have" — don't trigger the dot.
+//
+// Permanently dismissible: if user explicitly opts out via "Don't show again"
+// in the Quick Setup modal, a body class kills the dot regardless of profile
+// state. Stored in localStorage as sotg_profile_badge_dismissed.
+function updateProfileBadge() {
+  try {
+    var body = document.body;
+    if(!body) return;
+    var incomplete = !profile || !profile.author || !profile.company
+      || !profile.author.trim() || !profile.company.trim();
+    body.classList.toggle('profile-incomplete', incomplete);
+    var dismissed = !!localStorage.getItem('sotg_profile_badge_dismissed');
+    body.classList.toggle('profile-badge-dismissed', dismissed);
+  } catch(e) {}
+}
+
+function dismissProfileBadgePermanently() {
+  try { localStorage.setItem('sotg_profile_badge_dismissed', '1'); } catch(e) {}
+  try { updateProfileBadge(); } catch(e) {}
 }
 
 // ── PROFILE CLOUD SYNC ────────────────────────────────────────────────────────
@@ -8948,6 +9039,8 @@ function syncProfileFromFirestore() {
       try { syncAccountUI(); } catch(e) {}
       try { syncLogoUI(); } catch(e) {}
     }
+    // SOP-PROFILE-01: cloud sync may have filled in missing fields; refresh badge
+    try { updateProfileBadge(); } catch(e) {}
   })
   .catch(function(err) {
     // If cloud fetch fails (offline, backend down), fall back to local-only behavior.
@@ -11644,6 +11737,11 @@ async function generateSOP() {
   if(!checkSopLimit()) return;
   incrementSopCount();  // ← moved here from after generation
   var countWasReserved = true;
+  // SOP-SAVE-02: track in-flight generation globally so navigate-away can
+  // detect an abandoned generation and refund the quota slot. Without this,
+  // users who navigate away mid-generation get charged for an SOP they
+  // never received.
+  window._inFlightGen = true;
 
   var genId = Date.now() + '_' + Math.random().toString(36).slice(2,6);
   currentGenId = genId;
@@ -11869,6 +11967,35 @@ async function generateSOP() {
     + '  Instead: end the procedural list at item 4 with a blank line, then write\n'
     + '  "**Note:** ..." as a standalone paragraph, then "**Review & Update:** ..."\n'
     + '  as another standalone paragraph (or its own ## section header).\n\n'
+    + 'RULE G: Reference sections (Regulatory References, Definitions, Roles &\n'
+    + '  Responsibilities, etc.) follow strict formatting:\n'
+    + '  - Intro sentences ("This procedure complies with:") are NOT list items.\n'
+    + '    Write them as plain text on their own line, NOT as "1. This procedure complies with:".\n'
+    + '  - EACH citation gets its own bullet. NEVER bundle multiple regulations\n'
+    + '    into a single list item.\n'
+    + '    - GOOD:\n'
+    + '      - **OSHA 29 CFR 1910.147** (Control of Hazardous Energy): Requires written LOTO program...\n'
+    + '      - **OSHA 29 CFR 1910.303** (Electrical General Requirements): Mandates safe work practices...\n'
+    + '      - **NFPA 70E** (Standard for Electrical Safety in the Workplace): Establishes arc flash...\n'
+    + '    - BAD: "1. **OSHA 29 CFR 1910.147** (...) **OSHA 29 CFR 1910.303** (...) **NFPA 70E** (...)" ← three citations crammed into one item.\n'
+    + '  - Unrelated content (recordkeeping requirements, training cadence, etc.)\n'
+    + '    belongs in its OWN section header, not appended to a reference list.\n'
+    + '  - Apply the same logic to Definitions (each term gets its own bullet),\n'
+    + '    Roles (each role gets its own bullet), and Tools (each tool gets its own bullet).\n\n'
+    + '  WORKED EXAMPLE — copy this EXACT structure for Regulatory References:\n'
+    + '    ## Regulatory References\n'
+    + '    This procedure complies with:\n'
+    + '\n'
+    + '    - **OSHA 29 CFR 1910.147** (Control of Hazardous Energy): Requires written LOTO program, machine-specific procedures, periodic inspection (annual minimum), and training of authorized and affected employees.\n'
+    + '    - **OSHA 29 CFR 1910.303** (Electrical General Requirements): Mandates safe work practices around electrical equipment, examination and testing before work, and use of appropriate protective equipment.\n'
+    + '    - **NFPA 70E** (Standard for Electrical Safety in the Workplace): Establishes arc flash protection requirements, qualified worker definitions, and safe work practices for electrical systems.\n'
+    + '\n'
+    + '    ## Recordkeeping\n'
+    + '    Maintain copies of equipment-specific LOTO procedures, annual inspection records, and training documentation to demonstrate compliance during inspections.\n'
+    + '  NOTICE in the example above:\n'
+    + '    • The intro sentence "This procedure complies with:" is NOT numbered.\n'
+    + '    • Each regulation is its OWN bullet starting with "- ".\n'
+    + '    • Recordkeeping has its OWN ## section header, NOT appended as item 3 of the references list.\n\n'
     + industryBlock
     + '## TOPIC-SPECIFIC REQUIREMENTS (read this BEFORE writing)\n'
     + 'Different KINDS of SOPs need different content. Before drafting, identify which category this SOP belongs to and make sure the content addresses THAT category\'s critical decision points:\n'
@@ -11980,17 +12107,53 @@ async function generateSOP() {
     // Set up cancel controller
     var genController = new AbortController();
     window._genController = genController;
-    var resp = await fetch(BACKEND_URL + '/generate', {
-      method: 'POST',
-      signal: genController.signal,
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        systemPrompt: 'You are a senior operations consultant and SOP writing specialist. TODAY\'S DATE: ' + (new Date().toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'})) + '. Your training data has a cutoff that is in the past relative to today — DO NOT reference specific year-bound numbers (current minimum wage, tax brackets, OSHA penalty amounts, mileage rates, etc.) as confident facts. Instead, write "verify current amount" or "as of recent guidance" when referencing rates/thresholds that change over time. Do NOT write phrases like "as of 2024" — use the actual current year (' + new Date().getFullYear() + ') if a year reference is needed, or omit dates entirely. Your top priority is to follow the AUDIENCE REQUIREMENT — an SOP for "Just me" or "My team" should be short and lean; an SOP for "Whole company" should include all enterprise sections. The audience drives complexity. Separately, the COMPLIANCE ENVIRONMENT drives regulatory language — a 6-person team at a 500-person regulated manufacturer still needs proper compliance terminology even though the SOP is short. Then follow FORMAT, DETAIL LEVEL, and TONE instructions. If audience says "skip Scope and Responsibilities", you must skip them — do NOT add them back. If format is Checklist, produce markdown checkboxes ("- [ ] action"), not numbered steps. If detail is Quick reference, keep it under 250 words. Output the SOP document only — no preamble, no meta-commentary.',
-        userPrompt: prompt,
-        userId: currentUser ? currentUser.uid : 'anonymous',
-        plan: userPlanData.plan
-      })
-    });
+    // SOP-GEN-01: Cold-start tolerant fetch. Render free tier sleeps after
+    // ~15 minutes idle and takes 10-30 seconds to wake. First request often
+    // 502s or times out. We auto-retry once on any non-200 response or
+    // network error, so users see one seamless attempt instead of an error
+    // followed by manual retry (which is what Brad encountered).
+    async function fetchWithColdStartRetry() {
+      var attempt = 0;
+      var maxAttempts = 2;
+      var lastErr = null;
+      while(attempt < maxAttempts) {
+        attempt++;
+        try {
+          var r = await fetch(BACKEND_URL + '/generate', {
+            method: 'POST',
+            signal: genController.signal,
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              systemPrompt: 'You are a senior operations consultant and SOP writing specialist. TODAY\'S DATE: ' + (new Date().toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'})) + '. Your training data has a cutoff that is in the past relative to today — DO NOT reference specific year-bound numbers (current minimum wage, tax brackets, OSHA penalty amounts, mileage rates, etc.) as confident facts. Instead, write "verify current amount" or "as of recent guidance" when referencing rates/thresholds that change over time. Do NOT write phrases like "as of 2024" — use the actual current year (' + new Date().getFullYear() + ') if a year reference is needed, or omit dates entirely. Your top priority is to follow the AUDIENCE REQUIREMENT — an SOP for "Just me" or "My team" should be short and lean; an SOP for "Whole company" should include all enterprise sections. The audience drives complexity. Separately, the COMPLIANCE ENVIRONMENT drives regulatory language — a 6-person team at a 500-person regulated manufacturer still needs proper compliance terminology even though the SOP is short. Then follow FORMAT, DETAIL LEVEL, and TONE instructions. If audience says "skip Scope and Responsibilities", you must skip them — do NOT add them back. If format is Checklist, produce markdown checkboxes ("- [ ] action"), not numbered steps. If detail is Quick reference, keep it under 250 words. Output the SOP document only — no preamble, no meta-commentary.',
+              userPrompt: prompt,
+              userId: currentUser ? currentUser.uid : 'anonymous',
+              plan: userPlanData.plan
+            })
+          });
+          if(r.ok) return r;
+          // Non-200: server responded but with an error. If it's a likely
+          // cold-start status (502/503/504), retry. Otherwise, fail through.
+          if(attempt < maxAttempts && (r.status === 502 || r.status === 503 || r.status === 504)) {
+            console.log('[gen] cold-start status ' + r.status + ', retrying...');
+            await new Promise(function(res){ setTimeout(res, 1500); });
+            continue;
+          }
+          return r; // non-retryable, let the existing !resp.ok check handle it
+        } catch(netErr) {
+          // Network-level failure (DNS, connection refused, abort)
+          lastErr = netErr;
+          if(netErr.name === 'AbortError') throw netErr; // user-cancelled, don't retry
+          if(attempt < maxAttempts) {
+            console.log('[gen] network err on attempt ' + attempt + ', retrying:', netErr.message);
+            await new Promise(function(res){ setTimeout(res, 1500); });
+            continue;
+          }
+          throw netErr;
+        }
+      }
+      throw lastErr || new Error('Generation failed after retries');
+    }
+    var resp = await fetchWithColdStartRetry();
 
     if(!resp.ok) {
       var errData = await resp.json();
@@ -12096,6 +12259,9 @@ async function generateSOP() {
     // Counter was already incremented at the top of generateSOP() — successful
     // generation, so we leave the reservation in place.
     countWasReserved = false;  // mark consumed (no need to roll back on later error handlers)
+    // SOP-SAVE-02: generation succeeded — clear in-flight flag so navigation
+    // away from the output screen doesn't refund anything.
+    window._inFlightGen = false;
     // Show template badge, related templates, metadata stamp
     setTimeout(function() {
       try { showTemplateBadgeOnOutput(wiz.title); } catch(e) {}
@@ -12115,6 +12281,8 @@ async function generateSOP() {
       try { decrementSopCount(); } catch(_) {}
       countWasReserved = false;
     }
+    // SOP-SAVE-02: clear in-flight flag — generation done (failed)
+    window._inFlightGen = false;
 
     // Translate technical errors to user-friendly messages
     var errMsg = e.message || 'Unknown error';
@@ -13072,17 +13240,11 @@ function buildPrintableSopHtml() {
     + '<h1 style="font-size:22px;font-weight:700;border-bottom:2px solid #222;padding-bottom:8px;margin:0 0 4px;color:#111">' + title + '</h1>'
     + '<div style="font-size:11px;color:#666;margin-bottom:20px">' + meta + '</div>';
 
-  // Time-sensitive info callout. Sets honest expectations that the AI
-  // doesn't know "today's" specific dollar amounts, rates, or regulations.
-  // Lives near the top of the doc so a reader sees it before adopting any
-  // specifics. Reduces support burden and protects users from acting on
-  // stale numbers the AI may have generated from older training data.
-  var timeSensitiveCallout = '<div style="background:#fff8e1;border-left:3px solid #f0b400;'
-    + 'padding:10px 14px;margin:0 0 18px;font-size:11.5px;color:#5a4a00;line-height:1.5;font-family:Georgia,serif">'
-    + '<strong>Before adopting:</strong> Verify any specific dollar amounts, regulatory citations, '
-    + 'or jurisdiction-specific rules in this SOP against current published guidance. '
-    + 'AI-assisted drafts may contain values that have changed since this document was generated.'
-    + '</div>';
+  // SOP-WARN-01: Removed redundant "Before adopting" yellow callout from
+  // PDF output. The "Review before use" disclaimer that appears below the
+  // SOP body (in-app) already sets these expectations. Having a yellow
+  // warning box at the top of every PDF made the documents look amateurish
+  // and clinical — three warnings competing for attention.
 
   // FIX #15 (final): real document ID footer.
   // Format: SOP-{CAT}-{YYMMDD}-{NNN}
@@ -13119,7 +13281,6 @@ function buildPrintableSopHtml() {
     +     'th{background:#f4f4f8;font-weight:700}'
     +   '</style>'
     +   headerBlock
-    +   timeSensitiveCallout
     +   bodyHtml
     +   footerBlock
     + '</div>';
@@ -13227,11 +13388,200 @@ function generateDocumentId(category) {
 // works reliably on every browser (Chrome, Edge, Firefox, Safari) and produces
 // PDFs that look exactly like the on-screen Print preview.
 function doDownloadAsPDF() {
+  // SOP-DOWNLOAD-01: Generate a real PDF file using html2pdf instead of
+  // routing through the browser's print dialog. Old flow ("Save as PDF →
+  // Print dialog") was confusing on mobile where the print dialog isn't
+  // a familiar pattern. New flow: tap "PDF" → loading toast → actual .pdf
+  // file appears in Downloads / Files.
   var m = document.getElementById('m-download-fmt'); if(m) m.remove();
-  showPdfInstructionsModal();
+  generateAndDownloadPdf();
+}
+
+// SOP-DOWNLOAD-01 / SOP-PDF-01 / SOP-SHARE-01: Single source of truth for
+// PDF generation. Builds the same HTML used by Print Preview, hands it to
+// html2pdf, saves as <SOP Title>.pdf. Lazy-loads the html2pdf library on
+// first use (~500KB) so it doesn't bloat initial page load.
+// SOP-SHARE-01: Build PDF as a Blob (in-memory). Used by both
+// generateAndDownloadPdf (save to disk) and doShare (upload or attach to
+// native share sheet). Shares the same html2pdf machinery so PDFs look
+// identical regardless of where they end up.
+async function generatePdfBlob() {
+  await loadHtml2PdfLib();
+  var inner = buildPrintableSopHtml();
+  if(!inner || !inner.trim()) {
+    throw new Error('Nothing to export — make sure your SOP has finished generating.');
+  }
+  var wrapper = document.createElement('div');
+  wrapper.style.cssText = 'width:7.5in;padding:0.5in;font-family:Georgia,serif;color:#111;background:#fff;line-height:1.6;position:fixed;left:-9999px;top:0';
+  wrapper.innerHTML = inner;
+  document.body.appendChild(wrapper);
+  try {
+    var opts = {
+      margin: [0.4, 0.4, 0.5, 0.4],
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+    // html2pdf can output a Blob via .outputPdf('blob')
+    var blob = await window.html2pdf().set(opts).from(wrapper).outputPdf('blob');
+    return blob;
+  } finally {
+    if(wrapper && wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+  }
+}
+
+// SOP-SHARE-01: Upload a PDF blob to Firebase Storage under the user's
+// folder, return a public download URL. Caller is responsible for ensuring
+// currentUser is set and firebaseStorage is initialized.
+async function uploadPdfAndGetUrl(blob, filename) {
+  if(!firebaseStorage) throw new Error('Storage not available');
+  if(!currentUser || !currentUser.uid) throw new Error('Not signed in');
+  // Path: pdfs/{uid}/{timestamp}-{sanitizedTitle}.pdf
+  // Timestamp prevents accidental overwrite if same title is shared twice.
+  var safeName = (filename || 'SOP').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80);
+  var path = 'pdfs/' + currentUser.uid + '/' + Date.now() + '-' + safeName;
+  var ref = firebaseStorage.ref(path);
+  await ref.put(blob, { contentType: 'application/pdf' });
+  var url = await ref.getDownloadURL();
+  return url;
+}
+
+// SOP-SHARE-01: User-facing share entry point.
+// Mobile + Web Share API supported: build PDF blob, use native share sheet
+// with file attachment (Messages, Mail, AirDrop, WhatsApp).
+// Desktop or no file-share support: build + upload PDF, copy URL to clipboard,
+// offer email handoff.
+async function doShare() {
+  var titleForFile = (currentSopTitle || 'SOP').replace(/[\\\/:*?"<>|]/g, '').trim() || 'SOP';
+  var filename = titleForFile + '.pdf';
+  showToast('Preparing share…');
+  var blob = null;
+  try {
+    blob = await generatePdfBlob();
+  } catch(genErr) {
+    console.error('[share] PDF gen failed:', genErr);
+    showToast(genErr.message || 'Could not prepare PDF.');
+    return;
+  }
+
+  // Try Web Share API with file attachment first — best mobile UX.
+  // canShare({files:...}) tells us if the platform supports file sharing.
+  if(navigator.share && navigator.canShare) {
+    try {
+      var file = new File([blob], filename, { type: 'application/pdf' });
+      if(navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: titleForFile,
+          text: titleForFile + ' (SOP from SOPONTHEGO)'
+        });
+        showToast('Shared ✓');
+        return;
+      }
+    } catch(shareErr) {
+      // User cancelled share, or platform error. Don't fall through if it was
+      // a user cancellation — they intentionally backed out.
+      if(shareErr && shareErr.name === 'AbortError') return;
+      console.warn('[share] Web Share failed, falling back:', shareErr.message);
+    }
+  }
+
+  // Fallback path: upload to Firebase Storage, copy URL, show modal.
+  showToast('Uploading PDF…');
+  var url = null;
+  try {
+    url = await uploadPdfAndGetUrl(blob, filename);
+  } catch(uploadErr) {
+    console.error('[share] upload failed:', uploadErr);
+    showToast('Could not upload PDF. ' + (uploadErr.message || 'Please try again.'));
+    return;
+  }
+
+  // Show a modal with the URL + copy/email buttons
+  showShareLinkModal(url, titleForFile);
+}
+
+// SOP-SHARE-01: Desktop/fallback share modal — shows the hosted PDF URL with
+// copy + email buttons.
+function showShareLinkModal(url, title) {
+  var existing = document.getElementById('m-share-link');
+  if(existing) existing.remove();
+  var modal = document.createElement('div');
+  modal.id = 'm-share-link';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:10000;padding:16px';
+  modal.onclick = function(e) { if(e.target === modal) modal.remove(); };
+
+  var card = document.createElement('div');
+  card.style.cssText = 'background:var(--surface);border-radius:16px;max-width:480px;width:100%;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,.4)';
+
+  var emailSubject = encodeURIComponent(title + ' — SOP');
+  var emailBody = encodeURIComponent('Here is the SOP "' + title + '":\n\n' + url + '\n\nGenerated with SOPONTHEGO.');
+
+  card.innerHTML =
+      '<div style="font-family:var(--font-display);font-size:19px;font-weight:800;color:var(--text);margin-bottom:6px">🔗 Share this SOP</div>'
+    + '<div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:14px">Anyone with this link can view the PDF in their browser. The link does not expire.</div>'
+    + '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:var(--text);word-break:break-all;font-family:monospace">' + esc(url) + '</div>'
+    + '<button onclick="navigator.clipboard.writeText(' + JSON.stringify(url) + ').then(function(){showToast(\'Link copied ✓\');})" style="width:100%;padding:12px;background:var(--accent);border:none;border-radius:10px;color:white;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px">Copy link</button>'
+    + '<a href="mailto:?subject=' + emailSubject + '&body=' + emailBody + '" style="display:block;text-align:center;width:100%;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--font);font-size:14px;font-weight:800;text-decoration:none;margin-bottom:8px;box-sizing:border-box">Send via email</a>'
+    + '<button onclick="document.getElementById(\'m-share-link\').remove()" style="width:100%;padding:10px;background:none;border:1px solid var(--border);border-radius:10px;color:var(--text2);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">Close</button>';
+
+  modal.appendChild(card);
+  document.body.appendChild(modal);
+}
+
+async function generateAndDownloadPdf() {
+  var titleForFile = (currentSopTitle || 'SOP').replace(/[\\\/:*?"<>|]/g, '').trim() || 'SOP';
+  var filename = titleForFile + '.pdf';
+  showToast('Preparing PDF…');
+  try {
+    await loadHtml2PdfLib();
+  } catch(libErr) {
+    showToast('Could not load PDF library. Check your connection and try again.');
+    return;
+  }
+  // Build the printable HTML using the existing print-template builder so
+  // PDF output matches the on-screen print preview exactly.
+  var inner = '';
+  try { inner = buildPrintableSopHtml(); } catch(e) { inner = ''; }
+  if(!inner || !inner.trim()) {
+    showToast('Nothing to export yet — make sure your SOP has finished generating.');
+    return;
+  }
+  // Wrap in a real document body so html2pdf renders against full-width
+  // typography rather than inheriting cramped phone styles.
+  var wrapper = document.createElement('div');
+  wrapper.style.cssText = 'width:7.5in;padding:0.5in;font-family:Georgia,serif;color:#111;background:#fff;line-height:1.6';
+  wrapper.innerHTML = inner;
+  // html2pdf needs the element attached to the DOM to measure layout.
+  // Use position:fixed off-screen so it doesn't flash visible to the user.
+  wrapper.style.position = 'fixed';
+  wrapper.style.left = '-9999px';
+  wrapper.style.top = '0';
+  document.body.appendChild(wrapper);
+  try {
+    var opts = {
+      margin: [0.4, 0.4, 0.5, 0.4],
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+    await window.html2pdf().set(opts).from(wrapper).save();
+    showToast('PDF downloaded ✓');
+  } catch(genErr) {
+    console.error('[pdf] generation failed:', genErr);
+    showToast('PDF generation failed. Please try again.');
+  } finally {
+    if(wrapper && wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+  }
 }
 
 function showPdfInstructionsModal() {
+  // SOP-DOWNLOAD-01: Legacy modal — kept for any code paths that may still
+  // reference it. New PDF download path goes through generateAndDownloadPdf
+  // directly without this confusing intermediate step.
   var existing = document.getElementById('m-pdf-instructions');
   if(existing) existing.remove();
   var modal = document.createElement('div');
@@ -15044,84 +15394,133 @@ async function prefetchWizardContext(title) {
       + (userState ? '• State/region: ' + userState + '\n' : '');
   }
 
-  // The prompt asks for a single JSON object with 3 keys: questions, compliance, formatHints.
-  // Conservative on compliance — better to under-suggest than hallucinate.
-  // FIX #16 (real fix — previous attempt landed in the legacy unused path):
-  // Add topic decomposition + specificity test for questions so we get
-  // truly topic-specific questions (shipping → packaging/insurance, cash →
-  // dollar thresholds/dual control), not generic "who is responsible".
-  var prompt = 'You are a senior operations consultant helping a small business owner create an SOP.\n\n'
-    + 'SOP TITLE: "' + title + '"\n'
-    + 'CATEGORY: ' + cat
+  // CONSULTANT DISCOVERY PROMPT (replaces the older sub-process allocation approach).
+  // Frames question generation as a senior consultant doing discovery: each
+  // question must trace back to a real business consequence. This makes
+  // questions sharper than generic-feeling sub-process splits, AND it works
+  // for both compound SOPs (many sub-processes) and single-process SOPs
+  // (one process, multiple decisions within it).
+  var prompt = 'You are a senior operations consultant doing discovery before drafting an SOP.\n'
+    + 'A business owner has just told you they need an SOP for: "' + title + '"\n'
+    + 'Category: ' + cat
     + industryContext + '\n\n'
-    + '╔══════════════════════════════════════════════════════════╗\n'
-    + '║  THREE NON-NEGOTIABLE RULES (failure = bad output)        ║\n'
-    + '╚══════════════════════════════════════════════════════════╝\n'
-    + 'RULE 1: NO DUPLICATE QUESTIONS. Each of the 6 questions targets a DIFFERENT\n'
-    + '   decision point. If two questions could be answered with the same answer,\n'
-    + '   ONE OF THEM IS WRONG. Example of FAILURE: asking "Do you grade cards\n'
-    + '   in-house or use a third-party?" AND ALSO "Which grading company do you\n'
-    + '   use?" — these are the same question. Pick one.\n\n'
-    + 'RULE 2: COVER ALL SUB-PROCESSES. If the SOP involves multiple sub-processes\n'
-    + '   (e.g. "Trading card grading" involves intake, grading, PACKAGING, SHIPPING,\n'
-    + '   tracking, customer comms — that\'s 6+ sub-processes), questions MUST sample\n'
-    + '   across the sub-processes, not concentrate on one. If shipping is involved,\n'
-    + '   at least 1 question must address packaging/insurance/shipping decisions.\n\n'
-    + 'RULE 3: NO GENERIC QUESTIONS. Each question must FAIL the test "Could this\n'
-    + '   be asked for ANY SOP?" If a question would make sense for HR policy, cash\n'
-    + '   handling, AND food safety, it is too generic. Throw it out.\n\n'
-    + 'Return a SINGLE valid JSON object with exactly these 3 keys:\n\n'
-    + '1. "questions" — array of EXACTLY 6 topic-specific, targeted questions.\n'
-    + '   STEP A: Identify the SOP type and ALL sub-processes it involves:\n'
-    + '     • Shipping/logistics → packaging, insurance, carrier, tracking, customer comms on delays\n'
-    + '     • Cash/money handling → dollar thresholds, dual control, deposit timing, reconciliation\n'
-    + '     • Customer complaint → severity tiers, refund authority, escalation, response SLA\n'
-    + '     • Hiring/onboarding → panel composition, reference checks, offer approval, milestones\n'
-    + '     • Incident/emergency → severity declaration, escalation chain, comms channels, post-mortem\n'
-    + '     • Sales/outreach → target volume, qualifying criteria, cadence, CRM, opt-out handling\n'
-    + '     • Compliance/audit → applicable regs, frequency, evidence retention, designated officer\n'
-    + '     • Safety/PPE → hazard types, PPE required, training cadence, incident reporting\n'
-    + '     • HR policy → reporting chain, investigation steps, documentation, anonymous channels\n'
-    + '     • Inventory/intake → SKU tracking, condition logging, valuation, storage\n'
-    + '   COMPOUND SOPs (most real ones): identify ALL applicable sub-processes.\n'
-    + '   Example: "Trading card grading" = intake + valuation + shipping + tracking + customer comms.\n'
-    + '   Example: "Restaurant opening" = unlocking + equipment + food prep + cash drawer + staff briefing.\n'
-    + '   STEP B: Allocate the 6 questions to cover ALL sub-processes (not 4 questions on one,\n'
-    + '   2 on another). One per sub-process is the goal if you have 6 sub-processes; if you\n'
-    + '   have fewer sub-processes, cover the most critical decisions within each.\n'
-    + '   STEP C: For each question, verify it\'s SPECIFIC, NOT GENERIC, NOT DUPLICATE.\n\n'
-    + '   Rules:\n'
-    + '   • Ask ONLY what AI cannot know: org structure, specific tools, dollar thresholds, escalation contacts, who-does-what specifics.\n'
-    + '   • NEVER ask: "What are the steps?", legal definitions, volume questions, generic descriptions.\n'
-    + '   • Keep each under 14 words. Short, direct, actionable.\n\n'
-    + '   EXAMPLE for "Trading card grading procedure" (notice the sub-process coverage):\n'
-    + '     1. Intake → "What info do you log when you receive a card from a customer?"\n'
-    + '     2. Valuation/tier → "How do you decide which PSA service tier to use per card?"\n'
-    + '     3. PACKAGING → "What packaging materials do you require for cards over $500?"\n'
-    + '     4. SHIPPING → "Above what dollar value do you require shipping insurance?"\n'
-    + '     5. Tracking → "Where do you record the PSA order number and tracking number?"\n'
-    + '     6. Customer comms → "How and when do you update customers on grading status?"\n'
-    + '   These 6 cover 6 different sub-processes. NONE are duplicates of each other.\n\n'
+    + '╔══════════════════════════════════════════════════════════════╗\n'
+    + '║  HOW GREAT CONSULTANTS THINK ABOUT THIS                       ║\n'
+    + '╚══════════════════════════════════════════════════════════════╝\n'
+    + 'A great SOP is not a list of steps. It is a record of DECISIONS the\n'
+    + 'business has made about how to handle real situations — including\n'
+    + 'the moments when things go wrong.\n\n'
+    + 'Your job is to identify 6 high-consequence DECISIONS this SOP must\n'
+    + 'encode, then ask one targeted question per decision. A "high-consequence\n'
+    + 'decision" is any choice where getting it wrong creates real cost, risk,\n'
+    + 'customer harm, regulatory exposure, or team confusion.\n\n'
+    + '╔══════════════════════════════════════════════════════════════╗\n'
+    + '║  THE METHOD (do this in your head before writing any question) ║\n'
+    + '╚══════════════════════════════════════════════════════════════╝\n'
+    + 'For "' + title + '":\n\n'
+    + 'STEP 1 — Brainstorm 10-15 things that could go wrong, get expensive,\n'
+    + '         cause a complaint, create legal risk, or just confuse a new\n'
+    + '         employee. Be concrete. ("Customer claims their package never\n'
+    + '         arrived" is concrete. "Quality issues" is not.)\n\n'
+    + 'STEP 2 — From your list, pick the 6 MOST IMPORTANT decisions the\n'
+    + '         business must have a clear answer for. Prefer decisions that:\n'
+    + '         • Involve money thresholds (when does X cost trigger Y action?)\n'
+    + '         • Define ownership ("who specifically handles this when it happens?")\n'
+    + '         • Set boundaries ("at what point do we escalate / refund / refuse?")\n'
+    + '         • Encode edge cases ("what if the customer is angry / the supplier is late / the equipment fails?")\n'
+    + '         • Lock in tools/systems ("which app/spreadsheet/platform do you use for X?")\n'
+    + '         • Capture institutional knowledge ("what is the unwritten rule everyone here knows?")\n\n'
+    + 'STEP 3 — For each of the 6 decisions, write ONE question that surfaces\n'
+    + '         the user\'s current answer. The question must:\n'
+    + '         • Be answerable in 1-2 sentences by the business owner\n'
+    + '         • Be specific enough that a generic answer would feel wrong\n'
+    + '         • Use concrete framing ("over $500" not "for high-value items")\n'
+    + '         • Stay under 14 words\n\n'
+    + 'STEP 4 — Reject any question that could be asked for a completely\n'
+    + '         different SOP. If "what are your steps?" or "who is responsible?"\n'
+    + '         would fit a cookie recipe SOP and an HR policy SOP, it is too\n'
+    + '         generic. Throw it out and re-pick from your STEP 1 list.\n\n'
+    + '╔══════════════════════════════════════════════════════════════╗\n'
+    + '║  CALIBRATION TO THIS USER                                     ║\n'
+    + '╚══════════════════════════════════════════════════════════════╝\n'
+    + (userSize === '1-10' || userRole === 'Sole owner' ?
+        'This is a SMALL BUSINESS / SOLO OPERATOR. Skip approval-chain\n'
+        + 'questions ("who approves?") since the owner approves. Skip large-org\n'
+        + 'questions (department interfaces, RACI matrices, multi-tier escalation).\n'
+        + 'Lean into practical questions: tools they use, money thresholds,\n'
+        + 'customer-facing decisions, what they personally do when X happens.\n\n'
+      : userSize === '11-50' ?
+        'This is a SMALL-TO-MID company. Some delegation exists. Questions\n'
+        + 'can probe handoffs between people, escalation paths, and tool/system\n'
+        + 'consistency across staff.\n\n'
+      :
+        'This is a MID-TO-LARGER organization. Questions can address\n'
+        + 'cross-team handoffs, formal approval thresholds, and documentation\n'
+        + 'requirements between roles.\n\n')
+    + (userIndustry ?
+        'INDUSTRY-SPECIFIC LENS (' + userIndustry + '): Frame questions in\n'
+        + 'this industry\'s real concerns. For Hospitality: allergens, health\n'
+        + 'code, alcohol service, peak-hour rushes, comped meals. For Healthcare:\n'
+        + 'HIPAA, chain of custody, patient consent, infection control. For\n'
+        + 'Trades/Construction: safety/OSHA, materials cost, callbacks, weather\n'
+        + 'delays. For Retail: shrinkage, returns, peak holiday operations.\n'
+        + 'For Professional services: scope creep, deliverable handoff, IP/NDA.\n\n'
+      : '')
+    + '╔══════════════════════════════════════════════════════════════╗\n'
+    + '║  WORKED EXAMPLES — study the THINKING, not just the questions  ║\n'
+    + '╚══════════════════════════════════════════════════════════════╝\n'
+    + 'EXAMPLE A — SOP: "Trading card grading procedure" (compound, many steps)\n'
+    + '  Decisions identified (consultant\'s thinking):\n'
+    + '   • Money threshold for insurance → "Above what dollar value do you require shipping insurance?"\n'
+    + '   • Damage-on-arrival policy → "If a card arrives damaged from the customer, do you grade, return, or contact first?"\n'
+    + '   • Tier selection logic → "How do you decide which PSA service tier to use per card?"\n'
+    + '   • Customer comms cadence → "How often do you update customers while a card is at PSA?"\n'
+    + '   • Storage during processing → "Where do you store cards between intake and shipping?"\n'
+    + '   • Lower-grade-than-expected escalation → "What do you tell a customer if PSA grades lower than they hoped?"\n'
+    + '  Notice: 6 different decisions. None are "what are the steps?". Each one matters.\n\n'
+    + 'EXAMPLE B — SOP: "How to write a customer status update email" (single-process)\n'
+    + '  Decisions identified:\n'
+    + '   • Cadence trigger → "What event or interval triggers a status update being sent?"\n'
+    + '   • Audience scope → "Who on the customer side gets copied, and in what order?"\n'
+    + '   • Bad news handling → "When something goes wrong, do you call first or email first?"\n'
+    + '   • Tone calibration → "What is one phrase you NEVER want appearing in these emails?"\n'
+    + '   • Template vs custom → "Do you use a saved template, and where is it stored?"\n'
+    + '   • Approval/sign-off → "Does anyone else review before send, or do you send directly?"\n'
+    + '  Notice: this is a SINGLE process but still has 6 distinct decisions worth capturing.\n\n'
+    + 'EXAMPLE C — SOP: "Walk-in customer complaint handling" (Hospitality, solo cafe owner)\n'
+    + '  Decisions identified (calibrated to small/solo business):\n'
+    + '   • Free-replacement threshold → "Under what circumstances do you replace a meal free without question?"\n'
+    + '   • Refund authority → "Up to what dollar amount can a staff member refund without you?"\n'
+    + '   • Online review handling → "If a customer threatens a bad Yelp review, what do you do?"\n'
+    + '   • Allergen mistakes → "If you served the wrong item to someone with an allergy, what is step one?"\n'
+    + '   • Documentation → "Where do you log complaints so you can spot patterns?"\n'
+    + '   • Hostile customer → "At what point do you ask a customer to leave, and who does it?"\n'
+    + '  Notice: no "who approves" questions (solo). Industry-specific (allergens, Yelp).\n\n'
+    + '╔══════════════════════════════════════════════════════════════╗\n'
+    + '║  HARD RULES — non-negotiable                                  ║\n'
+    + '╚══════════════════════════════════════════════════════════════╝\n'
+    + 'RULE 1 — NO DUPLICATES. Two questions cannot probe the same decision.\n'
+    + 'RULE 2 — NO GENERICS. Every question must fail the test: "Could this be\n'
+    + '         asked for any random SOP?" If yes, throw it out.\n'
+    + 'RULE 3 — NO ASKING FOR STEPS. Do not ask "what are the steps?" or\n'
+    + '         "describe the process". The AI will write the steps later.\n'
+    + 'RULE 4 — NO LEGAL/DEFINITION QUESTIONS. Do not ask the user to define\n'
+    + '         terms or cite regulations. That is your job in the SOP body.\n'
+    + 'RULE 5 — UNDER 14 WORDS each. Short, direct, concrete.\n'
+    + 'RULE 6 — BEFORE RETURNING: read your 6 questions out loud. If any two\n'
+    + '         could plausibly be answered with the same sentence, REPLACE ONE.\n\n'
+    + 'Return a SINGLE valid JSON object with these 3 keys:\n\n'
+    + '1. "questions" — array of EXACTLY 6 decision-focused questions.\n\n'
     + '2. "compliance" — array of 2 to 4 LIKELY-RELEVANT compliance items for this SOP + industry + state.\n'
-    + '   IMPORTANT: if the SOP involves shipping anything valuable, ALSO consider carrier-specific\n'
-    + '   regulations (UPS/FedEx/USPS rules on declared value), state collectibles dealer\n'
-    + '   licensing if applicable, and federal regulations on interstate commerce when relevant.\n'
-    + '   Rules:\n'
-    + '   • Only suggest WELL-KNOWN, real regulations (OSHA, HIPAA, FDA, EPA, PCI-DSS, GDPR, FLSA, Title VII, state-specific common ones).\n'
-    + '   • Each item is an object: {"name": "Short name", "desc": "Brief description in plain language under 60 chars"}.\n'
-    + '   • Be CONSERVATIVE. If you are not confident a regulation applies, leave it out.\n'
-    + '   • Return EMPTY array [] if nothing clearly applies. Better to under-suggest than to invent.\n\n'
-    + '3. "formatHints" — object with 4 string fields suggesting how this SOP should be written:\n'
-    + '   • "audience": one of "Just me" | "My team" | "My department" | "Whole company"\n'
-    + '   • "format": one of "Step-by-step" | "Checklist" | "Role-based" | "Narrative"\n'
-    + '   • "detail": one of "Quick reference" | "Standard procedure" | "Training manual"\n'
-    + '   • "tone": one of "Formal" | "Professional" | "Plain & simple"\n'
-    + '   Pick the BEST FIT based on business size, role, and SOP topic. Examples:\n'
-    + '   • Solo plumber + safety SOP → "Just me", "Step-by-step", "Quick reference", "Plain & simple"\n'
-    + '   • Cafe with 10 staff + opening procedure → "My team", "Step-by-step", "Standard procedure", "Professional"\n'
-    + '   • HR director + harassment policy → "Whole company", "Narrative", "Training manual", "Formal"\n\n'
-    + 'BEFORE RETURNING: re-read your 6 questions. For each pair, ask "would the user answer these the same way?"\n'
-    + 'If yes for any pair, REPLACE one with a question about a different sub-process.\n\n'
+    + '   • Only suggest WELL-KNOWN, real regulations (OSHA, HIPAA, FDA, EPA, PCI-DSS, GDPR, FLSA, Title VII, well-known state-specific ones).\n'
+    + '   • Each item: {"name": "Short name", "desc": "Brief plain-language description under 60 chars"}.\n'
+    + '   • Be CONSERVATIVE. If unsure, leave it out. Return [] if nothing clearly applies.\n\n'
+    + '3. "formatHints" — object with 4 string fields:\n'
+    + '   • "audience": "Just me" | "My team" | "My department" | "Whole company"\n'
+    + '   • "format": "Step-by-step" | "Checklist" | "Role-based" | "Narrative"\n'
+    + '   • "detail": "Quick reference" | "Standard procedure" | "Training manual"\n'
+    + '   • "tone": "Formal" | "Professional" | "Plain & simple"\n'
+    + '   Pick the BEST FIT based on business size, role, and SOP topic.\n\n'
     + 'Return ONLY the JSON object. No markdown, no commentary, no code fences.\n\n'
     + 'EXAMPLE RESPONSE SHAPE:\n'
     + '{"questions":["Q1","Q2","Q3","Q4","Q5","Q6"],"compliance":[{"name":"Local health code","desc":"Food service inspections"}],"formatHints":{"audience":"My team","format":"Step-by-step","detail":"Standard procedure","tone":"Professional"}}';
@@ -16113,17 +16512,58 @@ function wnGenerateNow() {
 }
 
 // ── Back navigation across the new wizard ──────────────────────────────────
+// SOP-NAV-02: helper to detect whether the user has invested ANY content
+// into the current wizard run. Used to decide whether back-to-exit should
+// show a confirmation dialog or just exit silently.
+//
+// "Has content" means any of: typed a title, picked a category, answered any
+// questions, set any audience/format/detail/tone choice, or uploaded a logo.
+// Profile data carried in from Account doesn't count — that's not lost by exit.
+function wnHasUserInput() {
+  try {
+    if(wiz.title && wiz.title.trim()) return true;
+    if(Array.isArray(wiz.cats) && wiz.cats.length > 0) return true;
+    if(wiz.cat && wiz.cat.trim()) return true;
+    if(Array.isArray(wiz.answers) && wiz.answers.some(function(a){ return a && a.trim(); })) return true;
+    if(Array.isArray(wiz.details) && wiz.details.length > 0) return true;
+    if(wiz.audience || wiz.format || wiz.detail || wiz.tone) {
+      // Only count these if they differ from defaults — the wizard pre-selects
+      // sensible defaults, so unchanged values don't represent user "work".
+      // But to keep this simple and forgiving, treat any of these as content
+      // if Q answers exist OR title exists. They alone don't gate exit.
+      return false;
+    }
+    return false;
+  } catch(e) {
+    return false;
+  }
+}
+
 function wnGoBack(fromStep) {
   if(fromStep === 1) {
-    // Back from step 1 = leave wizard entirely
+    // SOP-NAV-02: top X exits wizard entirely. If the user has typed anything,
+    // confirm before discarding. If the wizard is empty (e.g. they just opened
+    // it from home and immediately want to back out), exit silently.
+    if(wnHasUserInput()) {
+      var confirmed = confirm('Discard your in-progress SOP?\n\nYour title, category, and any answers will not be saved.');
+      if(!confirmed) return;
+    }
     logWizardEvent('wizard_abandoned', { lastScreen: 's-wn-1' });
     go(wn.sourceScreen || 's-home');
     return;
   }
   if(fromStep === 2) {
-    // From step 2: if in review mode, go back to Q7; otherwise go to step 1
+    // From step 2: if in review mode, go back to Q7; otherwise go to step 1.
+    // SOP-NAV-02: Going to step 1 means losing Q answers. Confirm if user has
+    // answered any questions — they don't expect "back" to nuke their work.
     var rMode = document.getElementById('wn2-review-mode');
     if(rMode && rMode.style.display === 'flex') { wnReviewBack(); return; }
+    // Not in review — going back to step 1 will lose Q answers
+    var hasAnswers = Array.isArray(wiz.answers) && wiz.answers.some(function(a){ return a && a.trim(); });
+    if(hasAnswers) {
+      var ok = confirm('Go back to the basics?\n\nYour answers to the questions will be lost.');
+      if(!ok) return;
+    }
     go('s-wn-1');
     logWizardEvent('screen_reached', { screen: 's-wn-1' });
     return;
@@ -17817,6 +18257,7 @@ async function doAiRevision() {
     + '• Use numbered lists (1. 2. 3.) ONLY for sequential procedural steps.\n'
     + '• For standalone labels (Purpose, Scope, Escalation, Notes) use **Bold:** labels, NOT "1. Purpose:".\n'
     + '• For compliance/regulation lists, format as bullet points (- item), never a dense paragraph.\n'
+    + '• In reference sections (Regulatory References, Definitions, Roles): EACH citation/term/role is its own bullet. Never bundle multiple into one item. Intro lines ("This procedure complies with:") are plain text, not list items.\n'
     + '• Do NOT add "Last updated", "Version 1.0", or "Revision History" lines — the document footer handles version tracking separately.\n'
     + 'Output ONLY the revised SOP, no preamble, no commentary.';
   var userPrompt = 'REVISION INSTRUCTION: ' + instruction + '\n\nCURRENT SOP:\n' + currentSOP;
@@ -18257,14 +18698,10 @@ function buildProfessionalDocumentHtml() {
     + '<span>' + (isEnterprise ? 'CONFIDENTIAL — INTERNAL USE ONLY' : 'Generated by SOPONTHEGO') + '</span>'
     + '</div>';
 
-  // FIX SOP-CALLOUT-01: time-sensitive info callout for enterprise output.
-  // Mirrors the one in buildPrintableSopHtml so all print paths get it.
-  var timeSensitiveCallout = '<div style="background:#fff8e1;border-left:3px solid #f0b400;'
-    + 'padding:10px 14px;margin:0 0 22px;font-size:11.5px;color:#5a4a00;line-height:1.5;font-family:Georgia,serif">'
-    + '<strong>Before adopting:</strong> Verify any specific dollar amounts, regulatory citations, '
-    + 'or jurisdiction-specific rules in this SOP against current published guidance. '
-    + 'AI-assisted drafts may contain values that have changed since this document was generated.'
-    + '</div>';
+  // SOP-WARN-01: Removed the redundant "Before adopting" callout from the
+  // enterprise output path as well. The in-app "Review before use" disclaimer
+  // already sets verification expectations. Enterprise PDFs look cleaner
+  // without an alarming yellow box on the front page.
 
   return '<style>'
     + '@media print { @page { margin: 0.6in; } body { margin: 0 !important; } .sop-cover { padding: 0 !important; height: auto; min-height: 9in } }'
@@ -18272,7 +18709,6 @@ function buildProfessionalDocumentHtml() {
     + '<div style="font-family:Georgia,\'Times New Roman\',serif;max-width:7in;margin:0 auto;padding:0.5in;color:#1a1a2e;background:white">'
     + coverHtml
     + headerHtml
-    + timeSensitiveCallout
     + tocHtml
     + bodyHtml
     + footerHtml
@@ -18280,6 +18716,21 @@ function buildProfessionalDocumentHtml() {
 }
 
 function doPrintFromPreview() {
+  // SOP-PDF-01: On mobile, opening a new window for print preview trapped
+  // users — no obvious way back to the app. Instead, generate a real PDF
+  // file directly using html2pdf. Desktop keeps the new-window flow since
+  // tab switching is obvious there.
+  var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if(isMobile) {
+    // Close the print preview modal if it's open, then generate PDF
+    try { closeModal('m-print-preview'); } catch(_) {}
+    try { generateAndDownloadPdf(); } catch(e) {
+      console.error('[print] PDF gen failed:', e);
+      showToast('Could not generate PDF. Please try again.');
+    }
+    return;
+  }
+  // Desktop path — original behavior
   var previewBody = document.getElementById('print-preview-body');
   if(!previewBody) return;
   var win = window.open('','_blank');
@@ -18588,27 +19039,60 @@ var authMode = 'signup'; // 'signin' or 'signup' — page defaults to sign-up si
 
 
 // ── Live password validation in signup mode ──────────────────────────────────
+// Password rules (must match Firebase Console password policy).
+// Used by validatePasswordLive() for UI feedback AND by signInWithEmail()
+// to block submission. Firebase server-side enforcement is the safety net
+// in case anyone bypasses the client.
+function checkPasswordRules(pw) {
+  pw = pw || '';
+  var minLen = 8;
+  var hasNumber = /[0-9]/.test(pw);
+  var hasSymbol = /[^a-zA-Z0-9]/.test(pw);  // anything not alphanumeric
+  var longEnough = pw.length >= minLen;
+  return {
+    long:    longEnough,
+    number:  hasNumber,
+    symbol:  hasSymbol,
+    allPass: longEnough && hasNumber && hasSymbol
+  };
+}
+
 function validatePasswordLive() {
   var pwInput = document.getElementById('login-password');
-  var hint = document.getElementById('login-pw-hint');
+  var hint    = document.getElementById('login-pw-hint');
   if(!pwInput || !hint) return;
-  if(authMode !== 'signup') return;
-  var len = pwInput.value.length;
-  if(len === 0) {
-    // Empty - neutral state
-    hint.textContent = 'Use at least 6 characters';
-    hint.style.color = 'var(--text3)';
+  // In sign-in mode, no rules check — we just need a non-empty value.
+  // The user's existing account might predate the new rules.
+  if(authMode !== 'signup') {
+    hint.style.display = 'none';
     pwInput.style.borderColor = 'var(--border)';
-  } else if(len < 6) {
-    // Too short - warning
-    hint.textContent = (6 - len) + ' more character' + (6 - len === 1 ? '' : 's') + ' needed';
-    hint.style.color = 'var(--accent2)';
-    pwInput.style.borderColor = 'var(--accent2)';
-  } else {
-    // OK
-    hint.textContent = '✓ Password is long enough';
-    hint.style.color = 'var(--green)';
+    return;
+  }
+  hint.style.display = 'block';
+  var pw = pwInput.value;
+  var checks = checkPasswordRules(pw);
+  // Build checklist HTML — each rule shows a check (green) or dot (gray)
+  function ruleRow(passed, label) {
+    var icon = passed
+      ? '<span style="color:var(--green);font-weight:800">✓</span>'
+      : '<span style="color:var(--text3)">○</span>';
+    var color = passed ? 'var(--green)' : 'var(--text3)';
+    return '<div style="display:flex;align-items:center;gap:6px;color:' + color + '">'
+         + icon + '<span>' + label + '</span></div>';
+  }
+  hint.innerHTML =
+      '<div style="font-size:11px;line-height:1.7;margin-top:4px">'
+    +   ruleRow(checks.long,   'At least 8 characters')
+    +   ruleRow(checks.number, 'Contains a number')
+    +   ruleRow(checks.symbol, 'Contains a symbol (! @ # $ etc.)')
+    + '</div>';
+  // Border color reflects overall status
+  if(pw.length === 0) {
+    pwInput.style.borderColor = 'var(--border)';
+  } else if(checks.allPass) {
     pwInput.style.borderColor = 'var(--green)';
+  } else {
+    pwInput.style.borderColor = 'var(--accent2)';
   }
 }
 
@@ -18684,9 +19168,19 @@ function signInWithEmail() {
     if(errEl) { errEl.textContent = 'Please enter your password'; errEl.style.display = 'block'; }
     return;
   }
-  if(authMode === 'signup' && password.length < 6) {
-    if(errEl) { errEl.textContent = 'Password must be at least 6 characters'; errEl.style.display = 'block'; }
-    return;
+  if(authMode === 'signup') {
+    var checks = checkPasswordRules(password);
+    if(!checks.allPass) {
+      var missing = [];
+      if(!checks.long) missing.push('at least 8 characters');
+      if(!checks.number) missing.push('a number');
+      if(!checks.symbol) missing.push('a symbol');
+      if(errEl) {
+        errEl.textContent = 'Password needs ' + missing.join(', ') + '.';
+        errEl.style.display = 'block';
+      }
+      return;
+    }
   }
   
   if(!firebaseAuth) {
@@ -18710,7 +19204,9 @@ function signInWithEmail() {
     // Friendly error messages
     if(err.code === 'auth/email-already-in-use') msg = 'An account with this email already exists. Try signing in instead.';
     else if(err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') msg = 'Incorrect email or password.';
-    else if(err.code === 'auth/weak-password') msg = 'Password is too weak. Use at least 6 characters.';
+    else if(err.code === 'auth/weak-password' || err.code === 'auth/password-does-not-meet-requirements') {
+      msg = 'Password must be at least 8 characters and include a number and a symbol.';
+    }
     else if(err.code === 'auth/invalid-email') msg = 'Please enter a valid email address.';
     else if(err.code === 'auth/too-many-requests') msg = 'Too many attempts. Please try again in a few minutes.';
     else if(err.code === 'auth/network-request-failed') msg = 'Network error. Please check your connection.';
@@ -19343,13 +19839,22 @@ function updateGenProgressUI() {
 }
 
 function cancelGeneration() {
+  // SOP-SAVE-02: refund the quota slot. The generation was reserved when the
+  // user hit Generate (incrementSopCount fires before the API call). If they
+  // cancel before completion, they didn't get an SOP — they shouldn't be
+  // charged for one. The flag `_genQuotaReserved` is set to true at the start
+  // of generateSOP() and flipped to false once the SOP is successfully saved.
   if(window._genController) {
     window._genController.abort();
     window._genController = null;
   }
+  if(window._genQuotaReserved) {
+    try { decrementSopCount(); } catch(_) {}
+    window._genQuotaReserved = false;
+  }
   stopGenProgress();
   go('s-wizard');
-  showToast('Generation cancelled');
+  showToast('Generation cancelled · quota refunded');
 }
 
 // ── LIVE OUTLINE PANEL ────────────────────────────────────────────────────────
