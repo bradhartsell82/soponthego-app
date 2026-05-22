@@ -18,6 +18,9 @@
   --font:'Plus Jakarta Sans',sans-serif;--font-display:'Syne',sans-serif;
   --safe-bottom:env(safe-area-inset-bottom,0px);
   --safe-top:env(safe-area-inset-top,0px);
+  /* Decorative phone-shell notch clearance. Set per breakpoint below.
+     0 when notch is hidden, 35px when notch is visible. */
+  --notch-clearance:0px;
   --shadow:0 4px 24px rgba(0,0,0,.12);
   --bg:#0f0f12;--surface:#1a1a22;--surface2:#22222e;--surface3:#2a2a38;
   --border:#2e2e3e;--border2:#3a3a4e;
@@ -45,6 +48,21 @@ html,body{height:100%;overflow:hidden;background:#080808;font-family:var(--font)
   transition:background .3s;
 }
 .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:35px;background:#080808;border-radius:0 0 20px 20px;z-index:100}
+/* FIX: when the decorative notch is visible (tablet/narrow-desktop widths
+   between 480px and 1023px), screens need to push content down to clear
+   the notch. Without this, the "8 SOPs left this month" banner, app bar
+   titles, and other top-anchored content gets hidden behind the notch.
+   On mobile (<480px) and desktop (>=1024px) the notch is hidden via the
+   other media queries so no extra padding is needed. */
+@media(min-width:480px) and (max-width:1023px){
+  :root{--notch-clearance:35px}
+}
+@media(max-width:479px){
+  :root{--notch-clearance:0px}
+}
+@media(min-width:1024px){
+  :root{--notch-clearance:0px}
+}
 .status-bar{display:none}
 .status-time{font-size:15px;font-weight:700}
 .status-icons{display:flex;gap:6px;align-items:center}
@@ -53,7 +71,7 @@ html,body{height:100%;overflow:hidden;background:#080808;font-family:var(--font)
 .screen{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;overflow:hidden;transition:transform .32s cubic-bezier(.4,0,.2,1),opacity .32s;background:var(--bg)}
 .screen.hidden{transform:translateX(110%);opacity:0;pointer-events:none}
 .screen.slide-left{transform:translateX(-110%);opacity:0;pointer-events:none}
-.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-top:var(--safe-top);padding-bottom:90px}
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-top:calc(var(--safe-top) + var(--notch-clearance));padding-bottom:90px}
 .scroll-area::-webkit-scrollbar{display:none}
 
 /* ── NAVBAR ── */
@@ -71,7 +89,7 @@ html,body{height:100%;overflow:hidden;background:#080808;font-family:var(--font)
    FIX SOP-UI-01: title gets min-width:0 so flexbox lets it shrink rather than
    overflow when combined with a back button and step badge. Ellipsis-truncate
    if it still doesn't fit. */
-.app-bar{padding:calc(14px + var(--safe-top)) 20px 8px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.app-bar{padding:calc(14px + var(--safe-top) + var(--notch-clearance)) 20px 8px;display:flex;align-items:center;gap:12px;flex-shrink:0}
 .app-bar-title{font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--text);flex:1;text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em}
 .icon-btn{width:40px;height:40px;border-radius:50%;background:var(--surface2);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);transition:all .15s;flex-shrink:0}
 .icon-btn:active{transform:scale(.93)}
@@ -180,7 +198,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 .file-remove{color:var(--accent2);background:none;border:none;cursor:pointer;font-size:18px;line-height:1}
 
 /* ── GENERATING ── */
-.gen-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:20px;padding:calc(30px + var(--safe-top)) 24px 30px}
+.gen-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:20px;padding:calc(30px + var(--safe-top) + var(--notch-clearance)) 24px 30px}
 .gen-orb{width:110px;height:110px;border-radius:50%;background:radial-gradient(circle at 40% 40%,rgba(108,99,255,.7),rgba(155,89,182,.3));display:flex;align-items:center;justify-content:center;animation:orbPulse 2s ease-in-out infinite}
 @keyframes orbPulse{0%,100%{box-shadow:0 0 0 0 rgba(108,99,255,.4),0 0 0 20px rgba(108,99,255,.1)}50%{box-shadow:0 0 0 16px rgba(108,99,255,.2),0 0 0 32px rgba(108,99,255,.05)}}
 .gen-title{font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--text);text-align:center}
@@ -283,7 +301,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 @keyframes dotBlink{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* ── SOP OUTPUT ── */
-.sop-out-bar{padding:calc(14px + var(--safe-top)) 20px 0;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.sop-out-bar{padding:calc(14px + var(--safe-top) + var(--notch-clearance)) 20px 0;display:flex;align-items:center;gap:10px;flex-shrink:0}
 .sop-doc-card{margin:10px 20px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden}
 .sop-doc-top{padding:16px;background:linear-gradient(135deg,rgba(108,99,255,.12),rgba(155,89,182,.06));border-bottom:1px solid var(--border)}
 .sop-doc-company{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
@@ -442,11 +460,11 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 <!-- ════════════════════════════════════════ -->
 <!-- SCREEN: ONBOARDING (first launch only)  -->
 <!-- ════════════════════════════════════════ -->
-<div class="screen hidden" id="s-login" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:100vh;padding:calc(120px + var(--safe-top)) 24px 60px;background:var(--bg);overflow-y:auto;position:relative">
+<div class="screen hidden" id="s-login" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:100vh;padding:calc(120px + var(--safe-top) + var(--notch-clearance)) 24px 60px;background:var(--bg);overflow-y:auto;position:relative">
   <!-- Top-right sign-in pill: positioned below the 35px notch (top:44px) so it never gets hidden by it.
        Entire pill is the tap target (~40px height for fat-finger safety on mobile). -->
   <a href="javascript:void(0)" onclick="toggleAuthMode();return false;" id="topright-signin-pill"
-     style="position:absolute;top:calc(44px + var(--safe-top));right:16px;display:flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid var(--border2);border-radius:999px;background:rgba(255,255,255,.025);text-decoration:none;cursor:pointer;transition:background .15s,border-color .15s,transform .1s;-webkit-tap-highlight-color:transparent;min-height:36px;z-index:10"
+     style="position:absolute;top:calc(44px + var(--safe-top) + var(--notch-clearance));right:16px;display:flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid var(--border2);border-radius:999px;background:rgba(255,255,255,.025);text-decoration:none;cursor:pointer;transition:background .15s,border-color .15s,transform .1s;-webkit-tap-highlight-color:transparent;min-height:36px;z-index:10"
      onmouseover="this.style.background='rgba(136,129,255,.1)';this.style.borderColor='var(--accent)'"
      onmouseout="this.style.background='rgba(255,255,255,.025)';this.style.borderColor='var(--border2)'"
      ontouchstart="this.style.transform='scale(.96)'"
@@ -506,7 +524,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
   </div>
 </div>
 <div class="screen hidden" id="s-onboard">
-  <div style="flex:1;overflow-y:auto;padding:calc(32px + var(--safe-top)) 24px 40px;display:flex;flex-direction:column">
+  <div style="flex:1;overflow-y:auto;padding:calc(32px + var(--safe-top) + var(--notch-clearance)) 24px 40px;display:flex;flex-direction:column">
 
     <!-- Logo / brand -->
     <div style="text-align:center;margin-bottom:32px">
@@ -977,8 +995,9 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 .wn-field-input{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:14px;color:var(--text);font-family:var(--font);font-size:14px;font-weight:600;box-sizing:border-box;outline:none;transition:border-color .15s}
 .wn-field-input:focus{border-color:var(--accent)}
 /* Pill bar inside the questions screen
-   FIX #2: safe-top so pill bar doesn't clip into status bar */
-.wn-pills{display:flex;gap:5px;padding:calc(14px + var(--safe-top)) 20px 8px}
+   FIX: safe-top + notch-clearance so pills don't hide under iOS notch or
+   desktop decorative notch. */
+.wn-pills{display:flex;gap:5px;padding:calc(14px + var(--safe-top) + var(--notch-clearance)) 20px 8px}
 .wn-pill{flex:1;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;font-family:var(--font);cursor:default;transition:all .15s}
 .wn-pill.tappable{cursor:pointer}
 .wn-pill.done{background:rgba(0,214,143,.18);border:1px solid rgba(0,214,143,.5);color:var(--green)}
@@ -1776,7 +1795,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 </div>
 
 <div class="screen hidden" id="s-account">
-  <div class="scroll-area" style="padding-top:calc(20px + var(--safe-top));padding-bottom:20px">
+  <div class="scroll-area" style="padding-top:calc(20px + var(--safe-top) + var(--notch-clearance));padding-bottom:20px">
     <div class="acct-avatar" id="acct-avatar">JD</div>
     <div class="acct-name" id="acct-name">Your Name</div>
     <div class="acct-sub" id="acct-sub">Set up your profile</div>
@@ -2293,37 +2312,61 @@ function initFirebase() {
       if(user) {
         currentUser = user;
         loadProfile();
-        // After local load, kick off cloud sync to merge in any profile fields
-        // the user saved on another device. maybeShowQuickSetup() (below) will
-        // wait for this to complete before deciding whether to prompt.
-        try { syncProfileFromFirestore(); } catch(e) {}
         loadUserPlan();
         loadTheme();
         var screens = document.querySelectorAll('.screen');
         screens.forEach(function(s) { s.classList.add('hidden'); });
-        if(localStorage.getItem('sotg_onboarded')) {
-          var homeEl = document.getElementById('s-home');
-          if(homeEl) homeEl.classList.remove('hidden');
-          currentScreen = 's-home';
-          setTimeout(function() {
-            try { setGreeting(); } catch(e) {}
-            try { updateStats(); } catch(e) {}
-            try { renderRecentSOPs(); } catch(e) {}
-            try { updateSubBanner(); } catch(e) {}
-            try { syncAccountUI(); } catch(e) {}
-            // If the user just returned from Stripe Checkout, verify + upgrade
-            try { handleStripeReturnIfPresent(); } catch(e) {}
-            // After everything else settles, see if we need to prompt the user
-            // to fill in their profile (they signed up on another device).
-            // Delayed so the home screen renders first — less jarring.
-            setTimeout(function() {
-              try { maybeShowQuickSetup(); } catch(e) {}
-            }, 400);
-          }, 50);
+
+        // FIX SOP-AUTH-01: Decide onboarding AFTER checking the cloud, not
+        // before. Previously the local `sotg_onboarded` flag alone gated this
+        // — but a new device has empty localStorage, so existing users got
+        // re-prompted for company/name/title every time they signed in on a
+        // new browser or phone.
+        //
+        // Two-tier logic:
+        //   FAST PATH: localStorage flag exists → user has onboarded here
+        //     before → go straight to home, sync profile in background.
+        //   SLOW PATH: no flag locally → unknown. Could be a true new user
+        //     OR a cross-device login. Show a brief loading screen, await
+        //     cloud sync, then decide based on what cloud has.
+        var hasLocalFlag = !!localStorage.getItem('sotg_onboarded');
+
+        if(hasLocalFlag) {
+          // Fast path: known device, kick off background sync, render home
+          try { syncProfileFromFirestore(); } catch(e) {}
+          showHomeAfterLogin();
         } else {
-          var obEl = document.getElementById('s-onboard');
-          if(obEl) obEl.classList.remove('hidden');
-          currentScreen = 's-onboard';
+          // Slow path: unknown device. Await cloud check before deciding.
+          // Brief loading state so user sees something during the wait.
+          showLoginLoadingState();
+          var cloudCheckTimeout = null;
+          var decided = false;
+          function decide(reason) {
+            if(decided) return;
+            decided = true;
+            if(cloudCheckTimeout) clearTimeout(cloudCheckTimeout);
+            // If cloud sync populated meaningful profile fields, treat user
+            // as already-onboarded. Otherwise show onboarding.
+            var hasCloudProfile = !!(profile && (profile.company || profile.author || profile.industry));
+            if(hasCloudProfile) {
+              console.log('[auth] Cloud profile found (' + reason + ') — skipping onboarding');
+              try { localStorage.setItem('sotg_onboarded', '1'); } catch(e) {}
+              showHomeAfterLogin();
+            } else {
+              console.log('[auth] No cloud profile (' + reason + ') — showing onboarding');
+              showOnboardingAfterLogin();
+            }
+          }
+          // Hard timeout — never wait more than 3.5s for cloud. If the
+          // backend is asleep/slow, fall back to local-only behavior so the
+          // user isn't stuck on a loading screen.
+          cloudCheckTimeout = setTimeout(function() { decide('timeout'); }, 3500);
+          // Kick off the sync. When it resolves (success or failure), decide.
+          try {
+            syncProfileFromFirestore().then(function() { decide('cloud-sync'); });
+          } catch(e) {
+            decide('sync-threw');
+          }
         }
       } else {
         currentUser = null;
@@ -2339,6 +2382,70 @@ function initFirebase() {
     console.error('Firebase init error:', e);
     return false;
   }
+}
+
+// FIX SOP-AUTH-01 helpers: extracted so both fast and slow paths can share them.
+function showLoginLoadingState() {
+  // Hide all screens first
+  var screens = document.querySelectorAll('.screen');
+  screens.forEach(function(s) { s.classList.add('hidden'); });
+  // Insert/replace a lightweight loading overlay. Idempotent — if it already
+  // exists, just leave it visible.
+  var existing = document.getElementById('auth-loading');
+  if(!existing) {
+    var loading = document.createElement('div');
+    loading.id = 'auth-loading';
+    loading.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);z-index:9999;gap:14px';
+    loading.innerHTML = ''
+      + '<div style="width:36px;height:36px;border:3px solid var(--surface3);border-top-color:var(--accent);border-radius:50%;animation:auth-spin 1s linear infinite"></div>'
+      + '<div style="font-family:var(--font);font-size:13px;font-weight:600;color:var(--text2)">Signing you in…</div>';
+    document.body.appendChild(loading);
+    if(!document.getElementById('auth-spin-kf')) {
+      var st = document.createElement('style');
+      st.id = 'auth-spin-kf';
+      st.textContent = '@keyframes auth-spin{to{transform:rotate(360deg)}}';
+      document.head.appendChild(st);
+    }
+  }
+}
+
+function hideLoginLoadingState() {
+  var el = document.getElementById('auth-loading');
+  if(el) el.remove();
+}
+
+function showHomeAfterLogin() {
+  hideLoginLoadingState();
+  var homeEl = document.getElementById('s-home');
+  if(homeEl) homeEl.classList.remove('hidden');
+  currentScreen = 's-home';
+  setTimeout(function() {
+    try { setGreeting(); } catch(e) {}
+    try { updateStats(); } catch(e) {}
+    try { renderRecentSOPs(); } catch(e) {}
+    try { updateSubBanner(); } catch(e) {}
+    try { syncAccountUI(); } catch(e) {}
+    // SOP-SYNC-01: pull the user's library from cloud so saved SOPs follow
+    // them across devices. Background sync — UI updates when it resolves.
+    try { syncLibraryFromCloud(); } catch(e) {}
+    // SOP-SYNC-01: same for acknowledgments
+    try { syncAcksFromCloud(); } catch(e) {}
+    // If the user just returned from Stripe Checkout, verify + upgrade
+    try { handleStripeReturnIfPresent(); } catch(e) {}
+    // After everything else settles, see if we need to prompt the user
+    // to fill in their profile (they signed up on another device).
+    // Delayed so the home screen renders first — less jarring.
+    setTimeout(function() {
+      try { maybeShowQuickSetup(); } catch(e) {}
+    }, 400);
+  }, 50);
+}
+
+function showOnboardingAfterLogin() {
+  hideLoginLoadingState();
+  var obEl = document.getElementById('s-onboard');
+  if(obEl) obEl.classList.remove('hidden');
+  currentScreen = 's-onboard';
 }
 var currentUser = null;
 var userPlanData = { plan: 'trial', sopsUsed: 0, sopsAllowed: 3, sopsThisMonth: 0, monthAnchor: '', billingCycle: 'monthly' };
@@ -13674,6 +13781,7 @@ function undoAutoSave() {
       lib.shift(); // remove first (most recent)
       localStorage.setItem(getLibStorageKey(), JSON.stringify(lib));
       allHistory = lib;
+      scheduleLibraryCloudSync();
     }
   } catch(e) {}
   lastAutoSavedIdx = -1;
@@ -13720,7 +13828,103 @@ function saveToLib(title, text, cat) {
     localStorage.setItem(getLibStorageKey(), JSON.stringify(hist));
     allHistory = hist;
     updateStats();
+    // SOP-SYNC-01: push to cloud so this SOP follows the user to other devices.
+    // Debounced so rapid changes don't spam the backend.
+    scheduleLibraryCloudSync();
   } catch(e) {}
+}
+
+// ── Library cloud sync (SOP-SYNC-01) ─────────────────────────────────────────
+// Debounced background push of the user's library to Firestore. Called every
+// time saveToLib runs or the library is otherwise mutated. The whole array
+// is sent — Firestore overwrites the user's library doc each call. Sanity-
+// checked by the server (size cap, field whitelist) so bad input can't blow
+// up the data.
+var _libSyncTimer = null;
+function scheduleLibraryCloudSync() {
+  if(!currentUser || !currentUser.uid) return;
+  if(_libSyncTimer) clearTimeout(_libSyncTimer);
+  _libSyncTimer = setTimeout(function() {
+    _libSyncTimer = null;
+    pushLibraryToCloud();
+  }, 800);
+}
+
+function pushLibraryToCloud() {
+  if(!currentUser || !currentUser.uid) return;
+  try {
+    var hist = JSON.parse(localStorage.getItem(getLibStorageKey()) || '[]');
+    fetch(BACKEND_URL + '/library-set', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.uid, sops: hist })
+    }).then(function(r) {
+      return r.ok ? r.json() : null;
+    }).then(function(data) {
+      // Server may have trimmed or rejected items; just log if so
+      if(data && data.sops && data.sops.length !== hist.length) {
+        console.log('[library-sync] server trimmed library from', hist.length, 'to', data.sops.length);
+      }
+    }).catch(function(err) {
+      console.warn('[library-sync] push failed:', err && err.message);
+    });
+  } catch(e) {
+    console.warn('[library-sync] could not read local lib:', e.message);
+  }
+}
+
+// Called once on login (after profile sync). Pulls the user's library from
+// Firestore and MERGES with whatever is local. Merge strategy:
+//   - Local-only SOPs are kept (user might have saved them while offline)
+//   - Cloud SOPs not in local are added
+//   - For SOPs in both, the one with the newer `ts` wins
+// Match by docId when both have one; fall back to title+ts match if not.
+function syncLibraryFromCloud() {
+  if(!currentUser || !currentUser.uid) return Promise.resolve();
+  return fetch(BACKEND_URL + '/library-get', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ userId: currentUser.uid })
+  })
+  .then(function(r) { return r.ok ? r.json() : { sops: [] }; })
+  .then(function(data) {
+    var cloud = (data && Array.isArray(data.sops)) ? data.sops : [];
+    var local = [];
+    try { local = JSON.parse(localStorage.getItem(getLibStorageKey()) || '[]'); } catch(e) {}
+    // Build a map of merged SOPs keyed by their best identifier (docId, else title+ts)
+    function keyOf(s) {
+      if(s && s.docId) return 'd:' + s.docId;
+      return 't:' + (s && s.title ? s.title : '') + ':' + (s && s.ts ? s.ts : 0);
+    }
+    var map = {};
+    cloud.forEach(function(s) { if(s) map[keyOf(s)] = s; });
+    local.forEach(function(s) {
+      if(!s) return;
+      var k = keyOf(s);
+      var existing = map[k];
+      // Newer one wins (or local if no cloud counterpart)
+      if(!existing || (s.ts || 0) > (existing.ts || 0)) {
+        map[k] = s;
+      }
+    });
+    var merged = Object.values(map).sort(function(a, b) { return (b.ts || 0) - (a.ts || 0); });
+    // Cap at 500 like the local save does
+    if(merged.length > 500) merged = merged.slice(0, 500);
+    // Write back to local
+    try { localStorage.setItem(getLibStorageKey(), JSON.stringify(merged)); } catch(e) {}
+    allHistory = merged;
+    try { updateStats(); } catch(e) {}
+    try { renderRecentSOPs(); } catch(e) {}
+    // If we added anything from cloud OR if local had stuff cloud didn't,
+    // push the merged set back up so cloud has the full picture too.
+    if(merged.length !== cloud.length || merged.length !== local.length) {
+      console.log('[library-sync] merged local(' + local.length + ') + cloud(' + cloud.length + ') = ' + merged.length);
+      pushLibraryToCloud();
+    }
+  })
+  .catch(function(err) {
+    console.warn('[library-sync] cloud fetch failed, using local only:', err && err.message);
+  });
 }
 
 
@@ -13730,6 +13934,79 @@ function saveLib() {
     localStorage.setItem(getLibStorageKey(), JSON.stringify(sops));
     return sops;
   } catch(e) { return []; }
+}
+
+// ── Acknowledgment cloud sync (SOP-SYNC-01) ──────────────────────────────────
+// Same pattern as library sync but for team sign-off tracking. Allows
+// managers who send a SOP for sign-off on one device to see who has
+// acknowledged it from another device.
+var _acksSyncTimer = null;
+function scheduleAcksCloudSync() {
+  if(!currentUser || !currentUser.uid) return;
+  if(_acksSyncTimer) clearTimeout(_acksSyncTimer);
+  _acksSyncTimer = setTimeout(function() {
+    _acksSyncTimer = null;
+    pushAcksToCloud();
+  }, 800);
+}
+
+function pushAcksToCloud() {
+  if(!currentUser || !currentUser.uid) return;
+  try {
+    var acks = JSON.parse(localStorage.getItem('sotg_acknowledgments') || '[]');
+    fetch(BACKEND_URL + '/acks-set', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.uid, acks: acks })
+    }).catch(function(err) {
+      console.warn('[acks-sync] push failed:', err && err.message);
+    });
+  } catch(e) {
+    console.warn('[acks-sync] could not read local acks:', e.message);
+  }
+}
+
+function syncAcksFromCloud() {
+  if(!currentUser || !currentUser.uid) return Promise.resolve();
+  return fetch(BACKEND_URL + '/acks-get', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ userId: currentUser.uid })
+  })
+  .then(function(r) { return r.ok ? r.json() : { acks: [] }; })
+  .then(function(data) {
+    var cloud = (data && Array.isArray(data.acks)) ? data.acks : [];
+    var local = [];
+    try { local = JSON.parse(localStorage.getItem('sotg_acknowledgments') || '[]'); } catch(e) {}
+    // Merge by id, newer-created wins
+    var map = {};
+    cloud.forEach(function(a) { if(a && a.id) map[a.id] = a; });
+    local.forEach(function(a) {
+      if(!a || !a.id) return;
+      var existing = map[a.id];
+      // Local acks may have more recent acknowledgedBy data
+      if(!existing || (a.created || 0) >= (existing.created || 0)) {
+        // Merge acknowledgedBy arrays (union by user id)
+        if(existing && existing.acknowledgedBy && Array.isArray(existing.acknowledgedBy)) {
+          var byMap = {};
+          existing.acknowledgedBy.forEach(function(u) { if(u && u.id) byMap[u.id] = u; });
+          (a.acknowledgedBy || []).forEach(function(u) { if(u && u.id) byMap[u.id] = u; });
+          a.acknowledgedBy = Object.values(byMap);
+        }
+        map[a.id] = a;
+      }
+    });
+    var merged = Object.values(map).sort(function(a, b) { return (b.created || 0) - (a.created || 0); });
+    if(merged.length > 50) merged = merged.slice(0, 50);
+    try { localStorage.setItem('sotg_acknowledgments', JSON.stringify(merged)); } catch(e) {}
+    // Push merged back if local or cloud was incomplete
+    if(merged.length !== cloud.length || merged.length !== local.length) {
+      pushAcksToCloud();
+    }
+  })
+  .catch(function(err) {
+    console.warn('[acks-sync] cloud fetch failed:', err && err.message);
+  });
 }
 
 function getLibStorageKey() {
@@ -16536,6 +16813,7 @@ function libMenuDuplicate() {
     lib.splice(libMenuIdx + 1, 0, copy);
     localStorage.setItem(getLibStorageKey(), JSON.stringify(lib));
     allHistory = lib;
+    scheduleLibraryCloudSync();
   } catch(e) {}
   try { renderLibraryWithFolders(); } catch(e) { renderLibrary(); }
   showToast('Duplicated · "' + copy.title + '"');
@@ -16588,6 +16866,7 @@ function confirmLibDelete() {
       lib.splice(deleteIdx, 1);
       localStorage.setItem(getLibStorageKey(), JSON.stringify(lib));
       allHistory = lib;
+      scheduleLibraryCloudSync();
     } catch(e) {}
     try { renderLibraryWithFolders(); } catch(e) { renderLibrary(); }
     showToast('SOP deleted');
@@ -17168,6 +17447,7 @@ function sendAcknowledgment() {
     var acks = JSON.parse(localStorage.getItem('sotg_acknowledgments') || '[]');
     acks.unshift(ackData);
     localStorage.setItem('sotg_acknowledgments', JSON.stringify(acks.slice(0, 50)));
+    scheduleAcksCloudSync();
   } catch(e) {}
 
   // Show acknowledgment modal
@@ -17207,6 +17487,7 @@ function showAckModal(ackData) {
     acks.unshift(ackData);
     if(acks.length > 50) acks = acks.slice(0,50);
     localStorage.setItem('sotg_acknowledgments', JSON.stringify(acks));
+    scheduleAcksCloudSync();
   } catch(e) {}
 }
 
@@ -18118,10 +18399,18 @@ function renderLibraryWithFolders() {
         + '<button onclick="document.getElementById(\'lib-search-input\').value=\'\';libSearchQuery=\'\';renderLibraryWithFolders()" style="padding:9px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:18px;color:var(--text2);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">Clear search</button>'
         + '</div>';
     } else {
+      // Distinguish the two empty cases:
+      //   - Library is totally empty (folder is "All", nothing exists anywhere)
+      //   - User filtered to a specific folder/category that's empty
+      var isAllFolder = (libActiveFolder === 'All' || !libActiveFolder);
+      var emptyHeadline = isAllFolder ? 'Your library is empty' : 'Nothing in ' + esc(libActiveFolder) + ' yet';
+      var emptySub = isAllFolder
+        ? 'SOPs you create or save will appear here. Tap the + above to create your first one.'
+        : 'SOPs in this category will appear here.';
       listEl.innerHTML = '<div style="padding:48px 24px;text-align:center">'
         + '<div style="font-size:36px;margin-bottom:10px">📁</div>'
-        + '<div style="font-family:var(--font-display);font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px">Nothing in ' + esc(libActiveFolder) + ' yet</div>'
-        + '<div style="font-size:12px;color:var(--text2);line-height:1.5">SOPs in this category will appear here.</div>'
+        + '<div style="font-family:var(--font-display);font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px">' + emptyHeadline + '</div>'
+        + '<div style="font-size:12px;color:var(--text2);line-height:1.5">' + emptySub + '</div>'
         + '</div>';
     }
     return;
@@ -18840,6 +19129,7 @@ function saveEditTitle() {
         }
       }
       localStorage.setItem(getLibStorageKey(), JSON.stringify(lib));
+      scheduleLibraryCloudSync();
     }
   } catch(e) {}
   
@@ -19004,7 +19294,10 @@ function bulkDelete() {
   var sops = loadLib();
   var idxs = Array.from(checks).map(function(c){ return parseInt(c.getAttribute('data-idx')); }).sort(function(a,b){return b-a;});
   idxs.forEach(function(i){ sops.splice(i,1); });
-  try { localStorage.setItem(getLibStorageKey(), JSON.stringify(sops)); } catch(e){}
+  try {
+    localStorage.setItem(getLibStorageKey(), JSON.stringify(sops));
+    scheduleLibraryCloudSync();
+  } catch(e){}
   renderLibraryWithFolders();
   updateBulkBar();
   showToast('Deleted ✓');
