@@ -2821,29 +2821,85 @@ function getNextMonthLabel() {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+// SOP-LIMIT-01: Helper — returns "January 1" style label for the next month
+// reset date. Monthly-cap plans (Solo, Pro, Team) reset on the 1st of each
+// calendar month. We compute that from current local time so the user sees
+// when their quota refills.
+function getNextResetDateLabel() {
+  var now = new Date();
+  // 1st of NEXT month
+  var nextReset = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return nextReset.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+}
+
+// SOP-LIMIT-01: Tier-aware paywall copy. Returns {title, desc, icon} for the
+// given situation. Used by showPaywall when called for SOP-limit cases.
+// Feature-gating paywalls (logo, signoff, rewrite) keep their existing
+// generic copy — those don't depend on which paid plan the user is on.
+function getPaywallCopy(feature, currentPlan) {
+  var plan = currentPlan || (userPlanData && userPlanData.plan) || 'trial';
+  var resetDate = getNextResetDateLabel();
+
+  // SOP-limit paywall — tier-specific
+  if (feature === 'Out of free SOPs' || feature === 'trial_exhausted') {
+    return {
+      title: 'Out of free SOPs',
+      desc: "You've used all 3 free SOPs. Upgrade to Solo ($14.99/mo) for 10 SOPs/month, Pro for 50, or Team for 100. Cancel anytime.",
+      icon: '📄'
+    };
+  }
+  if (feature && feature.indexOf('Solo limit') !== -1 || feature === 'monthly_cap_solo') {
+    return {
+      title: "You've hit this month's Solo limit",
+      desc: "You've used all 10 SOPs in your Solo plan this month. Upgrade to Pro for 50 SOPs/month, or wait until " + resetDate + " for your next reset.",
+      icon: '📈'
+    };
+  }
+  if (feature && feature.indexOf('Pro limit') !== -1 || feature === 'monthly_cap_pro') {
+    return {
+      title: "You've hit this month's Pro limit",
+      desc: "You've used all 50 SOPs in your Pro plan this month. Upgrade to Team for 100 SOPs/month (and 10 seats), or wait until " + resetDate + " for your next reset.",
+      icon: '📈'
+    };
+  }
+  if (feature && feature.indexOf('Team limit') !== -1 || feature === 'monthly_cap_team') {
+    return {
+      title: "You've hit this month's Team limit",
+      desc: "You've used all 100 SOPs in your Team plan this month. Your quota resets " + resetDate + ". For higher limits or a custom plan, contact support@soponthego.com.",
+      icon: '📈'
+    };
+  }
+
+  // Feature-gating paywall (Logo, Sign-off, Rewrite) — keep existing copy
+  return {
+    title: feature || 'Pro Feature',
+    desc: 'This feature is available on Pro and Team plans.',
+    icon: '⚡'
+  };
+}
+
 function showPaywall(feature, icon) {
   console.log('[paywall] showPaywall called:', feature);
   var modal = document.getElementById('m-paywall');
   if(!modal) {
     // Modal somehow missing — at least let user know they hit the limit.
     console.error('[paywall] m-paywall modal not found in DOM');
-    try { showToast("You've used all 3 free SOPs. Open Account → Upgrade to continue."); } catch(e) {}
+    try {
+      var fallbackCopy = getPaywallCopy(feature);
+      showToast(fallbackCopy.desc);
+    } catch(e) {}
     return;
   }
+  // SOP-LIMIT-01: Get tier-aware copy
+  var copy = getPaywallCopy(feature);
   var titleEl = document.getElementById('paywall-title');
   var descEl = document.getElementById('paywall-desc');
   var iconEl = document.getElementById('paywall-icon');
-  if(titleEl) titleEl.textContent = feature || 'Pro Feature';
-  if(descEl) {
-    // Match copy to the actual situation. "Out of free SOPs" is the
-    // limit case; everything else is feature-gating.
-    if(feature === 'Out of free SOPs') {
-      descEl.textContent = "You've used all 3 free SOPs. Upgrade to keep generating — cancel anytime.";
-    } else {
-      descEl.textContent = 'This feature is available on Pro and Team plans.';
-    }
-  }
-  if(iconEl) iconEl.textContent = icon || '⚡';
+  if(titleEl) titleEl.textContent = copy.title;
+  if(descEl) descEl.textContent = copy.desc;
+  // Allow the caller to override icon (e.g. for feature-gating modals);
+  // fall back to the tier-aware icon from copy
+  if(iconEl) iconEl.textContent = icon || copy.icon;
   // Hoist to <body> so no ancestor's positioning context can hide the modal.
   // Some screens establish their own stacking context and an
   // position:absolute backdrop attached deep in the tree can be clipped.
@@ -12231,7 +12287,59 @@ async function generateSOP() {
 
     if(!resp.ok) {
       var errData = await resp.json();
-      throw new Error((errData.error && errData.error.message) || 'HTTP ' + resp.status);
+      // SOP-LIMIT-01: Server returned 402 Payment Required — user is over
+      // their plan cap. The 402 response has structured detail we use to
+      // show tier-appropriate paywall AND sync the server's authoritative
+      // usage counts to our local state (so the home-screen counter is
+      // accurate even if our cache drifted).
+      if(resp.status === 402 && errData.error === 'usage_limit_reached') {
+        // Sync server-reported usage back to local state
+        try {
+          if(errData.usage) {
+            if(typeof errData.usage.sopsThisMonth === 'number') {
+              userPlanData.sopsThisMonth = errData.usage.sopsThisMonth;
+            }
+            if(typeof errData.usage.trialSopsUsed === 'number') {
+              userPlanData.sopsUsed = errData.usage.trialSopsUsed;
+            }
+            // Persist to localStorage so the home-screen counter updates
+            try { localStorage.setItem('userPlanData', JSON.stringify(userPlanData)); } catch(_) {}
+          }
+        } catch(syncErr) {
+          console.warn('[limit] state sync failed:', syncErr);
+        }
+        // Refund the optimistic count we incremented before the API call —
+        // generation didn't happen, so it shouldn't count.
+        if(countWasReserved) {
+          try { decrementSopCount(); } catch(_) {}
+          countWasReserved = false;
+        }
+        // Show tier-aware paywall. The reason from the server tells us
+        // which copy to render. Trial → "Out of free SOPs", paid plans
+        // get their tier-specific monthly-cap message.
+        var paywallFeature;
+        if(errData.reason === 'trial_exhausted') {
+          paywallFeature = 'Out of free SOPs';
+        } else {
+          // monthly_cap — use the planLabel from the server response
+          paywallFeature = "You've hit this month's " + (errData.planLabel || 'plan') + " limit";
+        }
+        // Reset UI back to a sane state (close generation screen if open)
+        try {
+          window._inFlightGen = false;
+          clearInterval(genTimer);
+        } catch(_) {}
+        // Navigate away from the generation loading screen back to where
+        // the user came from, so the paywall isn't sitting on a spinner.
+        try {
+          if(typeof go === 'function') {
+            go(wn && wn.sourceScreen ? wn.sourceScreen : 's-home');
+          }
+        } catch(_) {}
+        showPaywall(paywallFeature);
+        return; // exit generateSOP cleanly
+      }
+      throw new Error((errData.error && errData.error.message) || errData.error || 'HTTP ' + resp.status);
     }
 
     // Switch to output screen immediately and stream text in
