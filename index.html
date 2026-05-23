@@ -12067,6 +12067,20 @@ async function generateSOP() {
     + '- Every procedural step starts with an action verb\n'
     + '- Include specific timeframes wherever possible (within 24 hours, by end of shift, etc.)\n'
     + '- Formatting rules at the top of this prompt are non-negotiable — re-read them before writing your output.\n'
+    + '- GROUND TRUTH: The Q&A pairs in USER-PROVIDED CONTEXT are the user\'s\n'
+    + '  actual decisions and current reality. They OVERRIDE any assumption you\n'
+    + '  might otherwise make. If the user said "we use Square POS", do NOT\n'
+    + '  write "your POS system" or invent a different one. If the user said\n'
+    + '  "the lead bartender handles this", do NOT write "the manager".\n'
+    + '- DO NOT INVENT FACTS NOT PRESENT IN THE ANSWERS. If the user did not\n'
+    + '  mention a tool, frequency, dollar threshold, or process step, do NOT\n'
+    + '  add it. It\'s better to write a slightly leaner SOP than to invent\n'
+    + '  details the user will read and think "where did that come from?"\n'
+    + '- EMPTY SECTIONS: If you would produce a section header (## Compliance,\n'
+    + '  ## Tools, ## Recordkeeping, etc.) but have no real items to put under it,\n'
+    + '  OMIT the section header entirely. NEVER write a section header followed\n'
+    + '  by just an intro line ("This procedure complies with:") and nothing else.\n'
+    + '  Either include real items under the header, or drop the section.\n'
     + (isLeanAudience
         ? '- DO NOT include a "Review & Update" or "Revision History" section — this SOP is for a small audience; skip enterprise housekeeping sections.'
         : '- End with a Review & Update section (how often, who reviews) — but do NOT add "Last updated", "Version 1.0", or "Revision History" lines. The document footer handles version tracking separately.')
@@ -12684,6 +12698,49 @@ function parseSteps(text) {
 
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+// SOP-FMT-07: Drop empty sections from a parsed-steps array. A section is
+// "empty" if its header is followed by no real content items before the next
+// section header (or end-of-document). The AI sometimes emits a section with
+// just an intro line like "This procedure complies with:" and no items —
+// rendering that looks broken. Better to omit the section entirely.
+// Used by both the PDF renderer and on-screen output so they stay consistent.
+function dropEmptySections(steps) {
+  if(!Array.isArray(steps) || !steps.length) return steps;
+  var out = [];
+  for(var i = 0; i < steps.length; i++) {
+    var s = steps[i];
+    if(s.type === 'section') {
+      // Look ahead to determine if this section has any real content
+      var hasContent = false;
+      var contentItems = [];
+      for(var j = i + 1; j < steps.length; j++) {
+        var next = steps[j];
+        if(next.type === 'section') break;
+        contentItems.push(next);
+        if(next.type === 'checklist' || next.type === 'table') {
+          hasContent = true;
+        } else if(next.type === 'step') {
+          // Orphan intro line like "This procedure complies with:" — short
+          // text ending in colon, no items underneath. Doesn't count as content.
+          var content = (next.content || '').trim();
+          if(content.length >= 80 || !/:\s*$/.test(content)) {
+            hasContent = true;
+          }
+        }
+      }
+      if(hasContent) {
+        out.push(s);
+      } else {
+        // Skip the section header AND its orphan intro items
+        i += contentItems.length;
+      }
+    } else {
+      out.push(s);
+    }
+  }
+  return out;
+}
+
 // ── parseAndRender ───────────────────────────────────────────────────────────
 // Updates the SOP text and re-renders the output screen
 // Called from doAiRevision, revertToOriginal, restoreVersion
@@ -12707,7 +12764,9 @@ function renderOutput() {
   // this prevents the on-screen card from showing "# Title / **Company** / ---"
   // as redundant steps when those are already in the letterhead area.
   var bodyForParse = stripLeadingAiHeader(generatedText || '', currentSopTitle, profile && profile.company);
-  sopSteps = parseSteps(bodyForParse);
+  // SOP-FMT-07: Drop empty sections so the on-screen view stays clean.
+  // PDF uses the same helper so both renderers behave identically.
+  sopSteps = dropEmptySections(parseSteps(bodyForParse));
   var title = currentSopTitle || 'SOP';
 
   // ── LETTERHEAD: Logo ──
@@ -13305,63 +13364,103 @@ function loadHtml2PdfLib() {
 // Build the same well-formatted HTML used by doPrint so PDFs and prints
 // look identical. Returns a string of HTML body content (not a full doc).
 function buildPrintableSopHtml() {
+  // SOP-FMT-06: PDF output now mirrors the on-screen Print Preview EXACTLY.
+  // Same display font for title, same purple accent for company name and
+  // section headers, same gradient header box, same numbered step circles.
+  // The previous PDF used a stripped-down Georgia-serif renderer that looked
+  // generic and unprofessional. Now the PDF carries the same design language
+  // as the preview, so users get a polished document they're proud to share.
   var company = titleCase(profile.company || 'SOPONTHEGO');
   var title   = titleCase(currentSopTitle || 'SOP');
-  var meta    = company + ' \u00b7 ' + getToday() + (profile.author ? ' \u00b7 ' + profile.author : '');
   var logo    = (profile && profile.logo) ? profile.logo : '';
+  var author  = profile.author ? profile.author + (profile.jobtitle ? ', ' + profile.jobtitle : '') : '—';
+  var address = getFullAddress();
 
   var rawBody = stripLeadingAiHeader(generatedText || '', currentSopTitle, profile.company);
-  // FIX #17: centralized markdown body renderer with proper ol/ul tracking
-  var bodyHtml = renderMarkdownBody(rawBody, { checkboxStyle: 'html' });
 
-  var headerBlock = (logo
-    ? '<div style="margin-bottom:14px"><img src="' + logo + '" style="max-height:96px;max-width:320px;object-fit:contain;display:block" alt=""></div>'
-    : '')
-    + '<h1 style="font-size:22px;font-weight:700;border-bottom:2px solid #222;padding-bottom:8px;margin:0 0 4px;color:#111">' + title + '</h1>'
-    + '<div style="font-size:11px;color:#666;margin-bottom:20px">' + meta + '</div>';
+  // Parse SOP into structured steps + sections (same parser the preview uses).
+  // We render directly from this structure for fidelity, instead of going
+  // through renderMarkdownBody which produces simpler HTML.
+  // SOP-FMT-07: Drop empty sections (e.g. "Compliance" with no items) so
+  // the PDF doesn't show half-rendered orphan headers.
+  var steps = dropEmptySections(parseSteps(rawBody));
 
-  // SOP-WARN-01: Removed redundant "Before adopting" yellow callout from
-  // PDF output. The "Review before use" disclaimer that appears below the
-  // SOP body (in-app) already sets these expectations. Having a yellow
-  // warning box at the top of every PDF made the documents look amateurish
-  // and clinical — three warnings competing for attention.
-
-  // FIX #15 (final): real document ID footer.
-  // Format: SOP-{CAT}-{YYMMDD}-{NNN}
-  //   • SOP-           — universal prefix, instantly identifies document type
-  //   • CAT            — 2-4 letter category code (OPS, HR, SAF, FIN, etc.)
-  //   • YYMMDD         — compact date (260521 = May 21, 2026)
-  //   • NNN            — sequential counter per user/category/day
-  //
-  // Why this matters: businesses store SOPs by ID and reference them in
-  // meetings, emails, and document management systems. A clean reference
-  // handle makes the SOP feel "real" — like something a corporate ops team
-  // would issue.
-  //
-  // The counter persists in localStorage scoped to the user so they get
-  // SOP-OPS-260521-001, then 002, etc. as they create more in the same
-  // category on the same day. Across users IDs may collide but each user
-  // has a stable, predictable sequence they can reference internally.
+  // Compute the document ID (e.g. SOP-OPS-260522-001) for the footer.
   var docId = generateDocumentId(wiz.cat || 'General');
-  var footerBlock = '<div style="margin-top:32px;padding-top:12px;border-top:1px solid #ddd;'
-    + 'font-size:10.5px;color:#888;text-align:right;letter-spacing:.08em;'
-    + 'font-family:Georgia,serif;font-variant-numeric:tabular-nums">'
-    + esc(docId)
+
+  // ── HEADER BLOCK ── mirrors .sop-doc-top from preview
+  // Gradient background, company name in purple, title in display font.
+  var logoHtml = '';
+  if(logo) {
+    logoHtml = '<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">'
+      + '<img src="' + esc(logo) + '" alt="" style="height:42px;width:auto;object-fit:contain;border-radius:4px">'
+      + '</div>';
+  }
+  var addressHtml = address
+    ? '<div style="font-size:10px;color:#4a4a66;margin-top:4px;line-height:1.4">' + esc(address).replace(/\n/g, '<br>') + '</div>'
+    : '';
+  var headerBlock = ''
+    + '<div style="padding:22px 24px;background:linear-gradient(135deg,rgba(108,99,255,.10),rgba(155,89,182,.05));border-bottom:1px solid #e0e0ec;border-radius:14px 14px 0 0">'
+    +   logoHtml
+    +   '<div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#5a51e0;margin-bottom:6px">' + esc(company) + '</div>'
+    +   '<div style="font-family:\'Syne\',\'Plus Jakarta Sans\',sans-serif;font-size:26px;font-weight:800;color:#1a1a2e;line-height:1.15;margin-bottom:12px">' + esc(title) + '</div>'
+    +   '<div style="display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:#606080;margin-top:8px">'
+    +     '<div style="display:flex;align-items:center;gap:5px">📅 ' + esc(getToday()) + '</div>'
+    +     '<div style="display:flex;align-items:center;gap:5px">👤 ' + esc(author) + '</div>'
+    +     '<div style="display:flex;align-items:center;gap:5px">' + esc(docId) + ' <span style="font-size:9px;font-weight:800;background:rgba(108,99,255,.15);color:#5a51e0;padding:2px 7px;border-radius:20px;margin-left:4px">v1.0</span></div>'
+    +   '</div>'
+    +   addressHtml
     + '</div>';
 
-  // Wrap in a clean container with print-friendly styling
+  // ── STEPS RENDER ── mirrors .step-item / .step-section-hdr from preview.
+  // Section headers get purple uppercase styling. Numbered steps get a
+  // gradient purple circle with the number inside. Checklist items get an
+  // empty box (for pen-tick on printed copies).
+  var stepsHtml = '<div style="padding:18px 24px">';
+  var stepNum = 0;
+  steps.forEach(function(s) {
+    if(s.type === 'section') {
+      // Section header — purple, uppercase, with underline accent
+      stepsHtml += '<div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#5a51e0;padding:18px 0 6px;border-bottom:2px solid rgba(108,99,255,.2);margin-bottom:10px">'
+        + esc(s.title)
+        + '</div>';
+      stepNum = 0; // reset numbering per section
+    } else if(s.type === 'table') {
+      // Render table inside its own container
+      stepsHtml += '<div style="margin:10px 0">' + renderMarkdownTable(s.lines) + '</div>';
+    } else if(s.type === 'checklist') {
+      // Empty checkbox + content. Empty box because PDFs are often printed
+      // and pen-ticked — interactive checkboxes don't help in print form.
+      stepsHtml += '<div style="display:flex;gap:12px;padding:9px 0;border-bottom:1px solid #f0f0f6">'
+        + '<div style="flex-shrink:0;margin-top:2px">'
+        +   '<div style="width:16px;height:16px;border:1.8px solid #5a51e0;border-radius:4px;background:#fff"></div>'
+        + '</div>'
+        + '<div style="flex:1;font-size:13px;color:#1a1a2e;line-height:1.6">' + renderMarkdownInline(s.content) + '</div>'
+        + '</div>';
+    } else {
+      // Regular numbered step — gradient circle with number
+      stepNum++;
+      stepsHtml += '<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #f0f0f6">'
+        + '<div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#5a51e0,#9b59b6);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;margin-top:1px">' + stepNum + '</div>'
+        + '<div style="flex:1;font-size:13px;color:#1a1a2e;line-height:1.65">' + renderMarkdownInline(s.content) + '</div>'
+        + '</div>';
+    }
+  });
+  stepsHtml += '</div>';
+
+  // ── FOOTER ── thin separator + document ID + version
+  var footerBlock = '<div style="padding:14px 24px 18px;border-top:1px solid #e0e0ec;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#606080;font-weight:600;letter-spacing:.04em">'
+    + '<div>' + esc(docId) + ' · v1.0 · ' + esc(getToday()) + '</div>'
+    + '<div style="color:#8881ff;font-weight:700">Generated by SOPONTHEGO</div>'
+    + '</div>';
+
+  // ── ASSEMBLY ──
+  // Outer card with rounded corners and subtle shadow to match preview.
+  // Font-family inherits from the wrapper (set by generatePdfBlob).
   return ''
-    + '<div style="font-family:Georgia,serif;color:#111;font-size:14px;line-height:1.7;padding:24px 0">'
-    +   '<style scoped>'
-    +     'h1{font-size:20px;font-weight:700;margin:24px 0 6px;color:#222}'
-    +     'h2{font-size:15px;font-weight:700;margin:24px 0 6px;color:#222}'
-    +     'p,li{font-size:13px;margin:4px 0}ul,ol{padding-left:22px;margin:6px 0}'
-    +     'table{border-collapse:collapse;width:100%;margin:10px 0;font-size:12.5px}'
-    +     'th,td{padding:7px 10px;border:1px solid #ccc;text-align:left}'
-    +     'th{background:#f4f4f8;font-weight:700}'
-    +   '</style>'
+    + '<div style="background:#fff;border-radius:14px;border:1px solid #e0e0ec;overflow:hidden;font-family:\'Plus Jakarta Sans\',sans-serif">'
     +   headerBlock
-    +   bodyHtml
+    +   stepsHtml
     +   footerBlock
     + '</div>';
 }
@@ -13543,10 +13642,13 @@ async function generatePdfBlob() {
   wrapper.style.cssText = [
     'width:7.5in',
     'padding:0.5in',
-    'font-family:Georgia,serif',
-    'color:#111',
+    // SOP-FMT-06: Match the preview's font (Plus Jakarta Sans) so PDFs look
+    // identical to what users see on-screen. Falls back to system sans-serif
+    // if the font isn't loaded (rare, since the app loads it on boot).
+    'font-family:\'Plus Jakarta Sans\',-apple-system,BlinkMacSystemFont,Arial,sans-serif',
+    'color:#1a1a2e',
     'background:#fff',
-    'line-height:1.6',
+    'line-height:1.55',
     'position:fixed',
     'top:0',
     'left:0',
@@ -15614,45 +15716,106 @@ async function prefetchWizardContext(title) {
     + '   • Hostile customer → "At what point do you ask a customer to leave, and who does it?"\n'
     + '  Notice: no "who approves" questions (solo). Industry-specific (allergens, Yelp).\n\n'
     + '╔══════════════════════════════════════════════════════════════╗\n'
+    + '║  STEP 0 — IS THE TITLE SPECIFIC ENOUGH?                       ║\n'
+    + '╚══════════════════════════════════════════════════════════════╝\n'
+    + 'BEFORE doing the brainstorm in Step 1, run this test on the title:\n\n'
+    + '"If I wrote this SOP based ONLY on the title plus the business profile,\n'
+    + ' would it be 80%+ what the user actually needs?"\n\n'
+    + 'If YES → proceed to Step 1 normally.\n'
+    + 'If NO  → the title is ambiguous. Your FIRST question MUST disambiguate.\n'
+    + '         Make it a clean either/or or multiple-choice framing. Do NOT\n'
+    + '         hide disambiguation inside question 3 or 4 — by then your other\n'
+    + '         questions have already assumed a context.\n\n'
+    + 'COMMON AMBIGUITY DIMENSIONS to check (any one triggers disambiguation):\n'
+    + '  • EQUIPMENT/TOOL TYPE: "monitor" (audio? video? WiFi?), "POS system" (which one?), "vehicle" (truck? car? forklift?)\n'
+    + '  • TASK SETTING: "case stacking" (storage? display? shipping?), "filing" (paper? digital?)\n'
+    + '  • FREQUENCY: "inventory count" (daily cycle? annual physical?), "inspection" (per-use? quarterly?)\n'
+    + '  • SCALE: "complaint handling" ($5 issue vs $50K dispute), "refund" (dollar bands matter)\n'
+    + '  • LIFECYCLE STAGE: "hiring process" (sourcing? interviewing? onboarding?), "customer journey" (acquisition? retention?)\n'
+    + '  • CRISIS vs ROUTINE: "data breach" (prevention? response? notification?), "lost child" (immediate vs recovery)\n'
+    + '  • INTERNAL vs CUSTOMER-FACING: "quality check" (internal QA vs warranty claim), "documentation" (internal records vs receipts)\n'
+    + '  • BUSINESS-MODEL TYPE: "booking" (walk-in? phone? online? B2B contract?), "closing" (retail sale? enterprise deal?)\n'
+    + '  • SELF vs DELEGATED: "bookkeeping" (DIY vs outsourced changes everything)\n'
+    + '  • MULTI-LOCATION: "store opening" (single location vs 12-location chain)\n\n'
+    + 'CAVEAT: If the business profile makes ONE interpretation overwhelmingly\n'
+    + 'likely (e.g. a 5-person Hospitality hotel doing "case stacking" almost\n'
+    + 'certainly means bar/restaurant backstock), use that context WITHOUT asking.\n'
+    + 'Only disambiguate when the title fits multiple plausible interpretations\n'
+    + 'EVEN GIVEN the user\'s business profile.\n\n'
+    + '╔══════════════════════════════════════════════════════════════╗\n'
     + '║  HARD RULES — non-negotiable                                  ║\n'
     + '╚══════════════════════════════════════════════════════════════╝\n'
-    + 'RULE 1 — NO DUPLICATES. Two questions cannot probe the same decision.\n'
+    + 'RULE 1 — NO DUPLICATES. Two questions cannot probe the same decision.\n\n'
     + 'RULE 2 — NO GENERICS. Every question must fail the test: "Could this be\n'
-    + '         asked for any random SOP?" If yes, throw it out.\n'
+    + '  asked for any random SOP?" If yes, throw it out.\n\n'
     + 'RULE 3 — NO ASKING FOR STEPS. Do not ask "what are the steps?" or\n'
-    + '         "describe the process". The AI will write the steps later.\n'
+    + '  "describe the process". The AI will write the steps later.\n\n'
     + 'RULE 4 — NO LEGAL/DEFINITION QUESTIONS. Do not ask the user to define\n'
-    + '         terms or cite regulations. That is your job in the SOP body.\n'
-    + 'RULE 5 — UNDER 14 WORDS each. Short, direct, concrete.\n'
-    + 'RULE 6 — REALITY CHECK: WHO DETECTS, WHO ACTS. Before writing each question,\n'
-    + '         trace the real-world flow of information. Ask yourself: "In real\n'
-    + '         life, how would this situation come to the business owner\'s\n'
-    + '         attention? Who reports it first? Who acts first?" If your question\n'
-    + '         assumes the WRONG party detecting or initiating, REWRITE it.\n'
-    + '         BAD EXAMPLE (wrong-party framing): "If a baby monitor malfunctions\n'
-    + '         during a guest stay, who contacts the guest and what is your\n'
-    + '         replacement timeline?" — This assumes the HOST detects the\n'
-    + '         malfunction. In reality, the GUEST reports the problem to the host.\n'
-    + '         CORRECT FRAMING: "If a guest reports a malfunctioning baby monitor,\n'
-    + '         what is your response and replacement timeline?"\n'
-    + 'RULE 7 — DO NOT INVENT EQUIPMENT OR OPERATIONAL FACTS. If the SOP involves\n'
-    + '         physical equipment, products, or systems, DO NOT assume specifics\n'
-    + '         (brand, type, "smart" features, app integration, etc.) unless the\n'
-    + '         user has told you. For SOPs about physical things, at LEAST one of\n'
-    + '         your 6 questions should establish basic ground truth about what\n'
-    + '         the user has — BEFORE other questions depend on those details.\n'
-    + '         BAD EXAMPLE: "If a monitor loses connectivity or the app crashes\n'
-    + '         mid-stay, who troubleshoots?" — This assumes the monitor has an app.\n'
-    + '         A basic audio monitor has no app. The AI should have first asked\n'
-    + '         what KIND of monitor before asking app-related edge cases.\n'
-    + '         CORRECT APPROACH: First question establishes equipment ("What type\n'
-    + '         of baby monitors do you provide — audio only, video, or WiFi/app?")\n'
-    + '         Later questions can then assume those details.\n'
-    + 'RULE 8 — BEFORE RETURNING: read your 6 questions out loud. If any two\n'
-    + '         could plausibly be answered with the same sentence, REPLACE ONE.\n'
-    + '         Also check: does any question assume an equipment, app, or process\n'
-    + '         feature the user never mentioned? If yes, REWRITE to either (a) ask\n'
-    + '         about the feature first, or (b) reframe to not assume it.\n\n'
+    + '  terms or cite regulations. That is your job in the SOP body.\n\n'
+    + 'RULE 5 — UNDER 14 WORDS each. Short, direct, concrete.\n\n'
+    + 'RULE 6 — REALITY CHECK. Trace the real-world information flow. For each\n'
+    + '  question, ask: "Who would actually detect this? Who would actually\n'
+    + '  act on it? In what order do real events happen?" If the question\n'
+    + '  assumes the wrong actor or wrong sequence, REWRITE.\n'
+    + '  BAD: "If a baby monitor malfunctions during a guest stay, who contacts\n'
+    + '       the guest and what is your replacement timeline?"\n'
+    + '       Wrong actor — the GUEST tells the host, not vice versa.\n'
+    + '  GOOD: "When a guest reports a malfunctioning monitor, what is your\n'
+    + '        response and replacement timeline?"\n\n'
+    + 'RULE 7 — DO NOT INVENT FACTS THE USER HASN\'T STATED. This covers EVERY\n'
+    + '  dimension: equipment specifics, task context, frequency, scale,\n'
+    + '  lifecycle stage, business model, location count, software/tools.\n'
+    + '  If the title is ambiguous on a dimension and the profile doesn\'t\n'
+    + '  resolve it, ASK before assuming.\n'
+    + '  BAD (equipment invented): "If the monitor\'s app crashes, who responds?"\n'
+    + '       Assumes app-based monitor. Could be a basic audio monitor.\n'
+    + '  BAD (context invented): "How do you verify cases before shipment?"\n'
+    + '       Assumes outbound shipping. Could be backstock storage.\n'
+    + '  BAD (frequency invented): "What is your weekly inspection routine?"\n'
+    + '       Assumes weekly. Could be per-use or per-shift.\n'
+    + '  BAD (scale invented): "For refunds over $500, who approves?"\n'
+    + '       Assumes the business handles $500 refunds. Could be a coffee\n'
+    + '       shop where max refund is $30, or a B2B where it\'s $50K.\n'
+    + '  GOOD: First establish the dimension. Then ask the dependent question.\n\n'
+    + 'RULE 8 — QUESTION QUALITY. Every question must avoid these traps:\n'
+    + '  (a) NO COMPOUND QUESTIONS. Each question probes ONE decision.\n'
+    + '      BAD: "How do you verify stacked cases match the order AND when do\n'
+    + '           you flag discrepancies?" (two questions, user answers one)\n'
+    + '      GOOD: Pick the more important decision. Drop the other or make\n'
+    + '            it a separate question.\n'
+    + '  (b) NO YES/NO DISGUISED AS OPEN. If the question can be answered\n'
+    + '      "yes" or "no", rewrite it to ask for the underlying content.\n'
+    + '      BAD: "Do you have a written returns policy?" (yes/no — useless)\n'
+    + '      GOOD: "What\'s your returns policy on opened items past 30 days?"\n'
+    + '  (c) ANCHOR HYPOTHETICALS TO REAL HISTORY. People give vague answers\n'
+    + '      to "what would you do?" but concrete answers to "what did you do?"\n'
+    + '      BAD: "What would you do if a customer threatened a chargeback?"\n'
+    + '      GOOD: "Last time a customer threatened a chargeback, what did\n'
+    + '            you do that worked?"\n'
+    + '  (d) NO ASKING ABOUT UNDECIDED POLICY. For small businesses, "what\n'
+    + '      is your training cadence?" often gets "we don\'t have one." Ask\n'
+    + '      about CURRENT REALITY instead.\n'
+    + '      BAD: "What is your formal training cadence for new hires?"\n'
+    + '      GOOD: "How did the last person learn this job — what worked\n'
+    + '            and what didn\'t?"\n'
+    + '  (e) NO INDUSTRY JARGON. Use the user\'s vocabulary, not corporate-\n'
+    + '      consultant vocabulary.\n'
+    + '      BAD: "How do you handle SLA breaches in your queue management?"\n'
+    + '      GOOD: "When you can\'t respond to a customer within your usual\n'
+    + '            timeframe, what do you do?"\n\n'
+    + 'RULE 9 — FINAL VERIFICATION. Before returning, read your 6 questions\n'
+    + '  out loud and check ALL of:\n'
+    + '  □ Q1 disambiguates if the title was ambiguous (Step 0 said NO)\n'
+    + '  □ No two questions could be answered by the same sentence\n'
+    + '  □ No question assumes equipment/tool the user never mentioned\n'
+    + '  □ No question assumes context (shipping vs storage, etc.) not confirmed\n'
+    + '  □ No question assumes frequency, scale, or stage not confirmed\n'
+    + '  □ No question puts the wrong actor at the start of the action\n'
+    + '  □ No compound questions (two probes in one)\n'
+    + '  □ No yes/no questions disguised as open questions\n'
+    + '  □ No hypotheticals without a real-history anchor\n'
+    + '  □ No industry jargon the user wouldn\'t use themselves\n'
+    + '  If any check fails, REWRITE before returning.\n\n'
     + 'Return a SINGLE valid JSON object with these 3 keys:\n\n'
     + '1. "questions" — array of EXACTLY 6 decision-focused questions.\n\n'
     + '2. "compliance" — array of 2 to 4 LIKELY-RELEVANT compliance items for this SOP + industry + state.\n'
