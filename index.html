@@ -1128,8 +1128,8 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 <!-- ── SCREEN: NEW WIZARD STEP 2 — Conversational Questions + Review ─────── -->
 <div class="screen hidden" id="s-wn-2" style="display:flex;flex-direction:column">
   <div class="app-bar">
-    <button class="icon-btn" onclick="wnGoBack(2)" aria-label="Back to Step 1: Basics" title="Back to basics">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    <button class="icon-btn" onclick="wnGoBack(2)" aria-label="Leave SOP creation" title="Leave SOP creation">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
     <div class="app-bar-title" id="wn2-title">SOP</div>
     <div class="wn-step-badge">Step 2 of 4</div>
@@ -1167,8 +1167,17 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
         </div>
       </div>
     </div>
+    <!-- SOP-NAV-04: "‹ Previous question" link (E3 placement) — sits above
+         the Skip/Next button row so it's discoverable in the user's natural
+         eye flow without competing with the primary forward actions.
+         Hidden on Q1 (no previous question exists). -->
+    <div id="wn2-prev-question-row" style="padding:0 0 8px;display:flex;justify-content:flex-start">
+      <button onclick="wnPrevQuestion()" id="wn2-prev-link"
+        style="background:none;border:none;color:var(--text2);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;padding:6px 4px;text-decoration:none;display:none">
+        ‹ Previous question
+      </button>
+    </div>
     <div class="wn-actions">
-      <button class="wn-btn wn-btn-icon" onclick="wnPrevQuestion()" id="wn2-prev-btn">‹</button>
       <button class="wn-btn wn-btn-skip" onclick="wnSkipQuestion()" id="wn2-skip-btn">Skip</button>
       <button class="wn-btn wn-btn-next" onclick="wnNextQuestion()" id="wn2-next-btn">Next ›</button>
     </div>
@@ -1196,8 +1205,8 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 <!-- ── SCREEN: NEW WIZARD STEP 3 — Format & Feel (AI-suggested dropdowns) ─── -->
 <div class="screen hidden" id="s-wn-3" style="display:flex;flex-direction:column">
   <div class="app-bar">
-    <button class="icon-btn" onclick="wnGoBack(3)" aria-label="Back to Step 2: Questions" title="Back to questions">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    <button class="icon-btn" onclick="wnGoBack(3)" aria-label="Leave SOP creation" title="Leave SOP creation">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
     <div class="app-bar-title" id="wn3-title">SOP</div>
     <div class="wn-step-badge">Step 3 of 4</div>
@@ -1211,6 +1220,15 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
   <div class="wn-step-label">Format &amp; feel</div>
   <div class="scroll-area">
     <div class="wn-body">
+      <!-- SOP-NAV-04: In-flow back link — moves user back one step within
+           the wizard (to question review). Preserves all work. Distinct
+           from the X icon at the top which exits the entire wizard. -->
+      <div style="padding:4px 0 6px">
+        <button onclick="wnInFlowBackToStep2()"
+          style="background:none;border:none;color:var(--text2);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;padding:6px 4px">
+          ‹ Back to questions
+        </button>
+      </div>
       <h1>How should your SOP read?</h1>
       <div class="wn-sub">We've made some smart guesses — change any if needed.</div>
 
@@ -1244,8 +1262,8 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 <!-- ── SCREEN: NEW WIZARD STEP 4 — Recap + Generate ──────────────────────── -->
 <div class="screen hidden" id="s-wn-4" style="display:flex;flex-direction:column">
   <div class="app-bar">
-    <button class="icon-btn" onclick="wnGoBack(4)" aria-label="Back to Step 3: Format" title="Back to format">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    <button class="icon-btn" onclick="wnGoBack(4)" aria-label="Leave SOP creation" title="Leave SOP creation">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
     <div class="app-bar-title">Almost done</div>
     <div class="wn-step-badge">Step 4 of 4</div>
@@ -1259,6 +1277,14 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
   <div class="wn-step-label">Ready to generate</div>
   <div class="scroll-area">
     <div class="wn-body">
+      <!-- SOP-NAV-04: In-flow back link — moves user back to Step 3 to
+           change format/audience/detail/tone. Preserves all work. -->
+      <div style="padding:4px 0 6px">
+        <button onclick="wnInFlowBackToStep3()"
+          style="background:none;border:none;color:var(--text2);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;padding:6px 4px">
+          ‹ Back to details
+        </button>
+      </div>
       <h1>Let's build your SOP</h1>
       <div class="wn-sub">Here's what you're getting. Looks right?</div>
       <div class="wn-recap-card">
@@ -1639,7 +1665,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
   </div>
   <div class="cat-row" id="lib-cats"></div>
   <div id="lib-time-filters" style="padding:0 16px 10px;display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none"><div class="time-pill on" onclick="libTimeFilter(this,'all')">All time</div><div class="time-pill" onclick="libTimeFilter(this,'week')">This week</div><div class="time-pill" onclick="libTimeFilter(this,'month')">This month</div><div class="time-pill" onclick="libTimeFilter(this,'last')">Last month</div><div class="time-pill" onclick="libTimeFilter(this,'older')">Older</div></div>
-  <div class="scroll-area" style="padding-bottom:20px" id="lib-list-wrap">
+  <div class="scroll-area" style="padding-bottom:100px" id="lib-list-wrap">
     <!-- SOP-UI-02: removed duplicate lib-count-badge element. Two renderers
          (renderLibList and renderLibraryWithFolders) updated different count
          elements, causing the count to appear twice (one stale, one fresh).
@@ -11816,7 +11842,7 @@ async function generateSOP() {
 
   // ── Format instruction ──────────────────────────────────────────
   var formatInstructions = {
-    'Step-by-step':  'Structure the SOP as clearly numbered sequential steps. Each step is a single action starting with a verb. Group related steps under ## section headers. This is the clearest format for training new employees.',
+    'Step-by-step':  'Structure the SOP as clearly numbered sequential steps. Each step is a single action starting with a verb. Group related steps under ## section headers. Under each ## section, EVERY item must start with either "1. " (numbered) or "- " (bullet) — NEVER write items as naked text on their own line. If items are sequential (must be done in order), number them. If items are non-sequential, bullet them. This is the clearest format for training new employees.',
     'Checklist':     'Structure the SOP as a checklist using markdown checkbox syntax: every actionable item starts with "- [ ] " followed by the action. Group items under ## headers for each phase (Pre-task, During, Post-task, etc.). Each item is a short, completable action (5-12 words). Do NOT number checklist items — they are checkboxes, not steps. Purpose and Scope sections (if included) are normal prose, not checkboxes.',
     'Role-based':    'Structure the SOP by role/person responsible. Use ## headers for each role (e.g., ## Manager, ## Staff Member, ## Technician). Under each role, list that role\'s specific responsibilities and actions as numbered steps. Include a coordination section where roles interact.',
     'Narrative':     'Write the SOP in clear, flowing prose paragraphs with ## section headers. Explain the WHY behind each step, not just the WHAT. Use paragraph breaks to separate phases. Best for complex judgment-based procedures where context matters more than sequence.'
@@ -11957,7 +11983,12 @@ async function generateSOP() {
     + '  dense paragraph.\n\n'
     + 'RULE D: Use ## for section headers. Use **bold** for emphasis within\n'
     + '  paragraphs. NEVER prefix section headers with a number ("## Pre-Submission"\n'
-    + '  not "## 1. Pre-Submission").\n\n'
+    + '  not "## 1. Pre-Submission").\n'
+    + '  CRITICAL: ALL major sections MUST start with ## (markdown header), including:\n'
+    + '  Pre-Assignment, During Stay, Check-Out, Setup, Procedure, Compliance, References,\n'
+    + '  Regulatory References, Definitions, Roles, Tools, Records, Recordkeeping,\n'
+    + '  Training, Escalation, Emergency, Closing, Retirement, and any custom section.\n'
+    + '  Writing "Compliance" as plain text (no ##) is a SEVERE formatting failure.\n\n'
     + 'RULE E: Never include "Last updated", "Version 1.0", or "Revision History"\n'
     + '  lines. The document footer handles version tracking separately.\n\n'
     + 'RULE F: "Note:", "Review & Update:", "Escalation:", "Purpose:", "Scope:"\n'
@@ -11967,22 +11998,30 @@ async function generateSOP() {
     + '  Instead: end the procedural list at item 4 with a blank line, then write\n'
     + '  "**Note:** ..." as a standalone paragraph, then "**Review & Update:** ..."\n'
     + '  as another standalone paragraph (or its own ## section header).\n\n'
-    + 'RULE G: Reference sections (Regulatory References, Definitions, Roles &\n'
-    + '  Responsibilities, etc.) follow strict formatting:\n'
-    + '  - Intro sentences ("This procedure complies with:") are NOT list items.\n'
-    + '    Write them as plain text on their own line, NOT as "1. This procedure complies with:".\n'
-    + '  - EACH citation gets its own bullet. NEVER bundle multiple regulations\n'
-    + '    into a single list item.\n'
-    + '    - GOOD:\n'
-    + '      - **OSHA 29 CFR 1910.147** (Control of Hazardous Energy): Requires written LOTO program...\n'
-    + '      - **OSHA 29 CFR 1910.303** (Electrical General Requirements): Mandates safe work practices...\n'
-    + '      - **NFPA 70E** (Standard for Electrical Safety in the Workplace): Establishes arc flash...\n'
-    + '    - BAD: "1. **OSHA 29 CFR 1910.147** (...) **OSHA 29 CFR 1910.303** (...) **NFPA 70E** (...)" ← three citations crammed into one item.\n'
+    + 'RULE G: Reference sections (Regulatory References, Compliance, Definitions, Roles &\n'
+    + '  Responsibilities, References, Applicable Regulations, etc. — ANY section that\n'
+    + '  lists regulations, terms, or roles) follow strict formatting:\n'
+    + '  - Intro sentences ("This procedure complies with:", "This procedure supports:") are NOT list items.\n'
+    + '    Write them as plain text on their own line, NOT as "1. This procedure supports:".\n'
+    + '  - EACH citation gets its own bullet on its own line. NEVER bundle multiple\n'
+    + '    regulations into a single list item, even if they share an intro phrase.\n'
+    + '  - VIOLATION EXAMPLE (do NOT do this):\n'
+    + '      ## Compliance\n'
+    + '      1. This procedure supports:\n'
+    + '      2. FCC Equipment Standards: Operate approved RF devices; avoid interference. Indiana Data Privacy (Guest Records): Protect guest names in monitor log; limit access to Front Desk. Indiana Consumer Protection Laws: Honor removal requests immediately; maintain working equipment.\n'
+    + '    This is WRONG because: (1) intro line is numbered, (2) three distinct regulations are crammed into item #2 with no separation.\n'
+    + '  - CORRECT VERSION (do this instead):\n'
+    + '      ## Compliance\n'
+    + '      This procedure supports:\n'
+    + '\n'
+    + '      - **FCC Equipment Standards**: Operate approved RF devices; avoid interference.\n'
+    + '      - **Indiana Data Privacy** (Guest Records): Protect guest names in monitor log; limit access to Front Desk.\n'
+    + '      - **Indiana Consumer Protection Laws**: Honor removal requests immediately; maintain working equipment.\n'
     + '  - Unrelated content (recordkeeping requirements, training cadence, etc.)\n'
     + '    belongs in its OWN section header, not appended to a reference list.\n'
     + '  - Apply the same logic to Definitions (each term gets its own bullet),\n'
     + '    Roles (each role gets its own bullet), and Tools (each tool gets its own bullet).\n\n'
-    + '  WORKED EXAMPLE — copy this EXACT structure for Regulatory References:\n'
+    + '  ADDITIONAL WORKED EXAMPLE — copy this EXACT structure:\n'
     + '    ## Regulatory References\n'
     + '    This procedure complies with:\n'
     + '\n'
@@ -11992,10 +12031,11 @@ async function generateSOP() {
     + '\n'
     + '    ## Recordkeeping\n'
     + '    Maintain copies of equipment-specific LOTO procedures, annual inspection records, and training documentation to demonstrate compliance during inspections.\n'
-    + '  NOTICE in the example above:\n'
-    + '    • The intro sentence "This procedure complies with:" is NOT numbered.\n'
-    + '    • Each regulation is its OWN bullet starting with "- ".\n'
-    + '    • Recordkeeping has its OWN ## section header, NOT appended as item 3 of the references list.\n\n'
+    + '  NOTICE in BOTH examples:\n'
+    + '    • The intro sentence ("This procedure supports/complies with:") is NEVER numbered.\n'
+    + '    • Each regulation/item is its OWN bullet starting with "- ".\n'
+    + '    • Each regulation gets its own LINE — never crammed together in one item.\n'
+    + '    • Additional sections like Recordkeeping have their OWN ## section header.\n\n'
     + industryBlock
     + '## TOPIC-SPECIFIC REQUIREMENTS (read this BEFORE writing)\n'
     + 'Different KINDS of SOPs need different content. Before drafting, identify which category this SOP belongs to and make sure the content addresses THAT category\'s critical decision points:\n'
@@ -12470,7 +12510,20 @@ function renderMarkdownBody(rawBody, opts) {
       // (a) the next non-empty line is NOT a numbered item, OR (b) we're
       // not already inside an <ol>. Render those as bold-labeled paragraphs.
       var isLabeledCallout = false;
+      // SOP-FMT-01 (reopened): The AI sometimes wraps the label in asterisks
+      // ("1. **Purpose:**" or "1. **Purpose**:"). The original regex only
+      // matched bare-label patterns like "1. Purpose:" — so the bolded variant
+      // fell through to ordered-list rendering ("1. Purpose:" with a number).
+      // We now try the bare pattern first, then a bolded-label pattern.
       var calloutMatch = trimmed.match(/^(\d+)\.\s+([A-Z][\w &-]{2,30}):\s+(.*)$/);
+      if(!calloutMatch) {
+        // Try bolded label patterns: "1. **Label:**" or "1. **Label**:"
+        var boldM = trimmed.match(/^(\d+)\.\s+\*\*([A-Z][\w &-]{2,30})(:?)\*\*(:?)\s+(.*)$/);
+        if(boldM) {
+          // Reconstruct in the shape calloutMatch[2]/[3] expects so downstream code works
+          calloutMatch = [trimmed, boldM[1], boldM[2], boldM[5]];
+        }
+      }
       if(calloutMatch) {
         var labelText = calloutMatch[2];
         // ALWAYS-CALLOUT LABELS: these specific words are never legitimate
@@ -12644,6 +12697,12 @@ function parseAndRender(text) {
 }
 
 function renderOutput() {
+  // SOP-PLACE-01: Clear any stale placeholder state from a previous SOP.
+  // Without this, the "Fill in the blanks" feature could surface prompts
+  // for fields that existed in a PREVIOUS SOP but not the current one —
+  // confusing users with requests to fill in vendor contacts (or whatever)
+  // for an SOP that doesn't reference vendors at all.
+  window._currentPlaceholders = [];
   // Strip any duplicate AI-generated title/company header before parsing —
   // this prevents the on-screen card from showing "# Title / **Company** / ---"
   // as redundant steps when those are already in the letterhead area.
@@ -12797,8 +12856,28 @@ function showPlaceholderFillBanner(placeholders) {
 }
 
 function openPlaceholderFillModal() {
-  var placeholders = window._currentPlaceholders || [];
-  if(!placeholders.length) return;
+  // SOP-PLACE-01: Defensive re-verification. The cached placeholder list on
+  // window._currentPlaceholders could be stale (leaked from a previous SOP)
+  // or could contain entries that look like [...] in generation but didn't
+  // survive to the final SOP body. Re-scan the CURRENT generatedText for
+  // each cached placeholder; drop any that aren't actually present.
+  // Without this guard, users saw prompts to "fill in the blanks" for
+  // fields that don't exist anywhere in their SOP — confusing and useless.
+  var cached = window._currentPlaceholders || [];
+  var placeholders = cached.filter(function(p) {
+    // p.raw is the literal bracketed string, e.g. "[Primary Vendor Contact]"
+    return p && p.raw && generatedText && generatedText.indexOf(p.raw) !== -1;
+  });
+  // Update the cache so subsequent code paths see the cleaned list
+  window._currentPlaceholders = placeholders;
+  if(!placeholders.length) {
+    // Stale state had entries but none survive verification — close any
+    // open banner and tell the user there's nothing to fill in.
+    var staleBanner = document.getElementById('placeholder-fill-banner');
+    if(staleBanner) staleBanner.remove();
+    showToast('No blanks left to fill in.');
+    return;
+  }
   var existing = document.getElementById('m-placeholder-fill');
   if(existing) existing.remove();
 
@@ -12917,16 +12996,17 @@ function renderSteps() {
       // Markdown table — render as actual HTML table
       html += '<div class="step-item" style="display:block;padding:14px"><div class="step-body" style="width:100%">' + renderMarkdownTable(s.lines) + '</div></div>';
     } else if(s.type === 'checklist') {
-      var isChecked = s.checked ? ' checked' : '';
-      var checkedClass = s.checked ? ' checklist-done' : '';
-      html += '<div class="step-item checklist-item' + checkedClass + '" id="si-'+i+'" draggable="true"'
+      // SOP-FMT-04: Render checklist items as plain bullets on-screen.
+      // The interactive checkbox created a false affordance — users assumed
+      // it persisted/synced, but it didn't. Checkboxes stay in PDF output
+      // (where they're useful for pen-tick on a printed copy), but the
+      // on-screen view shows a clean bullet instead.
+      html += '<div class="step-item" id="si-'+i+'" draggable="true"'
         +' ondragstart="onStepDragStart(event,'+i+')"'
         +' ondragover="onStepDragOver(event,'+i+')"'
         +' ondrop="onStepDrop(event,'+i+')"'
         +' ondragend="onStepDragEnd(event)">'
-        +'<label class="step-num checklist-box" title="Toggle complete">'
-        +'<input type="checkbox"' + isChecked + ' onchange="toggleChecklistItem('+i+', this.checked)" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer">'
-        +'</label>'
+        +'<div class="step-num" style="cursor:grab;user-select:none;font-size:14px" title="Drag to reorder">•</div>'
         +'<div class="step-body">'
         +'<div class="step-content" id="sc-'+i+'">'+renderMarkdownInline(s.content)+'</div>'
         +'<div class="step-btns">'
@@ -13411,19 +13491,51 @@ async function generatePdfBlob() {
   if(!inner || !inner.trim()) {
     throw new Error('Nothing to export — make sure your SOP has finished generating.');
   }
+  // SOP-PDF-03: html2canvas (which html2pdf wraps) cannot reliably measure
+  // or render elements positioned with `left:-9999px` or `position:fixed;
+  // top:-9999px` — the resulting canvas can be blank or partial. The fix:
+  // position the wrapper IN the normal document flow but visually hidden
+  // behind everything else. html2canvas can measure/render it because it
+  // has real layout, and the user never sees the flash because z-index puts
+  // it underneath the app.
   var wrapper = document.createElement('div');
-  wrapper.style.cssText = 'width:7.5in;padding:0.5in;font-family:Georgia,serif;color:#111;background:#fff;line-height:1.6;position:fixed;left:-9999px;top:0';
+  wrapper.style.cssText = [
+    'width:7.5in',
+    'padding:0.5in',
+    'font-family:Georgia,serif',
+    'color:#111',
+    'background:#fff',
+    'line-height:1.6',
+    // Render behind the app, fully opaque so html2canvas captures content
+    'position:fixed',
+    'top:0',
+    'left:0',
+    'z-index:-1',
+    'pointer-events:none',
+    'opacity:1' // must be visible to html2canvas
+  ].join(';');
   wrapper.innerHTML = inner;
   document.body.appendChild(wrapper);
+  // Force layout to settle before html2canvas measures
+  // (one rAF tick + a small timeout — belt-and-suspenders for slow devices)
+  await new Promise(function(res) { requestAnimationFrame(function() { setTimeout(res, 50); }); });
   try {
     var opts = {
       margin: [0.4, 0.4, 0.5, 0.4],
       image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        letterRendering: true,
+        backgroundColor: '#ffffff',
+        // SOP-PDF-03: explicitly tell html2canvas to ignore element CSS that
+        // could hide content (visibility:hidden, opacity:0). With our wrapper
+        // visible at z-index:-1, html2canvas measures correctly.
+        ignoreElements: function(el) { return false; }
+      },
       jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
-    // html2pdf can output a Blob via .outputPdf('blob')
     var blob = await window.html2pdf().set(opts).from(wrapper).outputPdf('blob');
     return blob;
   } finally {
@@ -13534,47 +13646,33 @@ async function generateAndDownloadPdf() {
   var titleForFile = (currentSopTitle || 'SOP').replace(/[\\\/:*?"<>|]/g, '').trim() || 'SOP';
   var filename = titleForFile + '.pdf';
   showToast('Preparing PDF…');
+  var blob;
   try {
-    await loadHtml2PdfLib();
+    // SOP-PDF-03: Use the same PDF blob builder as the share path so both
+    // paths benefit from the off-screen fix. Then trigger a download via
+    // an anchor with a blob URL.
+    blob = await generatePdfBlob();
   } catch(libErr) {
-    showToast('Could not load PDF library. Check your connection and try again.');
+    console.error('[pdf] download failed:', libErr);
+    showToast(libErr.message || 'PDF generation failed. Please try again.');
     return;
   }
-  // Build the printable HTML using the existing print-template builder so
-  // PDF output matches the on-screen print preview exactly.
-  var inner = '';
-  try { inner = buildPrintableSopHtml(); } catch(e) { inner = ''; }
-  if(!inner || !inner.trim()) {
-    showToast('Nothing to export yet — make sure your SOP has finished generating.');
-    return;
-  }
-  // Wrap in a real document body so html2pdf renders against full-width
-  // typography rather than inheriting cramped phone styles.
-  var wrapper = document.createElement('div');
-  wrapper.style.cssText = 'width:7.5in;padding:0.5in;font-family:Georgia,serif;color:#111;background:#fff;line-height:1.6';
-  wrapper.innerHTML = inner;
-  // html2pdf needs the element attached to the DOM to measure layout.
-  // Use position:fixed off-screen so it doesn't flash visible to the user.
-  wrapper.style.position = 'fixed';
-  wrapper.style.left = '-9999px';
-  wrapper.style.top = '0';
-  document.body.appendChild(wrapper);
+  // Trigger download
   try {
-    var opts = {
-      margin: [0.4, 0.4, 0.5, 0.4],
-      filename: filename,
-      image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-    await window.html2pdf().set(opts).from(wrapper).save();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() {
+      try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch(_) {}
+    }, 1000);
     showToast('PDF downloaded ✓');
-  } catch(genErr) {
-    console.error('[pdf] generation failed:', genErr);
-    showToast('PDF generation failed. Please try again.');
-  } finally {
-    if(wrapper && wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+  } catch(saveErr) {
+    console.error('[pdf] save failed:', saveErr);
+    showToast('Could not save PDF.');
   }
 }
 
@@ -13917,84 +14015,44 @@ function showEmailInstructionsModal(subject, body) {
 }
 
 function doPrint() {
-  var company = titleCase(profile.company || 'SOPONTHEGO');
-  var title   = titleCase(currentSopTitle || 'SOP');
-  var meta    = company + ' \u00b7 ' + getToday() + (profile.author ? ' \u00b7 ' + profile.author : '');
-  var logo    = (profile && profile.logo) ? profile.logo : '';
-
-  // Strip duplicate header from AI body so the print version doesn't
-  // collide with our own header block.
-  var rawBody = stripLeadingAiHeader(generatedText || '', currentSopTitle, profile.company);
-  // FIX #17: use centralized renderer
-  var bodyHtml = renderMarkdownBody(rawBody, { checkboxStyle: 'html' });
-
-  // Header block: logo (if uploaded) above the title
-  var headerBlock = (logo
-    ? '<div class="hdr-row"><img src="' + logo + '" class="hdr-logo" alt=""></div>'
-    : '')
-    + '<h1 class="doc-title">' + title + '</h1>'
-    + '<div class="meta">' + meta + '</div>';
-
-  var printHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + title + '</title>'
-    + '<style>body{font-family:Georgia,serif;max-width:720px;margin:32px auto;padding:0 24px;color:#111;font-size:14px;line-height:1.7}'
-    + '.hdr-row{margin-bottom:14px}'
-    + '.hdr-logo{max-height:56px;max-width:200px;object-fit:contain;display:block}'
-    + 'h1.doc-title{font-size:22px;font-weight:700;border-bottom:2px solid #222;padding-bottom:8px;margin-bottom:4px}'
-    + '.meta{font-size:11px;color:#666;margin-bottom:20px}'
-    + 'h1{font-size:20px;font-weight:700;margin:24px 0 6px;color:#222}'
-    + 'h2{font-size:15px;font-weight:700;margin:24px 0 6px;color:#222}'
-    + 'p,li{font-size:13px;margin:4px 0}ul,ol{padding-left:22px;margin:6px 0}'
-    + 'table{border-collapse:collapse;width:100%;margin:10px 0;font-size:12.5px}'
-    + 'th,td{padding:7px 10px;border:1px solid #ccc;text-align:left}'
-    + 'th{background:#f4f4f8;font-weight:700}'
-    + '@page{margin:18mm;'
-    +   /* FIX #14c: suppress browser print headers/footers so "about:blank 1/1" */
-    +   /* doesn't appear at the top/bottom of generated PDFs. The margin-boxes */
-    +   /* are where Chrome puts the URL and page numbers by default. Empty out */
-    +   /* all four corners. */
-    +   '@top-left{content:""}@top-center{content:""}@top-right{content:""}'
-    +   '@bottom-left{content:""}@bottom-center{content:""}@bottom-right{content:""}'
-    + '}@media print{body{margin:0;max-width:none}}</style>'
-    + '</head><body>'
-    + headerBlock
-    + bodyHtml
-    + '</body></html>';
-
-  // Remove any existing print frame
-  var old = document.getElementById('print-frame');
-  if(old) old.parentNode.removeChild(old);
-
-  var frame = document.createElement('iframe');
-  frame.id = 'print-frame';
-  frame.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:800px;height:600px;border:none;visibility:hidden';
-  document.body.appendChild(frame);
-
-  frame.onload = function() {
-    setTimeout(function() {
-      try {
-        frame.contentWindow.focus();
-        frame.contentWindow.print();
-        showToast('Print dialog opened \uD83D\uDDA8\uFE0F');
-      } catch(e) {
-        // Fallback: download as txt
-        var blob = new Blob([text], {type:'text/plain'});
-        var url  = URL.createObjectURL(blob);
-        var a    = document.createElement('a');
+  // SOP-PDF-02: Route through html2pdf which generates a real PDF without
+  // browser-injected "about:blank 1/1" headers/footers. The old iframe-based
+  // print path used the browser's built-in print dialog, which on Chrome
+  // injected metadata even with @page suppression CSS.
+  // This now opens the PDF in a new tab for the user to either save or print
+  // from their PDF viewer (which gives them full control over headers/footers).
+  showToast('Preparing print view…');
+  generatePdfBlob().then(function(blob) {
+    try {
+      var url = URL.createObjectURL(blob);
+      var win = window.open(url, '_blank');
+      if(!win) {
+        // Pop-up blocked — fall back to download
+        var a = document.createElement('a');
         a.href = url;
-        a.download = title.replace(/[^a-zA-Z0-9]+/g,'_') + '.txt';
+        a.download = (currentSopTitle || 'SOP') + '.pdf';
         a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
-        setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 300);
-        showToast('Downloaded as text \u2014 print from there');
+        setTimeout(function() {
+          try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch(_) {}
+        }, 1000);
+        showToast('Pop-up blocked — PDF downloaded instead');
+        return;
       }
-    }, 400);
-  };
-
-  var doc = frame.contentDocument || frame.contentWindow.document;
-  doc.open();
-  doc.write(printHtml);
-  doc.close();
+      // Don't revoke immediately — let the new tab keep the URL valid.
+      // The blob URL persists until the tab is closed.
+      showToast('PDF opened in new tab');
+    } catch(e) {
+      console.error('[print] failed:', e);
+      showToast('Could not open print view. Try Download instead.');
+    }
+  }).catch(function(err) {
+    console.error('[print] PDF gen failed:', err);
+    showToast(err.message || 'Could not prepare PDF.');
+  });
+  return;
+  // (Legacy iframe-print code removed; doPrint now routes through html2pdf.)
 }
 
 function openHelpEmail() {
@@ -15507,8 +15565,35 @@ async function prefetchWizardContext(title) {
     + 'RULE 4 — NO LEGAL/DEFINITION QUESTIONS. Do not ask the user to define\n'
     + '         terms or cite regulations. That is your job in the SOP body.\n'
     + 'RULE 5 — UNDER 14 WORDS each. Short, direct, concrete.\n'
-    + 'RULE 6 — BEFORE RETURNING: read your 6 questions out loud. If any two\n'
-    + '         could plausibly be answered with the same sentence, REPLACE ONE.\n\n'
+    + 'RULE 6 — REALITY CHECK: WHO DETECTS, WHO ACTS. Before writing each question,\n'
+    + '         trace the real-world flow of information. Ask yourself: "In real\n'
+    + '         life, how would this situation come to the business owner\'s\n'
+    + '         attention? Who reports it first? Who acts first?" If your question\n'
+    + '         assumes the WRONG party detecting or initiating, REWRITE it.\n'
+    + '         BAD EXAMPLE (wrong-party framing): "If a baby monitor malfunctions\n'
+    + '         during a guest stay, who contacts the guest and what is your\n'
+    + '         replacement timeline?" — This assumes the HOST detects the\n'
+    + '         malfunction. In reality, the GUEST reports the problem to the host.\n'
+    + '         CORRECT FRAMING: "If a guest reports a malfunctioning baby monitor,\n'
+    + '         what is your response and replacement timeline?"\n'
+    + 'RULE 7 — DO NOT INVENT EQUIPMENT OR OPERATIONAL FACTS. If the SOP involves\n'
+    + '         physical equipment, products, or systems, DO NOT assume specifics\n'
+    + '         (brand, type, "smart" features, app integration, etc.) unless the\n'
+    + '         user has told you. For SOPs about physical things, at LEAST one of\n'
+    + '         your 6 questions should establish basic ground truth about what\n'
+    + '         the user has — BEFORE other questions depend on those details.\n'
+    + '         BAD EXAMPLE: "If a monitor loses connectivity or the app crashes\n'
+    + '         mid-stay, who troubleshoots?" — This assumes the monitor has an app.\n'
+    + '         A basic audio monitor has no app. The AI should have first asked\n'
+    + '         what KIND of monitor before asking app-related edge cases.\n'
+    + '         CORRECT APPROACH: First question establishes equipment ("What type\n'
+    + '         of baby monitors do you provide — audio only, video, or WiFi/app?")\n'
+    + '         Later questions can then assume those details.\n'
+    + 'RULE 8 — BEFORE RETURNING: read your 6 questions out loud. If any two\n'
+    + '         could plausibly be answered with the same sentence, REPLACE ONE.\n'
+    + '         Also check: does any question assume an equipment, app, or process\n'
+    + '         feature the user never mentioned? If yes, REWRITE to either (a) ask\n'
+    + '         about the feature first, or (b) reframe to not assume it.\n\n'
     + 'Return a SINGLE valid JSON object with these 3 keys:\n\n'
     + '1. "questions" — array of EXACTLY 6 decision-focused questions.\n\n'
     + '2. "compliance" — array of 2 to 4 LIKELY-RELEVANT compliance items for this SOP + industry + state.\n'
@@ -15832,9 +15917,11 @@ function wnWaitForPrefetch(timeoutMs) {
     var nextBtn = document.getElementById('wn2-next-btn');
     var skipBtn = document.getElementById('wn2-skip-btn');
     var prevBtn = document.getElementById('wn2-prev-btn');
+    var prevLink = document.getElementById('wn2-prev-link');
     if(nextBtn) nextBtn.disabled = true;
     if(skipBtn) skipBtn.disabled = true;
     if(prevBtn) prevBtn.style.visibility = 'hidden';
+    if(prevLink) prevLink.style.display = 'none';
     // Inject the spinner keyframes once (idempotent)
     if(!document.getElementById('wn-spin-kf')) {
       var st = document.createElement('style');
@@ -15940,7 +16027,13 @@ function wnRenderQuestion() {
     if(tipC) tipC.textContent = 'Tap any number above to revisit a previous answer';
   }
 
-  // Prev button hidden on Q1
+  // SOP-NAV-04: "Previous question" link is hidden on Q1 (no previous to
+  // go to). Replaces the old icon button (wn2-prev-btn) with the labeled
+  // link (wn2-prev-link) for better discoverability.
+  var prevLink = document.getElementById('wn2-prev-link');
+  if(prevLink) prevLink.style.display = (idx === 0) ? 'none' : 'inline-block';
+  // Legacy fallback — the old icon button may still be in the DOM in
+  // partially-cached page states; hide it the same way.
   var prevBtn = document.getElementById('wn2-prev-btn');
   if(prevBtn) prevBtn.style.visibility = (idx === 0) ? 'hidden' : 'visible';
 
@@ -16524,7 +16617,9 @@ function wnHasUserInput() {
     if(wiz.title && wiz.title.trim()) return true;
     if(Array.isArray(wiz.cats) && wiz.cats.length > 0) return true;
     if(wiz.cat && wiz.cat.trim()) return true;
-    if(Array.isArray(wiz.answers) && wiz.answers.some(function(a){ return a && a.trim(); })) return true;
+    // SOP-NAV-03: Q answers live on wn.answers, not wiz.answers. The original
+    // check was always false because wiz doesn't have an `answers` array.
+    if(wn && Array.isArray(wn.answers) && wn.answers.some(function(a){ return a && String(a).trim(); })) return true;
     if(Array.isArray(wiz.details) && wiz.details.length > 0) return true;
     if(wiz.audience || wiz.format || wiz.detail || wiz.tone) {
       // Only count these if they differ from defaults — the wizard pre-selects
@@ -16539,37 +16634,114 @@ function wnHasUserInput() {
   }
 }
 
+// SOP-NAV-04: Custom confirm modal matching the app's design. Replaces
+// the browser's native confirm() dialog. Returns a Promise<boolean>.
+// Used by the wizard exit X to confirm before leaving with unsaved work.
+function showAppConfirm(opts) {
+  opts = opts || {};
+  return new Promise(function(resolve) {
+    var existing = document.getElementById('app-confirm-modal');
+    if(existing) existing.remove();
+    var modal = document.createElement('div');
+    modal.id = 'app-confirm-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:10100;padding:20px;opacity:0;transition:opacity .15s';
+    modal.onclick = function(e) {
+      if(e.target === modal) {
+        modal.remove();
+        resolve(false);
+      }
+    };
+
+    var card = document.createElement('div');
+    card.style.cssText = 'background:var(--bg);border:1px solid var(--border);border-radius:18px;max-width:380px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.5);transform:scale(.95);transition:transform .18s cubic-bezier(.2,.8,.2,1)';
+
+    var titleHtml = opts.title
+      ? '<div style="font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--text);margin-bottom:8px;line-height:1.3">' + esc(opts.title) + '</div>'
+      : '';
+    var msgHtml = opts.message
+      ? '<div style="font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:18px">' + esc(opts.message) + '</div>'
+      : '';
+    var cancelLabel = esc(opts.cancelLabel || 'Cancel');
+    var confirmLabel = esc(opts.confirmLabel || 'Continue');
+    var danger = !!opts.danger;
+    var confirmBg = danger ? 'var(--accent2)' : 'var(--accent)';
+
+    card.innerHTML = titleHtml + msgHtml
+      + '<div style="display:flex;gap:8px">'
+      +   '<button id="app-confirm-cancel" style="flex:1;padding:12px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:11px;color:var(--text);font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer">' + cancelLabel + '</button>'
+      +   '<button id="app-confirm-ok" style="flex:1;padding:12px;background:' + confirmBg + ';border:none;border-radius:11px;color:#fff;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer">' + confirmLabel + '</button>'
+      + '</div>';
+
+    modal.appendChild(card);
+    document.body.appendChild(modal);
+    // Animate in (defensive — requestAnimationFrame may not exist in test environments)
+    var animateIn = function() {
+      modal.style.opacity = '1';
+      card.style.transform = 'scale(1)';
+    };
+    if(typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(animateIn);
+    } else {
+      setTimeout(animateIn, 0);
+    }
+
+    document.getElementById('app-confirm-cancel').onclick = function() {
+      modal.remove();
+      resolve(false);
+    };
+    document.getElementById('app-confirm-ok').onclick = function() {
+      modal.remove();
+      resolve(true);
+    };
+  });
+}
+
+// SOP-NAV-04: Friendly name for the screen the user will return to when
+// they exit the wizard. Used in the confirm modal.
+function wnDestinationLabel() {
+  var src = (wn && wn.sourceScreen) ? wn.sourceScreen : 's-home';
+  if(src === 's-templates') return 'Templates';
+  if(src === 's-library') return 'Library';
+  return 'Home';
+}
+
 function wnGoBack(fromStep) {
-  if(fromStep === 1) {
-    // SOP-NAV-02: top X exits wizard entirely. If the user has typed anything,
-    // confirm before discarding. If the wizard is empty (e.g. they just opened
-    // it from home and immediately want to back out), exit silently.
-    if(wnHasUserInput()) {
-      var confirmed = confirm('Discard your in-progress SOP?\n\nYour title, category, and any answers will not be saved.');
-      if(!confirmed) return;
-    }
-    logWizardEvent('wizard_abandoned', { lastScreen: 's-wn-1' });
-    go(wn.sourceScreen || 's-home');
-    return;
-  }
-  if(fromStep === 2) {
-    // From step 2: if in review mode, go back to Q7; otherwise go to step 1.
-    // SOP-NAV-02: Going to step 1 means losing Q answers. Confirm if user has
-    // answered any questions — they don't expect "back" to nuke their work.
-    var rMode = document.getElementById('wn2-review-mode');
-    if(rMode && rMode.style.display === 'flex') { wnReviewBack(); return; }
-    // Not in review — going back to step 1 will lose Q answers
-    var hasAnswers = Array.isArray(wiz.answers) && wiz.answers.some(function(a){ return a && a.trim(); });
-    if(hasAnswers) {
-      var ok = confirm('Go back to the basics?\n\nYour answers to the questions will be lost.');
-      if(!ok) return;
-    }
-    go('s-wn-1');
-    logWizardEvent('screen_reached', { screen: 's-wn-1' });
-    return;
-  }
-  if(fromStep === 3) { go('s-wn-2'); wnEnterReviewMode(); return; }
-  if(fromStep === 4) { go('s-wn-3'); wnRenderStep3(); return; }
+  // SOP-NAV-04: Unified exit pattern for ALL wizard steps. Top icon (X)
+  // ALWAYS means "exit the wizard". We ALWAYS confirm (regardless of how
+  // far through the user has gotten) because:
+  //   1. Users said they want predictable behavior over "smart" behavior
+  //   2. A 1-tap confirm is a small price for never accidentally losing work
+  //   3. The confirm tells the user exactly where they'll go, which makes
+  //      the action feel safer and more transparent
+  // The confirm uses a custom modal (matches app design) rather than the
+  // browser's native confirm() dialog.
+  var dest = wnDestinationLabel();
+  showAppConfirm({
+    title: 'Leave SOP creation?',
+    message: 'You\'ll return to ' + dest + ' and your work won\'t be saved.',
+    cancelLabel: 'Keep working',
+    confirmLabel: 'Leave',
+    danger: true
+  }).then(function(confirmed) {
+    if(!confirmed) return;
+    logWizardEvent('wizard_abandoned', { lastScreen: 's-wn-' + fromStep });
+    go((wn && wn.sourceScreen) || 's-home');
+  });
+}
+
+// SOP-NAV-04: In-flow back navigation handlers. These move the user backward
+// one step WITHIN the wizard, preserving their work. They're triggered by
+// the small "‹ Previous question" / "‹ Back to questions" / "‹ Back to
+// details" links that live inside the content area (not the app bar).
+function wnInFlowBackToStep2() {
+  // From Step 3 → Step 2 review mode
+  go('s-wn-2');
+  try { wnEnterReviewMode(); } catch(e) {}
+}
+function wnInFlowBackToStep3() {
+  // From Step 4 → Step 3
+  go('s-wn-3');
+  try { wnRenderStep3(); } catch(e) {}
 }
 
 // ════════════════════════════════════════════════════════════════════════════
