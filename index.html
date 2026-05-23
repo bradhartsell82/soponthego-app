@@ -13491,21 +13491,54 @@ async function generatePdfBlob() {
   if(!inner || !inner.trim()) {
     throw new Error('Nothing to export — make sure your SOP has finished generating.');
   }
-  // SOP-PDF-03 (real fix after inspecting blank PDF binary):
-  // The blank PDF we shipped earlier had a content stream containing ONLY
-  // a line-width command (no draw operations). Fonts were registered but
-  // no rendered image made it onto the page. This is a known timing issue
-  // with html2pdf 0.10.1's .outputPdf('blob') chain — the blob is extracted
-  // before the async canvas-to-image step finishes writing to the PDF page.
+  // SOP-PDF-03 (attempt 3, with binary inspection backing the diagnosis):
+  // The previous two attempts produced byte-identical 3027-byte PDFs with
+  // an empty content stream — meaning html2canvas was returning an empty
+  // canvas every time. Root cause: html2canvas does NOT render elements
+  // positioned with `position:fixed; z-index:-1` because those are
+  // considered "behind the viewport" by its visibility heuristic.
   //
-  // Fix: use the explicit .toPdf().get('pdf') chain to manually await each
-  // step (canvas done → image composed → pdf instance ready), then call
-  // .output('blob') on the resolved jsPDF instance directly. This guarantees
-  // the content stream contains the rendered image before we extract.
-  //
-  // ALSO: keep the wrapper in the visible viewport (z-index:-1 behind the
-  // app) so html2canvas can measure layout. Off-screen positioning broke
-  // measurement entirely.
+  // New approach: render the wrapper in NORMAL flow at full visibility,
+  // and cover it with a full-screen loading overlay so the user doesn't
+  // see the flash. html2canvas treats it as a fully-visible element and
+  // produces a real canvas. The overlay is removed when PDF generation
+  // completes.
+
+  // Create the cover overlay first (so the wrapper is hidden the moment
+  // it appears).
+  var overlay = document.createElement('div');
+  overlay.id = 'pdf-render-overlay';
+  overlay.style.cssText = [
+    'position:fixed',
+    'inset:0',
+    'background:rgba(0,0,0,.75)',
+    'z-index:10000',
+    'display:flex',
+    'align-items:center',
+    'justify-content:center',
+    'backdrop-filter:blur(4px)',
+    'color:#fff',
+    'font-family:system-ui,sans-serif',
+    'font-size:15px',
+    'font-weight:600'
+  ].join(';');
+  overlay.innerHTML =
+      '<div style="text-align:center">'
+    +   '<div style="width:42px;height:42px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;margin:0 auto 14px;animation:pdf-spin 1s linear infinite"></div>'
+    +   '<div>Building PDF…</div>'
+    + '</div>';
+  // Inject keyframes if not already present
+  if(!document.getElementById('pdf-spin-kf')) {
+    var st = document.createElement('style');
+    st.id = 'pdf-spin-kf';
+    st.textContent = '@keyframes pdf-spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(st);
+  }
+  document.body.appendChild(overlay);
+
+  // Now create the wrapper IN NORMAL FLOW with full visibility. The overlay
+  // hides it from the user. html2canvas will treat it as a normal renderable
+  // element because it's not off-screen, not negative z-index, not hidden.
   var wrapper = document.createElement('div');
   wrapper.style.cssText = [
     'width:7.5in',
@@ -13517,16 +13550,14 @@ async function generatePdfBlob() {
     'position:fixed',
     'top:0',
     'left:0',
-    'z-index:-1',
-    'pointer-events:none',
-    'opacity:1'
+    'z-index:9999', // BELOW overlay (10000) but visible/measurable
+    'visibility:visible'
   ].join(';');
   wrapper.innerHTML = inner;
   document.body.appendChild(wrapper);
-  // Wait for layout AND for any images (logos) to load. Without this,
-  // html2canvas captures a half-rendered DOM and produces an empty image.
+
+  // Wait for layout + image loading
   await new Promise(function(res) { requestAnimationFrame(function() { setTimeout(res, 100); }); });
-  // Wait for any <img> elements (typically the company logo) to finish loading
   var imgs = wrapper.querySelectorAll('img');
   if(imgs.length) {
     await Promise.all(Array.prototype.map.call(imgs, function(img) {
@@ -13535,11 +13566,11 @@ async function generatePdfBlob() {
         var done = function() { res(); };
         img.onload = done;
         img.onerror = done;
-        // safety timeout — don't hang forever on a broken image
         setTimeout(done, 2000);
       });
     }));
   }
+
   try {
     var opts = {
       margin: [0.4, 0.4, 0.5, 0.4],
@@ -13549,23 +13580,25 @@ async function generatePdfBlob() {
         useCORS: true,
         letterRendering: true,
         backgroundColor: '#ffffff',
-        logging: false
+        logging: false,
+        // Tell html2canvas where the wrapper actually is on screen
+        x: 0,
+        y: 0,
+        width: wrapper.offsetWidth,
+        height: wrapper.offsetHeight,
+        scrollX: 0,
+        scrollY: 0
       },
       jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
-    // Use the explicit promise chain instead of .outputPdf('blob') which
-    // has a known timing bug in html2pdf 0.10.1.
     var worker = window.html2pdf().set(opts).from(wrapper);
-    // .toPdf() runs the html2canvas → jsPDF pipeline
-    // .get('pdf') resolves with the jsPDF instance once images are composed
     var pdf = await worker.toPdf().get('pdf');
-    // .output('blob') on the jsPDF instance directly — guaranteed to have
-    // the final content stream because we awaited the pdf instance itself.
     var blob = pdf.output('blob');
     return blob;
   } finally {
     if(wrapper && wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+    if(overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
   }
 }
 
