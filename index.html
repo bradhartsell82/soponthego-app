@@ -1083,6 +1083,55 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 .wn-profile-line{font-size:12px;color:var(--text2);margin-bottom:3px;display:flex;gap:8px}
 .wn-profile-line .wn-profile-lbl{color:var(--text3);min-width:80px;font-weight:600}
 .wn-profile-line .wn-profile-val{color:var(--text);font-weight:600}
+
+/* ── Mode choice screen (Talk it through vs Guided questions) ─────────── */
+.mode-choice-card{display:flex;align-items:center;gap:14px;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 16px;margin-bottom:14px;cursor:pointer;text-align:left;font-family:var(--font);transition:all .15s;-webkit-tap-highlight-color:transparent}
+.mode-choice-card:hover,.mode-choice-card:active{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.mode-choice-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mode-choice-body{flex:1;min-width:0}
+.mode-choice-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px;line-height:1.2}
+.mode-choice-desc{font-size:13px;color:var(--text2);line-height:1.45}
+.mode-choice-arrow{color:var(--text3);font-size:22px;font-weight:300;flex-shrink:0;margin-left:4px}
+
+/* ── Inline mic button (sits beside question textareas in guided mode) ── */
+.wn-mic-btn{position:absolute;right:10px;bottom:10px;width:36px;height:36px;border-radius:50%;background:var(--surface);border:1px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;-webkit-tap-highlight-color:transparent;z-index:2}
+.wn-mic-btn:hover,.wn-mic-btn:active{border-color:var(--accent);color:var(--accent)}
+.wn-mic-btn.recording{background:linear-gradient(135deg,#5a51e0,#9b59b6);border-color:transparent;color:#fff;animation:wn-mic-pulse 1.4s infinite}
+.wn-mic-btn.unsupported{display:none}
+@keyframes wn-mic-pulse{0%,100%{box-shadow:0 0 0 0 rgba(90,81,224,.5)}50%{box-shadow:0 0 0 8px rgba(90,81,224,0)}}
+
+/* ── Voice input full-screen pulse on the big record button ───────────── */
+#wn-voice-mic-btn.recording{background:linear-gradient(135deg,#e74c3c,#c0392b)!important;animation:wn-voice-pulse 1.4s infinite}
+@keyframes wn-voice-pulse{0%,100%{box-shadow:0 6px 20px rgba(231,76,60,.4),0 0 0 0 rgba(231,76,60,.5)}50%{box-shadow:0 6px 20px rgba(231,76,60,.4),0 0 0 16px rgba(231,76,60,0)}}
+
+/* ── "Add more" refinement card on generated SOP screen ───────────────── */
+.wn-refine-card{background:linear-gradient(135deg,rgba(90,81,224,.06),rgba(155,89,182,.06));border:1px solid rgba(90,81,224,.25);border-radius:14px;padding:14px;margin:16px 0}
+.wn-refine-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.wn-refine-buttons{display:flex;gap:8px}
+.wn-refine-btn{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;-webkit-tap-highlight-color:transparent;transition:all .15s}
+.wn-refine-btn:hover,.wn-refine-btn:active{border-color:var(--accent);color:var(--accent)}
+
+/* Refinement modal */
+.wn-refine-modal-content{background:var(--bg);border-radius:18px;padding:20px;max-width:480px;margin:0 auto;width:calc(100% - 28px)}
+.wn-refine-modal-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px}
+.wn-refine-modal-sub{font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.45}
+.wn-refine-modal-ta{width:100%;min-height:100px;font-family:var(--font);font-size:14px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);resize:vertical;box-sizing:border-box}
+
+/* ── SOP-PHOTOS-01: Per-step photo UI ─────────────────────────────────── */
+/* Photos appear in a row beneath each step. Tappable to lightbox. The
+   "add photo" button sits at the end of the row. Only renders if user
+   plan allows photos OR if photos already exist (so a downgraded user
+   still sees their existing photos, just can't add more). */
+.step-photos-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;padding-left:38px;align-items:center}
+.step-photo-thumb{position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:var(--surface);cursor:zoom-in;-webkit-tap-highlight-color:transparent;transition:transform .12s}
+.step-photo-thumb:hover{transform:scale(1.05);border-color:var(--accent)}
+.step-photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.step-photo-remove{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--bg);border:1.5px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;font-size:11px;line-height:1;-webkit-tap-highlight-color:transparent;z-index:2}
+.step-photo-remove:hover{background:var(--accent2);color:#fff;border-color:var(--accent2)}
+.step-photo-add-btn{width:64px;height:64px;border-radius:8px;border:1.5px dashed var(--border);background:transparent;color:var(--text2);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:var(--font);font-size:9px;font-weight:600;-webkit-tap-highlight-color:transparent;transition:all .12s;padding:0}
+.step-photo-add-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(108,99,255,.05)}
+.step-photo-add-btn[disabled]{opacity:.5;cursor:wait}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 </style>
 
 <!-- ── SCREEN: NEW WIZARD STEP 1 — Title + Category ─────────────────────── -->
@@ -1125,6 +1174,95 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
   </div>
 </div>
 
+<!-- ── SCREEN: MODE CHOICE — Talk it through vs Guided questions ─────────── -->
+<!-- After Step 1 (title+categories), user chooses how to provide context.
+     Two equal first-class options. No "recommended" label — both serve real
+     user types. Voice mode for users who already know what they do; guided
+     for users who don't know where to start. State stored as wn.inputMode. -->
+<div class="screen hidden" id="s-wn-mode" style="display:flex;flex-direction:column">
+  <div class="app-bar">
+    <button class="icon-btn" onclick="wnGoBack(1.5)" aria-label="Back to title" title="Back">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="app-bar-title" id="wn-mode-title">How do you want to do this?</div>
+    <div style="width:32px"></div>
+  </div>
+  <div class="scroll-area">
+    <div class="wn-body" style="padding-top:24px">
+      <h1 style="margin-bottom:8px">Talk it out or walk through it</h1>
+      <div class="wn-sub" style="margin-bottom:28px">Either way works — pick what feels right for you.</div>
+
+      <button class="mode-choice-card" onclick="wnPickMode('voice')" id="mode-voice-btn">
+        <div class="mode-choice-icon" style="background:linear-gradient(135deg,#5a51e0,#9b59b6)">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </div>
+        <div class="mode-choice-body">
+          <div class="mode-choice-title">Talk it through</div>
+          <div class="mode-choice-desc">Just explain how you do it — start to finish. We'll turn it into an SOP.</div>
+        </div>
+        <div class="mode-choice-arrow">›</div>
+      </button>
+
+      <button class="mode-choice-card" onclick="wnPickMode('guided')" id="mode-guided-btn">
+        <div class="mode-choice-icon" style="background:linear-gradient(135deg,#4a90e2,#67c5d8)">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/><line x1="9" y1="9" x2="10" y2="9"/></svg>
+        </div>
+        <div class="mode-choice-body">
+          <div class="mode-choice-title">Guided questions</div>
+          <div class="mode-choice-desc">Answer 6 quick questions — by voice or text. Best if you're not sure what to include.</div>
+        </div>
+        <div class="mode-choice-arrow">›</div>
+      </button>
+
+      <div id="mode-voice-unsupported" style="display:none;margin-top:16px;padding:12px 14px;background:#fff4e5;border:1px solid #f0c878;border-radius:10px;font-size:12px;color:#7a5c1c;line-height:1.5">
+        💡 Voice input isn't available in this browser. Try Chrome or Safari for voice — or use guided questions which always works.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCREEN: VOICE INPUT — Single big record button + live transcript ───── -->
+<!-- User taps record, speaks naturally, sees live transcript appear. Stop
+     when done. Result goes directly to SOP generation. No question flow,
+     no review screen — the user said "just talk it through" and we honor that. -->
+<div class="screen hidden" id="s-wn-voice" style="display:flex;flex-direction:column">
+  <div class="app-bar">
+    <button class="icon-btn" onclick="wnVoiceCancel()" aria-label="Back" title="Back">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="app-bar-title" id="wn-voice-title">Tell us how it works</div>
+    <div style="width:32px"></div>
+  </div>
+  <div class="scroll-area" id="wn-voice-scroll">
+    <div class="wn-body" style="padding-top:20px;padding-bottom:140px">
+      <div id="wn-voice-prompt" style="background:var(--surface);border:1px dashed var(--border);border-radius:12px;padding:14px;font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:20px">
+        <div style="font-weight:700;color:var(--text);margin-bottom:6px">💡 How to talk it through</div>
+        Start to finish, how do you do this? Mention who's involved, what tools you use, and what to watch out for. The more detail, the better the SOP.
+      </div>
+
+      <div id="wn-voice-transcript" style="min-height:120px;font-size:15px;line-height:1.6;color:var(--text);padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;white-space:pre-wrap;word-break:break-word">
+        <span style="color:var(--text3);font-style:italic">Tap the mic below and start talking…</span>
+      </div>
+
+      <div id="wn-voice-status" style="text-align:center;font-size:12px;color:var(--text2);margin-bottom:20px;min-height:16px"></div>
+    </div>
+  </div>
+
+  <!-- Sticky bottom area with record button + actions -->
+  <div style="border-top:1px solid var(--border);background:var(--bg);padding:14px 18px 20px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;justify-content:center;align-items:center;gap:14px">
+      <button id="wn-voice-mic-btn" onclick="wnVoiceToggleRecording()"
+        style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#5a51e0,#9b59b6);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(90,81,224,.35);transition:all .2s">
+        <svg id="wn-voice-mic-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+    </div>
+    <div class="wn-actions" style="padding-top:0">
+      <button class="wn-btn wn-btn-skip" onclick="wnVoiceCancel()" id="wn-voice-cancel-btn">Cancel</button>
+      <button class="wn-btn wn-btn-next" onclick="wnVoiceGenerate()" id="wn-voice-generate-btn" disabled style="opacity:.5">Generate SOP ›</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── SCREEN: NEW WIZARD STEP 2 — Conversational Questions + Review ─────── -->
 <div class="screen hidden" id="s-wn-2" style="display:flex;flex-direction:column">
   <div class="app-bar">
@@ -1152,9 +1290,12 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
         <div class="wn-q-text" id="wn2-q-text">Loading…</div>
         <div class="wn-q-hint" id="wn2-q-hint"></div>
 
-        <!-- For Q1-Q6: textarea -->
-        <div id="wn2-q-textarea-wrap">
-          <textarea class="wn-q-input" id="wn2-q-textarea" placeholder="Type your answer… or skip"></textarea>
+        <!-- For Q1-Q6: textarea (with inline voice mic button) -->
+        <div id="wn2-q-textarea-wrap" style="position:relative">
+          <textarea class="wn-q-input" id="wn2-q-textarea" placeholder="Type your answer… or skip" style="padding-bottom:50px"></textarea>
+          <button id="wn2-q-mic-btn" class="wn-mic-btn" onclick="wnToggleQuestionMic()" aria-label="Use voice to answer" title="Tap to use voice">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
         </div>
 
         <!-- For Q7: compliance checkboxes (hidden by default; shown for Q7 only) -->
@@ -1534,7 +1675,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 <!-- ════════════════════════════════════════ -->
 <div class="screen hidden" id="s-output">
   <div class="sop-out-bar">
-    <button class="icon-btn" onclick="go(outputSourceScreen||'s-home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
+    <button class="icon-btn" onclick="hideRefineCard();go(outputSourceScreen||'s-home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
     <div style="flex:1"><span id="version-badge" style="display:none;font-size:10px;font-weight:800;background:rgba(108,99,255,.15);color:var(--accent);padding:2px 8px;border-radius:20px;cursor:pointer;margin-right:6px" onclick="showVersionHistory()">v1</span><div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--green)">SOP Ready ✓</div><div style="font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px" id="out-hdr-title">Untitled</div></div>
     <button class="icon-btn" onclick="showEditStepModal(-1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
   </div>
@@ -1558,6 +1699,27 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
         <div id="out-rewrite-badge" style="display:none;margin-top:10px;font-size:11px;font-weight:700;color:var(--green);background:rgba(0,214,143,.1);border:1px solid rgba(0,214,143,.25);border-radius:20px;padding:5px 12px;display:inline-block"></div>
       </div>
       <div class="sop-steps-wrap" id="out-steps"></div>
+    </div>
+
+    <!-- ── "Add more" refinement card — visible only during active creation session.
+         The user just generated their SOP. If they realize they forgot something,
+         they can refine RIGHT NOW (voice or text). Refinement regenerates the SOP
+         integrating the addition. Disappears once the user navigates away — after
+         that, library SOPs must use the Rewrite flow to maintain version integrity. -->
+    <div id="sop-refine-card-wrap" style="display:none;padding:0 16px">
+      <div class="wn-refine-card">
+        <div class="wn-refine-title">💡 Forgot something? Add it →</div>
+        <div class="wn-refine-buttons">
+          <button class="wn-refine-btn" onclick="openRefineModal('voice')" id="refine-voice-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            Talk
+          </button>
+          <button class="wn-refine-btn" onclick="openRefineModal('text')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+            Type
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="export-strip">
@@ -2179,9 +2341,11 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
       <div style="font-size:12px;font-weight:800;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">What you get with Pro</div>
       <div style="font-size:13px;color:var(--text2);line-height:1.9">
         ✓ 50 SOPs included monthly<br>
+        ✓ <strong style="color:var(--text)">Photos per step</strong> — visual SOPs<br>
         ✓ Upload &amp; rewrite existing SOPs<br>
         ✓ Unlimited library with full-text search<br>
         ✓ Team sign-off &amp; acknowledgments<br>
+        ✓ Custom company logo on every SOP<br>
         ✓ Version history with visual diff<br>
         ✓ Professional PDF with cover page
       </div>
@@ -2193,6 +2357,39 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
     </div>
 
     <div style="font-size:11px;color:var(--text3);margin-top:12px">Solo from $14.99/mo · Pro $29.99/mo · Cancel anytime</div>
+  </div>
+</div>
+
+<!-- ── REFINEMENT MODAL — Used by the "Add more" card on a freshly-generated SOP.
+     User can talk or type something they forgot. AI regenerates the SOP
+     integrating the addition. Only available DURING the active creation
+     session — once the user leaves the SOP screen, refinement locks and
+     future edits must use the Rewrite flow. -->
+<div class="modal-backdrop hidden" id="m-refine" onclick="if(event.target===this)closeModal('m-refine')">
+  <div class="modal-sheet wn-refine-modal-content">
+    <div class="modal-handle"></div>
+    <div class="wn-refine-modal-title" id="m-refine-title">Add more detail</div>
+    <div class="wn-refine-modal-sub" id="m-refine-sub">Tell us what to add. We'll work it into your SOP.</div>
+
+    <!-- Container for either textarea or voice UI, depending on mode -->
+    <div id="m-refine-text-container">
+      <textarea class="wn-refine-modal-ta" id="m-refine-textarea" placeholder="e.g. We also flag the till if it's short by $5 or more, and the lead bartender approves before any cash adjustment."></textarea>
+    </div>
+
+    <div id="m-refine-voice-container" style="display:none;text-align:center;padding:12px 0">
+      <div id="m-refine-voice-transcript" style="min-height:80px;font-size:14px;line-height:1.55;color:var(--text);padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;text-align:left;margin-bottom:14px;white-space:pre-wrap;word-break:break-word">
+        <span style="color:var(--text3);font-style:italic">Tap mic and tell us what to add…</span>
+      </div>
+      <button id="m-refine-voice-mic" onclick="refineToggleVoice()" style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#5a51e0,#9b59b6);border:none;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(90,81,224,.3)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+      <div id="m-refine-voice-status" style="font-size:11px;color:var(--text2);margin-top:8px;min-height:14px"></div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:14px">
+      <button onclick="cancelRefine()" style="flex:1;padding:11px;background:var(--surface2);border:none;border-radius:var(--radius-sm);color:var(--text2);font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer">Cancel</button>
+      <button onclick="submitRefine()" id="m-refine-submit" style="flex:2;padding:11px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:white;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer">Add &amp; regenerate</button>
+    </div>
   </div>
 </div>
 
@@ -2867,6 +3064,18 @@ function getPaywallCopy(feature, currentPlan) {
       title: "You've hit this month's Team limit",
       desc: "You've used all 100 SOPs in your Team plan this month. Your quota resets " + resetDate + ". For higher limits or a custom plan, contact support@soponthego.com.",
       icon: '📈'
+    };
+  }
+
+  // SOP-PHOTOS-01: Photos paywall — Pro/Team feature. Make the upgrade pitch
+  // specific to photos rather than generic. Photos are the most visually
+  // distinctive Pro feature; users tapping "Add photo" know exactly why
+  // they want it, so the copy should reinforce that.
+  if (feature === 'Add photos to your SOP') {
+    return {
+      title: 'Add photos to your SOP',
+      desc: "Photos per step are a Pro feature. Show your team exactly what 'clean station' or 'closed register' looks like. Pro is $29.99/mo — cancel anytime.",
+      icon: '📸'
     };
   }
 
@@ -9077,6 +9286,13 @@ function scheduleProfileCloudSync() {
      'address1','address2','city','zip'].forEach(function(k) {
       if (typeof profile[k] === 'string') payload[k] = profile[k];
     });
+    // SOP-EMAIL-01: Welcome email needs the user's email address. Onboarding
+    // doesn't ask for it (Firebase Auth already has it), so we add the auth
+    // email to the payload if the profile doesn't have one. The server uses
+    // this to fire the first-time welcome email.
+    if (!payload.email && currentUser && currentUser.email) {
+      payload.email = currentUser.email;
+    }
     fetch(BACKEND_URL + '/profile-set', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -11812,13 +12028,20 @@ function buildSectionPrompt(template) {
 }
 
 async function generateSOP() {
-  // Check subscription limit AND reserve a count slot atomically.
-  // We increment BEFORE the API call (not after) so rapid clicks can't sneak
-  // multiple generations through during the 5-15 second AI streaming window.
-  // If generation fails, we roll back the counter at the bottom of this fn.
-  if(!checkSopLimit()) return;
-  incrementSopCount();  // ← moved here from after generation
-  var countWasReserved = true;
+  // SOP-REFINE-01: If this is a refinement (set by submitRefine before
+  // calling us), skip both the limit check AND the increment. Brad's rule:
+  // refining your fresh SOP doesn't count against your quota — they need
+  // their 3 free SOPs to be GOOD SOPs, so iteration is encouraged.
+  var isRefinement = !!window._isRefinementInProgress;
+  if(!isRefinement) {
+    // Check subscription limit AND reserve a count slot atomically.
+    // We increment BEFORE the API call (not after) so rapid clicks can't sneak
+    // multiple generations through during the 5-15 second AI streaming window.
+    // If generation fails, we roll back the counter at the bottom of this fn.
+    if(!checkSopLimit()) return;
+    incrementSopCount();  // ← moved here from after generation
+  }
+  var countWasReserved = !isRefinement;
   // SOP-SAVE-02: track in-flight generation globally so navigate-away can
   // detect an abandoned generation and refund the quota slot. Without this,
   // users who navigate away mid-generation get charged for an SOP they
@@ -11830,6 +12053,11 @@ async function generateSOP() {
   // New generation from wizard — back goes home (or to templates if came from there)
   outputSourceScreen = (wizSourceScreen === 's-templates') ? 's-templates' : 's-home';
   savedGenId   = null; // reset saved flag for this generation
+  // SOP-PHOTOS-01: For a fresh (non-refinement) generation, reset the photo
+  // map. Refinements keep the existing photos — same SOP, just refined.
+  if(!isRefinement) {
+    currentSopPhotoMap = {};
+  }
 
     // Backend handles API key — no user key needed
 
@@ -12157,6 +12385,25 @@ async function generateSOP() {
     + '  OMIT the section header entirely. NEVER write a section header followed\n'
     + '  by just an intro line ("This procedure complies with:") and nothing else.\n'
     + '  Either include real items under the header, or drop the section.\n'
+    + '- VOICE TRANSCRIPT INPUT: If the USER-PROVIDED CONTEXT starts with\n'
+    + '  "USER VOICE TRANSCRIPT", the user dictated their answer naturally\n'
+    + '  rather than answering structured questions. Special rules apply:\n'
+    + '  (1) The user\'s SEQUENCE IS AUTHORITATIVE. If they said "first I do X,\n'
+    + '      then Y, then Z", that IS the step order. Do not reshuffle.\n'
+    + '  (2) Clean up speech artifacts: remove "uh", "um", "like", "you know",\n'
+    + '      "kinda", repeated phrases, and verbal restarts ("I mean, what I do\n'
+    + '      is"). Preserve the content; cut the filler.\n'
+    + '  (3) Convert spoken numbers to digits where appropriate ("ten dollars"\n'
+    + '      → "$10"). Preserve units mentioned ("about twenty minutes" →\n'
+    + '      "about 20 minutes" — don\'t round to "20 min" unless context demands).\n'
+    + '  (4) If they mentioned a person, tool, or step ONCE in passing\n'
+    + '      ("oh and the till — we count it too"), include it as a real step.\n'
+    + '      Voice users sound casual but mean what they said.\n'
+    + '  (5) If the transcript is sparse (under 50 words), still produce a\n'
+    + '      complete SOP using industry/role context — but do NOT invent\n'
+    + '      specific tools, names, or thresholds they did not mention.\n'
+    + '  (6) The "questions answered: ground truth" rule above still applies.\n'
+    + '      Voice transcripts override AI assumptions just like wizard answers do.\n'
     + (isLeanAudience
         ? '- DO NOT include a "Review & Update" or "Revision History" section — this SOP is for a small audience; skip enterprise housekeeping sections.'
         : '- End with a Review & Update section (how often, who reviews) — but do NOT add "Last updated", "Version 1.0", or "Revision History" lines. The document footer handles version tracking separately.')
@@ -12450,6 +12697,10 @@ async function generateSOP() {
       try { showRelatedTemplates(wiz.title); } catch(e) {}
       try { updateSopMetaStamp(); } catch(e) {}
       try { updateVersionBadge(); } catch(e) {}
+      // Show the "Add more" refinement card. This is the active creation
+      // session — user can refine without it counting against quota. Hidden
+      // when the user navigates away from this screen.
+      try { showRefineCard(); } catch(e) {}
     }, 500);
     stopGenProgress();
 
@@ -12465,6 +12716,10 @@ async function generateSOP() {
     }
     // SOP-SAVE-02: clear in-flight flag — generation done (failed)
     window._inFlightGen = false;
+    // SOP-REFINE-01: clear refinement flag if it was set. Otherwise a stuck
+    // flag would cause the user's NEXT real generation to skip its quota
+    // check — a silent revenue leak that's painful to debug.
+    window._isRefinementInProgress = false;
 
     // Translate technical errors to user-friendly messages
     var errMsg = e.message || 'Unknown error';
@@ -13200,6 +13455,35 @@ function getRewriteVersion(title) {
   } catch(e) { return 1; }
 }
 
+// SOP-PHOTOS-01: Build the HTML for a photo row beneath a step. Returns
+// empty string if no photos AND user can't add photos (so plan-gated users
+// don't see an empty row). Returns photo thumbs + "add photo" button if
+// the user has permission. Returns just the thumbs if they're a downgraded
+// user who already had photos.
+function buildPhotoRowHtml(stepContent) {
+  var photos = getPhotosForStep(stepContent);
+  var planLim = PLAN_LIMITS[userPlan] || PLAN_LIMITS.trial;
+  var canAdd = !!planLim.canPhotos;
+  // Bail early if nothing to show
+  if(photos.length === 0 && !canAdd) return '';
+  var escContent = (stepContent || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+  var html = '<div class="step-photos-row">';
+  photos.forEach(function(p) {
+    html += '<div class="step-photo-thumb">'
+      + '<img src="' + esc(p.url) + '" alt="Step photo" onclick="openPhotoLightbox(\'' + esc(p.url).replace(/'/g, "\\'") + '\')"/>'
+      + (canAdd ? '<button class="step-photo-remove" onclick="confirmRemovePhoto(\'' + escContent.replace(/'/g, "\\'").replace(/"/g, '\\&quot;') + '\', \'' + esc(p.url).replace(/'/g, "\\'") + '\')" title="Remove">✕</button>' : '')
+      + '</div>';
+  });
+  if(canAdd && photos.length < 4) {
+    html += '<button class="step-photo-add-btn" onclick="triggerPhotoUpload(\'' + escContent.replace(/'/g, "\\'").replace(/"/g, '\\&quot;') + '\', this)" title="Add photo">'
+      + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
+      + 'Add photo'
+      + '</button>';
+  }
+  html += '</div>';
+  return html;
+}
+
 function renderSteps() {
   var el = document.getElementById('out-steps');
   if(!el) return;
@@ -13231,6 +13515,7 @@ function renderSteps() {
         +'<button class="step-btn del-btn" onclick="showDeleteStepModal('+i+')">'
         +'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete</button>'
         +'</div></div></div>';
+      html += buildPhotoRowHtml(s.content);
     } else if(s.type === 'bullet') {
       // SOP-FMT-08: Non-sequential reference item (Compliance citation, Tool,
       // Definition, etc.). Renders with a bullet dot — NOT a numbered circle.
@@ -13250,6 +13535,7 @@ function renderSteps() {
         +'<button class="step-btn del-btn" onclick="showDeleteStepModal('+i+')">'
         +'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete</button>'
         +'</div></div></div>';
+      html += buildPhotoRowHtml(s.content);
     } else {
       // Default: numbered procedural step. Gets the gradient purple circle.
       dispNum++;
@@ -13267,6 +13553,7 @@ function renderSteps() {
         +'<button class="step-btn del-btn" onclick="showDeleteStepModal('+i+')">'
         +'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete</button>'
         +'</div></div></div>';
+      html += buildPhotoRowHtml(s.content);
     }
   });
   html += '<div class="add-step-row"><button class="add-step-btn" onclick="showEditStepModal(-1)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add step</button></div>';
@@ -13540,6 +13827,136 @@ function loadHtml2PdfLib() {
 
 // Build the same well-formatted HTML used by doPrint so PDFs and prints
 // look identical. Returns a string of HTML body content (not a full doc).
+// SOP-PHOTOS-02: Professional PDF photo rendering.
+// Real documents (Apple HIG, Stripe docs, manufacturing SOPs) treat photos
+// as first-class content with proper composition — not crammed thumbnails.
+// Layout adapts to photo count so 1 photo doesn't look lost, and 4 photos
+// don't look crowded.
+function buildPhotoRowHtmlForPdf(stepContent) {
+  var photos = getPhotosForStep(stepContent);
+  if(!photos.length) return '';
+  var n = photos.length;
+
+  // Container — generous breathing room, page-break protection, indent to align
+  // with step content (which sits 38px from the left of the step row).
+  // page-break-inside:avoid keeps a step's photos from splitting across pages.
+  var containerStyle = [
+    'padding:14px 24px 18px 38px',     // top right bottom left — extra top for breathing room
+    'page-break-inside:avoid',          // keep step + photos together
+    '-webkit-column-break-inside:avoid' // safari
+  ].join(';');
+
+  // Each photo is wrapped in a "frame" div that supplies the shadow + border.
+  // We put the shadow on the frame (not the img) so it doesn't get clipped
+  // when the image has rounded corners.
+  // Frame style is the same for all layouts; size varies by layout.
+  function buildPhotoFrame(url, size, isLast) {
+    var marginRight = isLast ? '0' : (n === 2 ? '12px' : '10px');
+    return '<div style="'
+      + 'display:inline-block;'
+      + 'vertical-align:top;'
+      + 'width:' + size + 'px;'
+      + 'height:' + size + 'px;'
+      + 'border-radius:10px;'
+      + 'overflow:hidden;'
+      + 'background:#fff;'
+      + 'border:1px solid #d8d8e8;'
+      + 'box-shadow:0 2px 8px rgba(26,26,46,.08), 0 1px 2px rgba(26,26,46,.06);'
+      + 'margin-right:' + marginRight + ';'
+      + 'margin-bottom:' + (n > 2 ? '10px' : '0') + ';'
+      + '">'
+      + '<img src="' + esc(url) + '" crossorigin="anonymous" '
+      +   'style="width:100%;height:100%;object-fit:cover;display:block;border-radius:10px"/>'
+      + '</div>';
+  }
+
+  var photosHtml = '';
+  if(n === 1) {
+    // ONE PHOTO: hero treatment. Large (220px), prominent.
+    // Real procedure docs show ONE photo big so the user can actually see
+    // what they need to see — not a thumbnail they have to squint at.
+    photosHtml = buildPhotoFrame(photos[0].url, 220, true);
+  } else if(n === 2) {
+    // TWO PHOTOS: side-by-side, equal weight. 180px each fits comfortably
+    // within a Letter-page printable width (~7.5" minus our margins).
+    photosHtml = buildPhotoFrame(photos[0].url, 180, false)
+               + buildPhotoFrame(photos[1].url, 180, true);
+  } else if(n === 3) {
+    // THREE PHOTOS: row of 3, slightly smaller. Maintains horizontal
+    // composition (matches how documents typically show "before/during/after").
+    photosHtml = buildPhotoFrame(photos[0].url, 140, false)
+               + buildPhotoFrame(photos[1].url, 140, false)
+               + buildPhotoFrame(photos[2].url, 140, true);
+  } else {
+    // FOUR PHOTOS: 2×2 grid. 165px each. The break between rows happens
+    // naturally because margin-bottom is added when n > 2.
+    photosHtml = buildPhotoFrame(photos[0].url, 165, false)
+               + buildPhotoFrame(photos[1].url, 165, true)
+               + '<br>'
+               + buildPhotoFrame(photos[2].url, 165, false)
+               + buildPhotoFrame(photos[3].url, 165, true);
+  }
+
+  // Optional caption line when there's more than one photo — gives context
+  // without being obtrusive. Skip for single photo (looks cleaner alone).
+  var captionLine = '';
+  if(n > 1) {
+    captionLine = '<div style="font-size:10px;color:#9090a8;font-weight:600;letter-spacing:.02em;margin-top:4px;font-style:italic">'
+      + esc(String(n) + (n === 1 ? ' reference photo' : ' reference photos'))
+      + '</div>';
+  }
+
+  return '<div style="' + containerStyle + '">'
+    + photosHtml
+    + captionLine
+    + '</div>';
+}
+
+// SOP-PHOTOS-02 (Print Preview variant): Same intelligent layout as the
+// PDF version but styled for the print-preview's traditional document
+// aesthetic — Georgia serif context, sober colors, thin borders, no shadow.
+// Used by buildProfessionalDocumentHtml which targets the Print Preview
+// modal. The PDF output uses buildPhotoRowHtmlForPdf (modern aesthetic).
+function buildPhotoRowHtmlForPrintPreview(stepContent) {
+  var photos = getPhotosForStep(stepContent);
+  if(!photos.length) return '';
+  var n = photos.length;
+
+  function frame(url, size, isLast) {
+    var marginRight = isLast ? '0' : (n === 2 ? '10px' : '8px');
+    return '<div style="'
+      + 'display:inline-block;'
+      + 'vertical-align:top;'
+      + 'width:' + size + 'px;'
+      + 'height:' + size + 'px;'
+      + 'overflow:hidden;'
+      + 'background:#fff;'
+      + 'border:1px solid #cccccc;'
+      + 'border-radius:3px;'  // smaller radius — matches document feel
+      + 'margin-right:' + marginRight + ';'
+      + 'margin-bottom:' + (n > 2 ? '8px' : '0') + ';'
+      + '">'
+      + '<img src="' + esc(url) + '" crossorigin="anonymous" '
+      +   'style="width:100%;height:100%;object-fit:cover;display:block"/>'
+      + '</div>';
+  }
+
+  var photosHtml = '';
+  if(n === 1) {
+    photosHtml = frame(photos[0].url, 200, true);
+  } else if(n === 2) {
+    photosHtml = frame(photos[0].url, 160, false) + frame(photos[1].url, 160, true);
+  } else if(n === 3) {
+    photosHtml = frame(photos[0].url, 125, false) + frame(photos[1].url, 125, false) + frame(photos[2].url, 125, true);
+  } else {
+    photosHtml = frame(photos[0].url, 145, false) + frame(photos[1].url, 145, true)
+              + '<br>'
+              + frame(photos[2].url, 145, false) + frame(photos[3].url, 145, true);
+  }
+
+  return '<div style="margin:8px 0 16px 34px;page-break-inside:avoid">' + photosHtml + '</div>';
+}
+
 function buildPrintableSopHtml() {
   // SOP-FMT-06: PDF output now mirrors the on-screen Print Preview EXACTLY.
   // Same display font for title, same purple accent for company name and
@@ -13614,6 +14031,7 @@ function buildPrintableSopHtml() {
         + '</div>'
         + '<div style="flex:1;font-size:13px;color:#1a1a2e;line-height:1.6">' + renderMarkdownInline(s.content) + '</div>'
         + '</div>';
+      stepsHtml += buildPhotoRowHtmlForPdf(s.content);
     } else if(s.type === 'bullet') {
       // SOP-FMT-08: Non-sequential reference item (Compliance citation, Tool,
       // Definition, etc.). Renders with a small purple bullet dot in the same
@@ -13625,6 +14043,7 @@ function buildPrintableSopHtml() {
         + '</div>'
         + '<div style="flex:1;font-size:13px;color:#1a1a2e;line-height:1.65">' + renderMarkdownInline(s.content) + '</div>'
         + '</div>';
+      stepsHtml += buildPhotoRowHtmlForPdf(s.content);
     } else {
       // Numbered procedural step — gradient circle with number.
       // TWO SPECIAL CASES handled inline (SOP-FMT-08):
@@ -13672,6 +14091,7 @@ function buildPrintableSopHtml() {
           + '<div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#5a51e0,#9b59b6);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;margin-top:1px">' + stepNum + '</div>'
           + '<div style="flex:1;font-size:13px;color:#1a1a2e;line-height:1.65">' + renderMarkdownInline(content) + '</div>'
           + '</div>';
+        stepsHtml += buildPhotoRowHtmlForPdf(s.content);
       }
     }
   });
@@ -13947,6 +14367,284 @@ async function uploadPdfAndGetUrl(blob, filename) {
   await ref.put(blob, { contentType: 'application/pdf' });
   var url = await ref.getDownloadURL();
   return url;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SOP-PHOTOS-01: Photo upload + storage for per-step photos
+// ─────────────────────────────────────────────────────────────────────────
+// Photos attach to specific steps in a generated SOP. Stored in Firebase
+// Storage at sop-photos/{uid}/{timestamp}-{filename}, URLs stored in the
+// SOP's library entry under photoMap (keyed by step content hash).
+//
+// Client-side downsize: phone photos are typically 3-8MB. We resize to a
+// max 1200px on long edge and JPEG quality 0.82 — drops to ~300-600KB while
+// staying sharp enough for an SOP. Saves storage costs and speeds rendering.
+//
+// Pro+ only — gated at the upload entry point, not here.
+// ─────────────────────────────────────────────────────────────────────────
+
+// Resize a File/Blob image to fit within maxDim px on the long edge.
+// Returns a Blob (JPEG, quality 0.82). Preserves orientation via natural
+// dimensions (modern browsers auto-rotate via EXIF when drawing to canvas).
+async function compressImage(file, maxDim) {
+  maxDim = maxDim || 1200;
+  return new Promise(function(resolve, reject) {
+    var img = new Image();
+    var reader = new FileReader();
+    reader.onerror = function() { reject(new Error('Read failed')); };
+    reader.onload = function(e) {
+      img.onerror = function() { reject(new Error('Image decode failed')); };
+      img.onload = function() {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if(!w || !h) { reject(new Error('Image dimensions unavailable')); return; }
+        // Scale to fit within maxDim on the long edge
+        var scale = Math.min(1, maxDim / Math.max(w, h));
+        var outW = Math.round(w * scale);
+        var outH = Math.round(h * scale);
+        var canvas = document.createElement('canvas');
+        canvas.width = outW;
+        canvas.height = outH;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, outW, outH);
+        canvas.toBlob(function(blob) {
+          if(!blob) { reject(new Error('Canvas export failed')); return; }
+          resolve(blob);
+        }, 'image/jpeg', 0.82);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Upload a single photo to Firebase Storage. Returns the public download URL.
+// Validates that user is signed in and storage is available.
+async function uploadStepPhotoAndGetUrl(file, sopTitle) {
+  if(!firebaseStorage) throw new Error('Photo storage isn\'t available right now.');
+  if(!currentUser || !currentUser.uid) throw new Error('Please sign in first.');
+
+  // Validate file type — only allow common image types. Defends against a
+  // user picking an HEIC file that some browsers can't decode (iPhone).
+  var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  var ft = (file.type || '').toLowerCase();
+  if(allowedTypes.indexOf(ft) === -1) {
+    // HEIC/HEIF specifically — phone users will hit this
+    if(ft.indexOf('heic') !== -1 || ft.indexOf('heif') !== -1) {
+      throw new Error('iPhone HEIC photos aren\'t supported yet. In Settings → Camera → Formats, switch to "Most Compatible" and re-take the photo.');
+    }
+    throw new Error('Only JPG, PNG, or WebP photos are supported.');
+  }
+  // Soft cap on file size BEFORE compression to prevent huge uploads
+  if(file.size > 15 * 1024 * 1024) {
+    throw new Error('Photo too large (max 15MB). Try a smaller image.');
+  }
+
+  // Compress before upload
+  var blob;
+  try {
+    blob = await compressImage(file, 1200);
+  } catch(compErr) {
+    console.warn('[photo] compression failed, using original:', compErr);
+    blob = file;
+  }
+
+  var safeName = (sopTitle || 'photo').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 40);
+  var path = 'sop-photos/' + currentUser.uid + '/' + Date.now() + '-' + safeName + '.jpg';
+  var ref = firebaseStorage.ref(path);
+  await ref.put(blob, { contentType: 'image/jpeg' });
+  var url = await ref.getDownloadURL();
+  return { url: url, path: path };
+}
+
+// Delete a photo from Firebase Storage by its full storage path. Best-effort —
+// failures are logged but don't surface to user (photo is already removed
+// from the SOP's photoMap; leftover storage is just cost waste).
+async function deleteStepPhotoByPath(storagePath) {
+  if(!firebaseStorage || !storagePath) return false;
+  try {
+    var ref = firebaseStorage.ref(storagePath);
+    await ref.delete();
+    return true;
+  } catch(e) {
+    console.warn('[photo] delete failed (non-fatal):', e);
+    return false;
+  }
+}
+
+// ── Photo map state ────────────────────────────────────────────────────────
+// In-memory photo map for the CURRENT SOP being viewed/edited. Keyed by step
+// content (first 60 chars, normalized) → array of {url, path} entries.
+// Persists to library entry on every change.
+//
+// Why content-keyed instead of index-keyed: if the user reorders steps via
+// drag, content-keyed mapping follows the step. If they edit the content
+// significantly, the photo orphans (which is fine — better than attaching
+// to a wrong step).
+var currentSopPhotoMap = {};
+
+// Normalize step content into a stable key for the photo map. Lowercase,
+// strip whitespace, trim to 60 chars. Same step rendered in different
+// contexts (preview vs PDF) hashes to the same key.
+function photoKeyForStep(stepContent) {
+  if(!stepContent) return '';
+  return String(stepContent).toLowerCase().replace(/\s+/g, ' ').trim().slice(0, 60);
+}
+
+// Get photos for a step (returns array of {url, path}, or empty array)
+function getPhotosForStep(stepContent) {
+  var key = photoKeyForStep(stepContent);
+  return currentSopPhotoMap[key] || [];
+}
+
+// Add a photo to a step (mutates currentSopPhotoMap, persists to library)
+function addPhotoToStep(stepContent, photoEntry) {
+  var key = photoKeyForStep(stepContent);
+  if(!currentSopPhotoMap[key]) currentSopPhotoMap[key] = [];
+  // Limit per step (4 photos max — UI gets messy beyond that)
+  if(currentSopPhotoMap[key].length >= 4) {
+    showToast('Max 4 photos per step.');
+    return false;
+  }
+  currentSopPhotoMap[key].push(photoEntry);
+  persistPhotoMapToLibrary();
+  return true;
+}
+
+// Remove a photo from a step by URL
+function removePhotoFromStep(stepContent, photoUrl) {
+  var key = photoKeyForStep(stepContent);
+  if(!currentSopPhotoMap[key]) return;
+  var found = currentSopPhotoMap[key].find(function(p) { return p.url === photoUrl; });
+  currentSopPhotoMap[key] = currentSopPhotoMap[key].filter(function(p) { return p.url !== photoUrl; });
+  if(currentSopPhotoMap[key].length === 0) delete currentSopPhotoMap[key];
+  persistPhotoMapToLibrary();
+  // Best-effort delete from Storage in the background
+  if(found && found.path) {
+    deleteStepPhotoByPath(found.path);
+  }
+}
+
+// Persist the current photo map back to the library entry. Library SOPs
+// store photoMap alongside content. Called after every add/remove so the
+// state survives page refresh and cross-device sync.
+function persistPhotoMapToLibrary() {
+  try {
+    var hist = JSON.parse(localStorage.getItem(getLibStorageKey()) || '[]');
+    if(!hist.length) return;
+    // Update the most recent entry (the one currently being viewed)
+    // by matching on title. If user is editing a non-top entry (came from
+    // library), match by docId.
+    var matchIdx = -1;
+    if(currentDocId) {
+      matchIdx = hist.findIndex(function(h) { return h.docId === currentDocId; });
+    }
+    if(matchIdx === -1 && currentSopTitle) {
+      matchIdx = hist.findIndex(function(h) { return h.title === currentSopTitle; });
+    }
+    if(matchIdx === -1) return;
+    hist[matchIdx].photoMap = currentSopPhotoMap;
+    localStorage.setItem(getLibStorageKey(), JSON.stringify(hist));
+    allHistory = hist;
+    scheduleLibraryCloudSync();
+  } catch(e) {
+    console.warn('[photo] persist failed:', e);
+  }
+}
+
+// Load photoMap from library when an SOP is opened
+function loadPhotoMapForCurrentSop() {
+  currentSopPhotoMap = {};
+  try {
+    var hist = JSON.parse(localStorage.getItem(getLibStorageKey()) || '[]');
+    if(!hist.length) return;
+    var match = null;
+    if(currentDocId) {
+      match = hist.find(function(h) { return h.docId === currentDocId; });
+    }
+    if(!match && currentSopTitle) {
+      match = hist.find(function(h) { return h.title === currentSopTitle; });
+    }
+    if(match && match.photoMap && typeof match.photoMap === 'object') {
+      currentSopPhotoMap = match.photoMap;
+    }
+  } catch(e) {
+    console.warn('[photo] load failed:', e);
+  }
+}
+
+// Entry point: user tapped "Add photo" on a step. Validates plan tier,
+// triggers file picker (with camera capture on mobile), uploads, updates map.
+function triggerPhotoUpload(stepContent, btnEl) {
+  // Plan gating: Pro/Team only
+  var planLim = PLAN_LIMITS[userPlan] || PLAN_LIMITS.trial;
+  if(!planLim.canPhotos) {
+    showPaywall('Add photos to your SOP');
+    return;
+  }
+  // Create a hidden file input with camera capture preference on mobile
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/jpeg,image/jpg,image/png,image/webp';
+  input.capture = 'environment'; // prefer rear camera on mobile when used as camera
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = async function() {
+    var file = input.files && input.files[0];
+    document.body.removeChild(input);
+    if(!file) return;
+    // Optimistic UI: show spinner on the button
+    var origHtml = btnEl ? btnEl.innerHTML : '';
+    if(btnEl) {
+      btnEl.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="60 100" style="animation:spin 1s linear infinite;transform-origin:center"/></svg>';
+      btnEl.disabled = true;
+    }
+    try {
+      var result = await uploadStepPhotoAndGetUrl(file, currentSopTitle);
+      var added = addPhotoToStep(stepContent, result);
+      if(added) {
+        showToast('Photo added ✓');
+        // Re-render the SOP so the new photo appears
+        if(typeof renderOutput === 'function') renderOutput();
+      }
+    } catch(uploadErr) {
+      console.error('[photo] upload failed:', uploadErr);
+      showToast(uploadErr.message || 'Photo upload failed. Try again.');
+    } finally {
+      if(btnEl) {
+        btnEl.innerHTML = origHtml;
+        btnEl.disabled = false;
+      }
+    }
+  };
+  input.click();
+}
+
+// Confirm + remove a photo from a step
+function confirmRemovePhoto(stepContent, photoUrl) {
+  showAppConfirm({
+    title: 'Remove this photo?',
+    message: 'It will be deleted from your SOP. This can\'t be undone.',
+    cancelLabel: 'Keep',
+    confirmLabel: 'Remove',
+    danger: true
+  }).then(function(confirmed) {
+    if(!confirmed) return;
+    removePhotoFromStep(stepContent, photoUrl);
+    if(typeof renderOutput === 'function') renderOutput();
+  });
+}
+
+// Open a photo fullscreen (lightbox)
+function openPhotoLightbox(url) {
+  var existing = document.getElementById('photo-lightbox');
+  if(existing) existing.remove();
+  var lb = document.createElement('div');
+  lb.id = 'photo-lightbox';
+  lb.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:10200;display:flex;align-items:center;justify-content:center;padding:20px;cursor:zoom-out;-webkit-tap-highlight-color:transparent';
+  lb.onclick = function() { lb.remove(); };
+  lb.innerHTML = '<img src="' + esc(url) + '" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"/>'
+    + '<button onclick="event.stopPropagation();document.getElementById(\'photo-lightbox\').remove()" style="position:absolute;top:20px;right:20px;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.3);color:#fff;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center">✕</button>';
+  document.body.appendChild(lb);
 }
 
 // SOP-SHARE-01: User-facing share entry point.
@@ -14531,6 +15229,54 @@ function autoSaveToLibrary(snapshotTitle, snapshotText, snapshotCat, snapshotGen
   if(!saveText || !saveText.trim()) return;
   if(!saveTitle || !saveTitle.trim()) return;
 
+  // SOP-REFINE-01: If this save came from a refinement, REPLACE the existing
+  // top-of-library entry instead of inserting a new one. The user's mental
+  // model is "this is the same SOP, I just added more detail" — library
+  // shouldn't show duplicate entries every time they refine. Same SOP ID,
+  // same position, fresh content.
+  var isRefinement = !!window._isRefinementInProgress;
+  if(isRefinement) {
+    try {
+      var libR = JSON.parse(localStorage.getItem(getLibStorageKey()) || '[]');
+      if(libR.length > 0 && libR[0].title === saveTitle) {
+        // Replace in place. Preserve original timestamp + docId so the
+        // SOP's identity is unchanged — only content updates.
+        libR[0].text    = saveText;
+        libR[0].content = saveText;
+        libR[0].cat     = saveCat || libR[0].cat || 'General';
+        libR[0].ts      = libR[0].ts || Date.now();  // keep original creation time
+        libR[0].refined = true;  // flag that this entry was refined post-creation
+        localStorage.setItem(getLibStorageKey(), JSON.stringify(libR));
+        allHistory = libR;
+        savedGenId = saveGenId;
+        // Refresh stats so home screen counter is accurate
+        updateStats();
+        renderRecentSOPs();
+        // Sync to cloud
+        scheduleLibraryCloudSync();
+        // Clear the refinement flag — generation is done. Toast quietly so
+        // the user knows the refinement landed without being noisy.
+        window._isRefinementInProgress = false;
+        var toastElR = document.getElementById('toast');
+        if(toastElR) {
+          toastElR.textContent = 'Updated ✓';
+          toastElR.classList.remove('hidden');
+          if(autoSaveUndoTimer) clearTimeout(autoSaveUndoTimer);
+          autoSaveUndoTimer = setTimeout(function(){
+            toastElR.classList.add('hidden');
+            toastElR.innerHTML = '';
+          }, 2500);
+        }
+        return;
+      }
+      // Edge case: refinement flag set but no matching library entry. Fall
+      // through to normal save so the SOP doesn't get lost.
+      window._isRefinementInProgress = false;
+    } catch(e) {
+      window._isRefinementInProgress = false;
+    }
+  }
+
   // Never save the same generation twice
   if(saveGenId && savedGenId === saveGenId) return;
 
@@ -14865,6 +15611,14 @@ function openLibSop(idx) {
   if(h.rewritten) wiz.rewriteType = h.rewriteType || 'Improved';
   // Track origin so back button can return user to library
   outputSourceScreen = 's-library';
+  // SOP-REFINE-01: Hide the refinement card. The user is viewing a saved
+  // library SOP — not a freshly-generated one. Refinement is locked for
+  // library SOPs to protect sign-off integrity (the version someone signed
+  // can't be silently mutated). If they want changes here, they use Rewrite,
+  // which creates a new version.
+  try { hideRefineCard(); } catch(e) {}
+  // SOP-PHOTOS-01: Load any photos attached to this SOP from its library entry.
+  try { loadPhotoMapForCurrentSop(); } catch(e) {}
   renderOutput();
   go('s-output');
 }
@@ -16212,6 +16966,12 @@ var wn = null;
 function wnReset() {
   wn = {
     mode: 'create',           // 'create' | 'template' | 'rewrite'
+    inputMode: 'guided',      // 'guided' | 'voice' — set on mode-choice screen.
+                              // 'voice' = skip Q&A wizard, single voice recording → SOP.
+                              // 'guided' = original 6-question flow (with optional voice per Q).
+    voiceTranscript: '',      // accumulated voice transcript for the 'voice' path.
+    refineCount: 0,           // how many times user has refined the just-generated SOP
+                              // during this active session. Resets when leaving SOP screen.
     sourceScreen: 's-home',   // where to go on cancel/back-from-step-1
     title: '',
     categories: [],           // array of strings, multi-select
@@ -16318,25 +17078,575 @@ function wnUpdateStep1Continue() {
 async function wnContinueFromStep1() {
   if(!wn.title || !wn.categories.length) return;
   logWizardEvent('screen_completed', { screen: 's-wn-1' });
-  // FIX #1 (Option B) + #5: kick off AI prefetch, show loading state on Q1,
-  // wait for AI to return OR 3.5-second timeout to fire — whichever first.
-  // This means the user always sees the SAME question on Q1 throughout the
-  // session (no mid-flow swap), and most of the time they see the personalized
-  // AI version rather than the generic fallback.
+  // Kick off AI prefetch in background — useful whether they pick voice
+  // or guided. For voice mode we won't show the AI questions, but the
+  // prefetch warms up the AI session so generation is faster.
   try {
     wiz.cat = wn.categories[0] || '';
     prefetchWizardContext(wn.title);
   } catch(e) {}
-  // Navigate to Step 2 first
-  go('s-wn-2');
-  logWizardEvent('screen_reached', { screen: 's-wn-2' });
-  var t = document.getElementById('wn2-title');
-  if(t) t.textContent = wn.title.length > 30 ? wn.title.slice(0,28)+'…' : wn.title;
-  wn.qIndex = 0;
-  wn.visited[0] = true;
-  // Wait for AI prefetch to complete before rendering Q1
-  await wnWaitForPrefetch(3500);
-  wnRenderQuestion();
+  // Route to mode-choice screen instead of directly to Step 2.
+  // Mode choice will then route to either guided questions or voice path.
+  go('s-wn-mode');
+  logWizardEvent('screen_reached', { screen: 's-wn-mode' });
+  // Detect Web Speech API support and show a soft hint if unavailable.
+  // We don't block voice mode entirely — but we do warn the user upfront
+  // so they don't tap "Talk it through" and hit a wall.
+  var voiceSupported = wnVoiceSupported();
+  var unsupBanner = document.getElementById('mode-voice-unsupported');
+  var voiceBtn = document.getElementById('mode-voice-btn');
+  if(voiceBtn) {
+    voiceBtn.style.opacity = voiceSupported ? '1' : '.55';
+    voiceBtn.disabled = !voiceSupported;
+  }
+  if(unsupBanner) {
+    unsupBanner.style.display = voiceSupported ? 'none' : 'block';
+  }
+}
+
+// Detect Web Speech API availability. SpeechRecognition is the standard;
+// webkitSpeechRecognition is Safari/older Chrome. Returns true if either exists.
+function wnVoiceSupported() {
+  try {
+    return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  } catch(e) { return false; }
+}
+
+// User picked a mode from the choice screen. Stash it on wn and route.
+// ────────────────────────────────────────────────────────────────────────────
+// VOICE INPUT — Web Speech API integration (free, browser-native, no Whisper)
+//
+// Used in two places:
+//   1) Per-question mic icon in the guided Step 2 wizard (wnToggleQuestionMic)
+//   2) Big record button on the voice-only path (wnVoiceToggleRecording)
+//
+// Both call the same wnVoiceStart / wnVoiceStop helpers — the only difference
+// is what the caller does with the transcribed text. Single recognition
+// instance globally means we can never have two mics listening at once.
+//
+// Why Web Speech API instead of Whisper? Whisper costs $0.006/min per call.
+// Web Speech API is free and runs in the browser. Accuracy is 90-95% in
+// quiet environments; lower in noisy ones. We show the live transcript so
+// the user can see what's being captured and re-record if needed.
+// ────────────────────────────────────────────────────────────────────────────
+var wnVoice = {
+  recognition: null,    // active SpeechRecognition instance, or null
+  active: false,        // is a recording session in progress
+  finalText: '',        // accumulated final results from the current session
+  interimText: '',      // live in-progress transcript (not yet final)
+  onUpdate: null,       // callback(finalText, interimText) on every event
+  onEnd: null,          // callback(finalText) when recording stops
+  onError: null         // callback(errorCode) on error
+};
+
+function wnVoiceStart(opts) {
+  opts = opts || {};
+  // If something's already running, stop it first. Belt-and-suspenders against
+  // race conditions where a user could trigger two mics at once.
+  if(wnVoice.active) {
+    try { wnVoiceStop(); } catch(e) {}
+  }
+  var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRec) {
+    if(opts.onError) opts.onError('not-supported');
+    return false;
+  }
+  var rec;
+  try {
+    rec = new SpeechRec();
+  } catch(e) {
+    if(opts.onError) opts.onError('init-failed');
+    return false;
+  }
+  rec.continuous = true;          // keep listening until manually stopped
+  rec.interimResults = true;      // get partial results as the user speaks
+  rec.lang = 'en-US';             // TODO: could detect from profile later
+  rec.maxAlternatives = 1;
+  wnVoice.recognition = rec;
+  wnVoice.active = true;
+  wnVoice.finalText = '';
+  wnVoice.interimText = '';
+  wnVoice.onUpdate = opts.onUpdate || null;
+  wnVoice.onEnd = opts.onEnd || null;
+  wnVoice.onError = opts.onError || null;
+
+  rec.onresult = function(ev) {
+    // Web Speech API delivers results as an array where some entries are
+    // marked .isFinal (committed) and others are still interim. We separate
+    // them so the UI can show "live" interim text differently from final.
+    var finalAdd = '';
+    var interim = '';
+    for(var i = ev.resultIndex; i < ev.results.length; i++) {
+      var transcript = ev.results[i][0].transcript;
+      if(ev.results[i].isFinal) finalAdd += transcript;
+      else interim += transcript;
+    }
+    if(finalAdd) wnVoice.finalText += (wnVoice.finalText ? ' ' : '') + finalAdd.trim();
+    wnVoice.interimText = interim.trim();
+    if(wnVoice.onUpdate) {
+      try { wnVoice.onUpdate(wnVoice.finalText, wnVoice.interimText); } catch(e) {}
+    }
+  };
+
+  rec.onerror = function(ev) {
+    // Common error codes: 'no-speech', 'audio-capture', 'not-allowed', 'network'.
+    // We pass them up — the caller decides what to do per context.
+    var code = (ev && ev.error) || 'unknown';
+    console.warn('[voice] error:', code);
+    wnVoice.active = false;
+    if(wnVoice.onError) {
+      try { wnVoice.onError(code); } catch(e) {}
+    }
+  };
+
+  rec.onend = function() {
+    // Fires whether stopped manually OR by the browser (e.g. silence timeout).
+    // We use this as the single source of "session over" truth.
+    wnVoice.active = false;
+    var finalText = wnVoice.finalText;
+    if(wnVoice.onEnd) {
+      try { wnVoice.onEnd(finalText); } catch(e) {}
+    }
+  };
+
+  try {
+    rec.start();
+    logWizardEvent('voice_start', { context: opts.context || 'unknown' });
+    return true;
+  } catch(e) {
+    console.warn('[voice] start failed:', e);
+    wnVoice.active = false;
+    if(opts.onError) opts.onError('start-failed');
+    return false;
+  }
+}
+
+function wnVoiceStop() {
+  if(!wnVoice.recognition) return;
+  try { wnVoice.recognition.stop(); }
+  catch(e) { console.warn('[voice] stop failed:', e); }
+  // Don't set active=false here — let the 'onend' event do that, so callbacks
+  // fire exactly once and in a consistent order.
+}
+
+// ── Per-question mic button (Step 2, guided mode) ──────────────────────────
+// User taps the mic icon next to a textarea. Transcribed text appends to
+// whatever's already in the field (so they can mix typing and voice).
+function wnToggleQuestionMic() {
+  var btn = document.getElementById('wn2-q-mic-btn');
+  var ta = document.getElementById('wn2-q-textarea');
+  if(!btn || !ta) return;
+  if(wnVoice.active) {
+    // Currently recording — stop.
+    wnVoiceStop();
+    return;
+  }
+  // Capture starting value so we can append onto it.
+  var startingValue = ta.value || '';
+  var separator = (startingValue && !startingValue.match(/[\s.,!?]$/)) ? ' ' : '';
+  var ok = wnVoiceStart({
+    context: 'per-question',
+    onUpdate: function(finalText, interim) {
+      // Live update: show final + (interim in lighter color via inline append).
+      // We keep the user's original text intact and append the voice result.
+      var combined = finalText + (interim ? (finalText ? ' ' : '') + interim : '');
+      ta.value = startingValue + separator + combined;
+      // Sync to state model so navigation away doesn't lose it.
+      var idx = wn.qIndex;
+      if(typeof idx === 'number') wn.answers[idx] = ta.value;
+    },
+    onEnd: function(finalText) {
+      btn.classList.remove('recording');
+      btn.setAttribute('aria-label', 'Use voice to answer');
+      btn.title = 'Tap to use voice';
+      // Persist the final text (in case onUpdate didn't fire the last bit).
+      var combined = (startingValue + separator + (finalText || '')).trim();
+      ta.value = combined;
+      var idx = wn.qIndex;
+      if(typeof idx === 'number') wn.answers[idx] = ta.value;
+      logWizardEvent('voice_end', { context: 'per-question', chars: (finalText||'').length });
+    },
+    onError: function(code) {
+      btn.classList.remove('recording');
+      btn.setAttribute('aria-label', 'Use voice to answer');
+      btn.title = 'Tap to use voice';
+      if(code === 'not-allowed') {
+        showToast('Microphone access blocked. Check your browser permissions.');
+      } else if(code === 'no-speech') {
+        showToast('Didn\'t hear anything. Try again.');
+      } else if(code === 'not-supported') {
+        showToast('Voice isn\'t available in this browser.');
+      } else {
+        showToast('Voice didn\'t work. Try again or type your answer.');
+      }
+    }
+  });
+  if(ok) {
+    btn.classList.add('recording');
+    btn.setAttribute('aria-label', 'Stop recording');
+    btn.title = 'Tap to stop';
+    ta.focus();
+  }
+}
+
+// ── Voice-only path (s-wn-voice screen) ────────────────────────────────────
+// User taps the big mic button. Live transcript appears in the box. They
+// stop, review, tap Generate. Goes directly to SOP generation.
+function wnVoiceReset() {
+  // Reset the voice screen UI to its empty starting state.
+  wn.voiceTranscript = '';
+  var tBox = document.getElementById('wn-voice-transcript');
+  var status = document.getElementById('wn-voice-status');
+  var genBtn = document.getElementById('wn-voice-generate-btn');
+  var micBtn = document.getElementById('wn-voice-mic-btn');
+  if(tBox) tBox.innerHTML = '<span style="color:var(--text3);font-style:italic">Tap the mic below and start talking…</span>';
+  if(status) status.textContent = '';
+  if(genBtn) { genBtn.disabled = true; genBtn.style.opacity = '.5'; }
+  if(micBtn) micBtn.classList.remove('recording');
+}
+
+function wnVoiceToggleRecording() {
+  var micBtn = document.getElementById('wn-voice-mic-btn');
+  var tBox = document.getElementById('wn-voice-transcript');
+  var status = document.getElementById('wn-voice-status');
+  var genBtn = document.getElementById('wn-voice-generate-btn');
+  if(!micBtn || !tBox) return;
+  if(wnVoice.active) {
+    wnVoiceStop();
+    return;
+  }
+  // Starting fresh — clear any placeholder.
+  if(!wn.voiceTranscript) tBox.textContent = '';
+  var startingValue = wn.voiceTranscript || '';
+  var separator = (startingValue && !startingValue.match(/[\s.,!?]$/)) ? ' ' : '';
+  var ok = wnVoiceStart({
+    context: 'full-voice',
+    onUpdate: function(finalText, interim) {
+      var combined = finalText + (interim ? (finalText ? ' ' : '') + interim : '');
+      var fullText = startingValue + separator + combined;
+      // Render: final text in normal color, interim text in lighter color.
+      // Use innerHTML so we can style the interim portion. esc() prevents
+      // injection from transcribed content (extremely unlikely but defensive).
+      var finalPart = startingValue + separator + finalText;
+      var interimPart = interim ? ((finalText ? ' ' : '') + interim) : '';
+      var safeFinal = esc(finalPart);
+      var safeInterim = esc(interimPart);
+      tBox.innerHTML = safeFinal + (safeInterim ? '<span style="color:var(--text3)">' + safeInterim + '</span>' : '');
+      // Persist final-only to state so an unexpected stop doesn't lose finals.
+      wn.voiceTranscript = (startingValue + separator + finalText).trim();
+      // Enable Generate button once any final text exists.
+      if(genBtn && wn.voiceTranscript) {
+        genBtn.disabled = false;
+        genBtn.style.opacity = '1';
+      }
+    },
+    onEnd: function(finalText) {
+      micBtn.classList.remove('recording');
+      var combined = (startingValue + separator + (finalText || '')).trim();
+      wn.voiceTranscript = combined;
+      // Re-render without interim formatting (it's all final now).
+      if(tBox) tBox.textContent = combined || '';
+      if(status) {
+        status.textContent = combined ? 'Recording stopped. Tap mic to add more, or Generate when ready.' : 'Recording ended. Tap mic to try again.';
+      }
+      if(genBtn) {
+        var hasText = !!(combined && combined.trim());
+        genBtn.disabled = !hasText;
+        genBtn.style.opacity = hasText ? '1' : '.5';
+      }
+      logWizardEvent('voice_end', { context: 'full-voice', chars: combined.length });
+    },
+    onError: function(code) {
+      micBtn.classList.remove('recording');
+      if(code === 'not-allowed') {
+        if(status) status.textContent = 'Microphone access blocked. Check browser permissions.';
+        showToast('Microphone access blocked. Check your browser permissions.');
+      } else if(code === 'no-speech') {
+        if(status) status.textContent = 'Didn\'t catch anything. Tap mic and try again.';
+      } else if(code === 'not-supported') {
+        showToast('Voice isn\'t available in this browser.');
+      } else {
+        if(status) status.textContent = 'Voice failed. Tap mic to try again.';
+      }
+    }
+  });
+  if(ok) {
+    micBtn.classList.add('recording');
+    if(status) status.textContent = '🎙️ Listening… tap mic to stop';
+  }
+}
+
+function wnVoiceCancel() {
+  // User backed out of the voice screen. Stop any active recording first.
+  if(wnVoice.active) {
+    try { wnVoiceStop(); } catch(e) {}
+  }
+  // If they have content, confirm before discarding. If not, just route back.
+  var transcript = (wn.voiceTranscript || '').trim();
+  if(!transcript) {
+    go('s-wn-mode');
+    logWizardEvent('voice_cancelled', { hadContent: false });
+    return;
+  }
+  showAppConfirm({
+    title: 'Leave voice mode?',
+    message: 'Your recording will be lost. You can pick a different mode or come back to voice later.',
+    cancelLabel: 'Keep recording',
+    confirmLabel: 'Leave',
+    danger: true
+  }).then(function(confirmed) {
+    if(!confirmed) return;
+    wn.voiceTranscript = '';  // clear so they start fresh next time
+    go('s-wn-mode');
+    logWizardEvent('voice_cancelled', { hadContent: true });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Generate SOP from the voice transcript directly. No question/answer
+// extraction — the user explained the process; we hand it to the AI and
+// it writes the SOP.
+//
+// Reuses the existing generation pipeline by stuffing the transcript into
+// wiz.desc (where the question answers normally go). The SOP generation
+// prompt is sturdy enough to handle conversational input — see prompt
+// updates below.
+// ─────────────────────────────────────────────────────────────────────────
+function wnVoiceGenerate() {
+  var transcript = (wn.voiceTranscript || '').trim();
+  if(!transcript) {
+    showToast('Tap the mic and tell us how it works first.');
+    return;
+  }
+  logWizardEvent('voice_generate_requested', { chars: transcript.length });
+  // Populate the legacy wiz object the way the generation code expects.
+  // We stash the transcript with a marker so the prompt knows this is
+  // conversational voice input rather than wizard-style Q&A pairs.
+  try {
+    wiz.title = wn.title || '';
+    wiz.cat = (wn.categories && wn.categories[0]) || '';
+    wiz.desc = 'USER VOICE TRANSCRIPT (conversational, naturally-spoken explanation of the process):\n\n' + transcript;
+    wiz.tools = '';
+    wiz.roles = '';
+    wiz.compliance = '';
+    wiz.audience = wn.format ? (wn.format.audience || 'My team') : 'My team';
+    wiz.format = wn.format ? (wn.format.formatStyle || 'Step-by-step') : 'Step-by-step';
+    wiz.detail = wn.format ? (wn.format.detail || 'Standard procedure') : 'Standard procedure';
+    wiz.tone = wn.format ? (wn.format.tone || 'Professional') : 'Professional';
+  } catch(e) {
+    console.error('[voice] wiz setup failed:', e);
+  }
+  // Route to the generation screen — same as the guided flow does.
+  if(typeof generateSOP === 'function') {
+    generateSOP();
+  } else {
+    showToast('Generation function not available. Refresh and try again.');
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// REFINEMENT — "Add more" on the just-generated SOP screen
+//
+// Available DURING the active creation session ONLY. Once the user leaves the
+// SOP screen, refinement locks and future changes must use the Rewrite flow.
+// This boundary protects sign-off integrity: someone can't refine a signed
+// SOP into something fundamentally different.
+//
+// Refinement does NOT count against the user's monthly quota — they're
+// fixing the SOP they just created, not creating a new one. Brad's call:
+// users need their 3 free SOPs to be GOOD SOPs they'd actually use, not
+// mediocre ones, so iteration is encouraged.
+//
+// Available to BOTH voice-mode and guided-mode users. Both paths converge
+// here once their SOP is generated.
+// ────────────────────────────────────────────────────────────────────────────
+var refineState = {
+  mode: 'text',          // 'text' | 'voice' — which input was chosen
+  voiceTranscript: ''    // current voice input being captured (modal scope)
+};
+
+// Show the "Add more" card when SOP is generated. Called from the generation
+// success path. Hidden by default; navigating away (handled separately) hides
+// it permanently for that SOP.
+function showRefineCard() {
+  var wrap = document.getElementById('sop-refine-card-wrap');
+  if(!wrap) return;
+  wrap.style.display = 'block';
+  // Hide the voice button if Web Speech API isn't supported
+  var voiceBtn = document.getElementById('refine-voice-btn');
+  if(voiceBtn) {
+    voiceBtn.style.display = wnVoiceSupported() ? '' : 'none';
+  }
+}
+
+// Hide the "Add more" card. Called when the user navigates away from the
+// SOP screen — refinement is now locked for this SOP.
+function hideRefineCard() {
+  var wrap = document.getElementById('sop-refine-card-wrap');
+  if(wrap) wrap.style.display = 'none';
+}
+
+function openRefineModal(mode) {
+  refineState.mode = mode === 'voice' ? 'voice' : 'text';
+  refineState.voiceTranscript = '';
+  var textC = document.getElementById('m-refine-text-container');
+  var voiceC = document.getElementById('m-refine-voice-container');
+  var titleEl = document.getElementById('m-refine-title');
+  var subEl = document.getElementById('m-refine-sub');
+  var taEl = document.getElementById('m-refine-textarea');
+  var transcriptBox = document.getElementById('m-refine-voice-transcript');
+  var voiceStatus = document.getElementById('m-refine-voice-status');
+  var voiceMicBtn = document.getElementById('m-refine-voice-mic');
+  if(refineState.mode === 'voice') {
+    if(textC) textC.style.display = 'none';
+    if(voiceC) voiceC.style.display = '';
+    if(titleEl) titleEl.textContent = 'Tell us what to add';
+    if(subEl) subEl.textContent = 'Talk through what you forgot. We\'ll fold it into your SOP.';
+    if(transcriptBox) transcriptBox.innerHTML = '<span style="color:var(--text3);font-style:italic">Tap mic and tell us what to add…</span>';
+    if(voiceStatus) voiceStatus.textContent = '';
+    if(voiceMicBtn) voiceMicBtn.classList.remove('recording');
+  } else {
+    if(textC) textC.style.display = '';
+    if(voiceC) voiceC.style.display = 'none';
+    if(titleEl) titleEl.textContent = 'Add more detail';
+    if(subEl) subEl.textContent = 'Tell us what to add. We\'ll work it into your SOP.';
+    if(taEl) {
+      taEl.value = '';
+      // Focus the textarea so the user can start typing immediately
+      setTimeout(function(){ if(taEl && document.body.contains(taEl)) taEl.focus(); }, 100);
+    }
+  }
+  openModal('m-refine');
+}
+
+function cancelRefine() {
+  // If voice is active, stop it. Then close.
+  if(wnVoice.active) {
+    try { wnVoiceStop(); } catch(e) {}
+  }
+  closeModal('m-refine');
+}
+
+function refineToggleVoice() {
+  var btn = document.getElementById('m-refine-voice-mic');
+  var box = document.getElementById('m-refine-voice-transcript');
+  var status = document.getElementById('m-refine-voice-status');
+  if(!btn || !box) return;
+  if(wnVoice.active) {
+    wnVoiceStop();
+    return;
+  }
+  var startingValue = refineState.voiceTranscript || '';
+  var separator = (startingValue && !startingValue.match(/[\s.,!?]$/)) ? ' ' : '';
+  // Clear placeholder if first session
+  if(!startingValue) box.textContent = '';
+  var ok = wnVoiceStart({
+    context: 'refine',
+    onUpdate: function(finalText, interim) {
+      var finalPart = startingValue + separator + finalText;
+      var interimPart = interim ? ((finalText ? ' ' : '') + interim) : '';
+      box.innerHTML = esc(finalPart) + (interimPart ? '<span style="color:var(--text3)">' + esc(interimPart) + '</span>' : '');
+      refineState.voiceTranscript = (startingValue + separator + finalText).trim();
+    },
+    onEnd: function(finalText) {
+      btn.classList.remove('recording');
+      var combined = (startingValue + separator + (finalText || '')).trim();
+      refineState.voiceTranscript = combined;
+      if(box) box.textContent = combined || '';
+      if(status) status.textContent = combined ? 'Tap mic to add more, or "Add & regenerate" below.' : 'Didn\'t catch anything. Tap mic to try again.';
+    },
+    onError: function(code) {
+      btn.classList.remove('recording');
+      if(status) status.textContent = code === 'not-allowed' ? 'Mic blocked. Check permissions.' : 'Voice failed. Try again.';
+    }
+  });
+  if(ok) {
+    btn.classList.add('recording');
+    if(status) status.textContent = '🎙️ Listening…';
+  }
+}
+
+async function submitRefine() {
+  var addition = '';
+  if(refineState.mode === 'voice') {
+    addition = (refineState.voiceTranscript || '').trim();
+  } else {
+    var ta = document.getElementById('m-refine-textarea');
+    addition = (ta && ta.value || '').trim();
+  }
+  if(!addition) {
+    showToast('Tell us what to add first.');
+    return;
+  }
+  // Stop any voice recording before closing
+  if(wnVoice.active) {
+    try { wnVoiceStop(); } catch(e) {}
+  }
+  closeModal('m-refine');
+  // Increment refinement counter (informational only — no quota cost per Brad's call)
+  if(wn) wn.refineCount = (wn.refineCount || 0) + 1;
+  logWizardEvent('sop_refined', { mode: refineState.mode, chars: addition.length, count: wn ? wn.refineCount : 0 });
+
+  // Append the refinement to wiz.desc with a clear marker. The SOP generation
+  // prompt will see this and treat the addition as authoritative — like a
+  // late-arriving wizard answer or voice transcript continuation.
+  try {
+    var existingDesc = wiz.desc || '';
+    var refinementMarker = '\n\nADDITIONAL DETAIL (user added this AFTER seeing the first draft — treat as authoritative; integrate into the appropriate section):\n' + addition;
+    wiz.desc = existingDesc + refinementMarker;
+  } catch(e) {
+    console.error('[refine] wiz update failed:', e);
+  }
+
+  // Re-generate. The generation function will replace the current SOP with
+  // the refined version. Same SOP ID (it's still the same SOP, just refined).
+  // The library save logic auto-updates the existing entry rather than
+  // creating a new one (because the title and ID match).
+  if(typeof generateSOP === 'function') {
+    // SOP-REFINE-01: Flag this as a refinement so generateSOP knows to:
+    //   1. Skip the limit check (user might be at cap but refining is free)
+    //   2. Skip the quota increment (refinement doesn't count)
+    //   3. Pass the flag through to autoSaveToLibrary so it REPLACES the
+    //      existing library entry instead of creating a duplicate.
+    window._isRefinementInProgress = true;
+    showToast('Regenerating with your addition…');
+    generateSOP();
+  } else {
+    showToast('Couldn\'t regenerate — please refresh.');
+  }
+}
+
+async function wnPickMode(mode) {
+  if(mode !== 'voice' && mode !== 'guided') return;
+  if(mode === 'voice' && !wnVoiceSupported()) {
+    showToast('Voice input requires Chrome or Safari.');
+    return;
+  }
+  wn.inputMode = mode;
+  logWizardEvent('mode_picked', { mode: mode });
+  if(mode === 'voice') {
+    // Route to voice recording screen.
+    go('s-wn-voice');
+    logWizardEvent('screen_reached', { screen: 's-wn-voice' });
+    wnVoiceReset();
+    // Update header with the user's title for context.
+    var titleEl = document.getElementById('wn-voice-title');
+    if(titleEl) {
+      var t = wn.title || 'this';
+      titleEl.textContent = t.length > 28 ? t.slice(0,26)+'…' : t;
+    }
+  } else {
+    // Guided mode — original flow. Route to Step 2.
+    go('s-wn-2');
+    logWizardEvent('screen_reached', { screen: 's-wn-2' });
+    var t2 = document.getElementById('wn2-title');
+    if(t2) t2.textContent = wn.title.length > 30 ? wn.title.slice(0,28)+'…' : wn.title;
+    wn.qIndex = 0;
+    wn.visited[0] = true;
+    // Wait for AI prefetch to complete before rendering Q1
+    await wnWaitForPrefetch(3500);
+    wnRenderQuestion();
+  }
 }
 
 // ── Loading-state UI for Step 2 while AI prefetch is in flight ──────────────
@@ -16451,6 +17761,16 @@ function wnRenderQuestion() {
       ta.oninput = function() { wn.answers[idx] = this.value; };
       // Focus textarea on mobile so keyboard opens immediately
       setTimeout(function(){ if(ta && document.body.contains(ta)) ta.focus(); }, 100);
+    }
+    // Voice mic button — hide if browser doesn't support, reset state on render
+    var micBtn = document.getElementById('wn2-q-mic-btn');
+    if(micBtn) {
+      if(wnVoiceSupported()) {
+        micBtn.classList.remove('unsupported');
+        micBtn.classList.remove('recording');
+      } else {
+        micBtn.classList.add('unsupported');
+      }
     }
     // Next button label
     if(nextBtn) {
@@ -17172,6 +18492,16 @@ function wnGoBack(fromStep) {
   //      the action feel safer and more transparent
   // The confirm uses a custom modal (matches app design) rather than the
   // browser's native confirm() dialog.
+  //
+  // SPECIAL CASE: fromStep === 1.5 means the mode-choice screen. That's
+  // a step within the wizard, not an exit point. The user tapping back from
+  // there means "I want to change my title/categories", not "exit the
+  // wizard". Route them back to Step 1 cleanly, preserving their work.
+  if(fromStep === 1.5) {
+    go('s-wn-1');
+    logWizardEvent('mode_back_to_step1', {});
+    return;
+  }
   var dest = wnDestinationLabel();
   showAppConfirm({
     title: 'Leave SOP creation?',
@@ -17967,35 +19297,38 @@ var savedCard = null;
 var PLAN_LIMITS = {
   trial: {
     label: 'Free Trial',
-    detail: '3 SOPs free · <a href="javascript:void(0)" onclick="showPricingModal()" style="color:var(--accent);font-weight:700">Upgrade for more</a>',
+    detail: '3 SOPs free · Voice mode included · <a href="javascript:void(0)" onclick="showPricingModal()" style="color:var(--accent);font-weight:700">Upgrade for more</a>',
     lib: 10,
     sops: 3,
     sopsPerMonth: 3,        // monthly cap (one-time for trial)
     canRewrite: false,      // Upload + Rewrite gated to Pro+
     canSignOff: false,      // Team sign-off gated to Pro+
     canLogo: false,         // Custom company logo gated to Pro+
+    canPhotos: false,       // Photos per step gated to Pro+
     seats: 1
   },
   solo: {
     label: 'Solo',
-    detail: '10 SOPs/month · 50-SOP library · <a href="javascript:void(0)" onclick="showPricingModal()" style="color:var(--accent);font-weight:700">Upgrade for more</a>',
+    detail: '10 SOPs/month · Voice mode · 50-SOP library · <a href="javascript:void(0)" onclick="showPricingModal()" style="color:var(--accent);font-weight:700">Upgrade for photos &amp; sign-off</a>',
     lib: 50,
     sops: 10,
     sopsPerMonth: 10,
     canRewrite: false,
     canSignOff: false,
     canLogo: false,         // Solo: no custom logo (Pro+ differentiator)
+    canPhotos: false,       // Solo: no photos (Pro+ differentiator)
     seats: 1
   },
   pro: {
     label: 'Pro',
-    detail: '50 SOPs/month · Unlimited library · Upload + Rewrite · All export formats',
+    detail: '50 SOPs/month · Photos per step · Unlimited library · Upload + Rewrite · Team sign-off · All exports',
     lib: 9999,
     sops: 50,
     sopsPerMonth: 50,
     canRewrite: true,
     canSignOff: true,
     canLogo: true,
+    canPhotos: true,        // Pro: photos per step enabled
     seats: 1
   },
   team: {
@@ -18007,6 +19340,7 @@ var PLAN_LIMITS = {
     canRewrite: true,
     canSignOff: true,
     canLogo: true,
+    canPhotos: true,        // Team: photos per step enabled
     seats: 10
   }
 };
@@ -18021,21 +19355,21 @@ var PLAN_DATA = {
   solo: {
     name: 'Solo', price: '$14.99', period: '/month', amount: 14.99,
     yearlyPrice: '$149', yearlyAmount: 149, yearlySavings: '$30.88',
-    features: '✓ 10 SOPs per month<br>✓ All 502 templates<br>✓ AI Revise (in-chat)<br>✓ 50-SOP library<br>✓ All export formats<br>✓ Version history',
+    features: '✓ 10 SOPs per month<br>✓ All 502 templates<br>✓ <strong>Voice mode</strong> — just talk it out<br>✓ AI Revise (in-chat)<br>✓ 50-SOP library<br>✓ All export formats<br>✓ Version history',
     stripeMonthlyPriceId: 'price_1TWRVVH0wAbdXfW9p41vjrs3',
     stripeYearlyPriceId:  'price_1TWRVUH0wAbdXfW9tJrtI11k'
   },
   pro: {
     name: 'Pro', price: '$29.99', period: '/month', amount: 29.99,
     yearlyPrice: '$299', yearlyAmount: 299, yearlySavings: '$60.88',
-    features: '✓ <strong>50 SOPs included monthly</strong><br>✓ All 502 templates<br>✓ <strong>Upload + Rewrite</strong> existing SOPs<br>✓ Unlimited library<br>✓ Custom company logo<br>✓ All export formats<br>✓ Team sign-off & acknowledgments<br>✓ Version history with diff view',
+    features: '✓ <strong>50 SOPs included monthly</strong><br>✓ All 502 templates<br>✓ Voice mode<br>✓ <strong>Photos per step</strong> — visual SOPs<br>✓ <strong>Upload + Rewrite</strong> existing SOPs<br>✓ Unlimited library<br>✓ Custom company logo<br>✓ Team sign-off & acknowledgments<br>✓ Version history with diff view',
     stripeMonthlyPriceId: 'price_1TWRVSH0wAbdXfW9CTtCHFoJ',
     stripeYearlyPriceId:  'price_1TWRVSH0wAbdXfW95SX9IoYo'
   },
   team: {
     name: 'Team', price: '$69.99', period: '/month', amount: 69.99,
     yearlyPrice: '$699', yearlyAmount: 699, yearlySavings: '$140.88',
-    features: '✓ Everything in Pro<br>✓ <strong>100 SOPs included monthly</strong><br>✓ <strong>Up to 10 team seats</strong><br>✓ Shared team library<br>✓ Assign SOPs to members<br>✓ Read receipts<br>✓ Admin dashboard<br>✓ Priority support',
+    features: '✓ Everything in Pro (voice, photos, branding, sign-off)<br>✓ <strong>100 SOPs included monthly</strong><br>✓ <strong>Up to 10 team seats</strong><br>✓ Shared team library<br>✓ Assign SOPs to members<br>✓ Read receipts<br>✓ Admin dashboard<br>✓ Priority support',
     stripeMonthlyPriceId: 'price_1TWRVSH0wAbdXfW9nxiWP9j8',
     stripeYearlyPriceId:  'price_1TWRVSH0wAbdXfW9NchTLDGe'
   }
@@ -19249,12 +20583,14 @@ function buildProfessionalDocumentHtml() {
           : '<span style="display:inline-block;width:13px;height:13px;border:1.5px solid #1a1a2e;border-radius:3px;flex-shrink:0;margin-top:3px"></span>';
         return '<div style="margin:8px 0;display:flex;gap:10px;page-break-inside:avoid">'
              + box
-             + '<span style="font-size:12.5px;line-height:1.55;color:#1a1a2e">' + renderMarkdownInline(s.content||'') + '</span></div>';
+             + '<span style="font-size:12.5px;line-height:1.55;color:#1a1a2e">' + renderMarkdownInline(s.content||'') + '</span></div>'
+             + buildPhotoRowHtmlForPrintPreview(s.content);
       }
       stepCount++;
       return '<div style="margin:10px 0;display:flex;gap:12px;page-break-inside:avoid">'
            + '<span style="font-size:12.5px;font-weight:800;color:#6c63ff;flex-shrink:0;min-width:22px">' + stepCount + '.</span>'
-           + '<span style="font-size:12.5px;line-height:1.6;color:#1a1a2e">' + renderMarkdownInline(s.content||'') + '</span></div>';
+           + '<span style="font-size:12.5px;line-height:1.6;color:#1a1a2e">' + renderMarkdownInline(s.content||'') + '</span></div>'
+           + buildPhotoRowHtmlForPrintPreview(s.content);
     }).join('');
     var hdr = sec.title
       ? '<h2 id="' + sec.id + '" style="font-size:14px;font-weight:800;color:#1a1a2e;margin:22px 0 10px;padding-bottom:6px;border-bottom:2px solid #6c63ff;page-break-after:avoid">' + renderMarkdownInline(sec.title) + '</h2>'
@@ -19600,6 +20936,8 @@ var PRICING_FEATURES = [
     { name: '502 expert templates',         free: true,       solo: true,        pro: true,        team: true },
     { name: 'Template-specific questions',  free: true,       solo: true,        pro: true,        team: true },
     { name: 'Custom SOP creation',          free: true,       solo: true,        pro: true,        team: true },
+    { name: 'Voice mode (talk it through)', free: true,       solo: true,        pro: true,        team: true },
+    { name: 'Refine after generation',      free: true,       solo: true,        pro: true,        team: true },
     { name: 'AI Revise (in-chat)',          free: false,      solo: true,        pro: true,        team: true },
   ]},
   { cat: 'Document Quality', features: [
@@ -19607,6 +20945,7 @@ var PRICING_FEATURES = [
     { name: 'Compliance language',          free: true,       solo: true,        pro: true,        team: true },
     { name: 'Industry-specific output',     free: true,       solo: true,        pro: true,        team: true },
     { name: 'Format, detail & tone control',free: true,       solo: true,        pro: true,        team: true },
+    { name: 'Photos per step',              free: false,      solo: false,       pro: true,        team: true },
     { name: 'Professional PDF export',      free: false,      solo: true,        pro: true,        team: true },
     { name: 'Cover page (enterprise)',      free: false,      solo: false,       pro: true,        team: true },
   ]},
