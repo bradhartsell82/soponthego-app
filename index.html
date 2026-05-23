@@ -13491,13 +13491,21 @@ async function generatePdfBlob() {
   if(!inner || !inner.trim()) {
     throw new Error('Nothing to export — make sure your SOP has finished generating.');
   }
-  // SOP-PDF-03: html2canvas (which html2pdf wraps) cannot reliably measure
-  // or render elements positioned with `left:-9999px` or `position:fixed;
-  // top:-9999px` — the resulting canvas can be blank or partial. The fix:
-  // position the wrapper IN the normal document flow but visually hidden
-  // behind everything else. html2canvas can measure/render it because it
-  // has real layout, and the user never sees the flash because z-index puts
-  // it underneath the app.
+  // SOP-PDF-03 (real fix after inspecting blank PDF binary):
+  // The blank PDF we shipped earlier had a content stream containing ONLY
+  // a line-width command (no draw operations). Fonts were registered but
+  // no rendered image made it onto the page. This is a known timing issue
+  // with html2pdf 0.10.1's .outputPdf('blob') chain — the blob is extracted
+  // before the async canvas-to-image step finishes writing to the PDF page.
+  //
+  // Fix: use the explicit .toPdf().get('pdf') chain to manually await each
+  // step (canvas done → image composed → pdf instance ready), then call
+  // .output('blob') on the resolved jsPDF instance directly. This guarantees
+  // the content stream contains the rendered image before we extract.
+  //
+  // ALSO: keep the wrapper in the visible viewport (z-index:-1 behind the
+  // app) so html2canvas can measure layout. Off-screen positioning broke
+  // measurement entirely.
   var wrapper = document.createElement('div');
   wrapper.style.cssText = [
     'width:7.5in',
@@ -13506,19 +13514,32 @@ async function generatePdfBlob() {
     'color:#111',
     'background:#fff',
     'line-height:1.6',
-    // Render behind the app, fully opaque so html2canvas captures content
     'position:fixed',
     'top:0',
     'left:0',
     'z-index:-1',
     'pointer-events:none',
-    'opacity:1' // must be visible to html2canvas
+    'opacity:1'
   ].join(';');
   wrapper.innerHTML = inner;
   document.body.appendChild(wrapper);
-  // Force layout to settle before html2canvas measures
-  // (one rAF tick + a small timeout — belt-and-suspenders for slow devices)
-  await new Promise(function(res) { requestAnimationFrame(function() { setTimeout(res, 50); }); });
+  // Wait for layout AND for any images (logos) to load. Without this,
+  // html2canvas captures a half-rendered DOM and produces an empty image.
+  await new Promise(function(res) { requestAnimationFrame(function() { setTimeout(res, 100); }); });
+  // Wait for any <img> elements (typically the company logo) to finish loading
+  var imgs = wrapper.querySelectorAll('img');
+  if(imgs.length) {
+    await Promise.all(Array.prototype.map.call(imgs, function(img) {
+      if(img.complete) return Promise.resolve();
+      return new Promise(function(res) {
+        var done = function() { res(); };
+        img.onload = done;
+        img.onerror = done;
+        // safety timeout — don't hang forever on a broken image
+        setTimeout(done, 2000);
+      });
+    }));
+  }
   try {
     var opts = {
       margin: [0.4, 0.4, 0.5, 0.4],
@@ -13528,15 +13549,20 @@ async function generatePdfBlob() {
         useCORS: true,
         letterRendering: true,
         backgroundColor: '#ffffff',
-        // SOP-PDF-03: explicitly tell html2canvas to ignore element CSS that
-        // could hide content (visibility:hidden, opacity:0). With our wrapper
-        // visible at z-index:-1, html2canvas measures correctly.
-        ignoreElements: function(el) { return false; }
+        logging: false
       },
       jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
-    var blob = await window.html2pdf().set(opts).from(wrapper).outputPdf('blob');
+    // Use the explicit promise chain instead of .outputPdf('blob') which
+    // has a known timing bug in html2pdf 0.10.1.
+    var worker = window.html2pdf().set(opts).from(wrapper);
+    // .toPdf() runs the html2canvas → jsPDF pipeline
+    // .get('pdf') resolves with the jsPDF instance once images are composed
+    var pdf = await worker.toPdf().get('pdf');
+    // .output('blob') on the jsPDF instance directly — guaranteed to have
+    // the final content stream because we awaited the pdf instance itself.
+    var blob = pdf.output('blob');
     return blob;
   } finally {
     if(wrapper && wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
