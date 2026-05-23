@@ -16136,6 +16136,12 @@ function wnReset() {
 // Routes to the new wizard, hides the old s-wizard noise behind the scenes.
 function startNewWizard(opts) {
   opts = opts || {};
+  // FAIL FAST: enforce the SOP limit at wizard entry rather than waiting
+  // until the user taps "Generate my SOP" 5 minutes later. The previous
+  // behavior let the wizard open with 0 SOPs remaining, only to paywall
+  // them after they'd answered all the questions. Bad UX — and confusing
+  // because the home screen already showed "0 SOPs remaining".
+  if(!checkSopLimit()) return;
   wnReset();
   wn.mode = opts.mode || 'create';
   wn.sourceScreen = opts.sourceScreen || 's-home';
@@ -17093,6 +17099,10 @@ function wnInFlowBackToStep3() {
 var tplFastSelected = null; // holds the template object during the fast-path
 function startTemplateFastPath(template) {
   if(!template) return;
+  // FAIL FAST: enforce SOP limit at entry, before showing the confirm screen.
+  // See parallel comment in startNewWizard. Template fast-path is a separate
+  // entry point from the regular wizard, so it needs its own check.
+  if(!checkSopLimit()) return;
   tplFastSelected = template;
   logWizardEvent('wizard_entered', { mode: 'template', fromTemplate: true, templateId: template.id });
   // Populate the screen
@@ -17160,6 +17170,10 @@ function tplFastCustomize() {
 // ════════════════════════════════════════════════════════════════════════════
 async function startRewriteFastPath(text) {
   if(!text || !text.trim()) { showToast('Please add some text first.'); return; }
+  // FAIL FAST: enforce SOP limit. Rewrite is a separate code path from
+  // wizard/template entry, so it gets its own check. Same principle: paywall
+  // immediately rather than after the user processes their upload.
+  if(!checkSopLimit()) return;
   wn = wn || {};
   wn.mode = 'rewrite';
   wn.rewriteText = text;
