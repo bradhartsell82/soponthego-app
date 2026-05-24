@@ -13510,28 +13510,63 @@ function getRewriteVersion(title) {
 // don't see an empty row). Returns photo thumbs + "add photo" button if
 // the user has permission. Returns just the thumbs if they're a downgraded
 // user who already had photos.
+// PHOTO-CLICK-FIX: Previously this function embedded raw step text into
+// inline onclick strings ("onclick=triggerPhotoUpload('<step text>', this)").
+// Step content can contain quotes, apostrophes, newlines, backslashes, and
+// HTML special chars — making any reliable manual escape extremely fragile.
+// Some steps' clicks fired, others silently failed depending on what
+// characters happened to be in the text. That's the "every other step" bug.
+//
+// The fix: store step content as a data attribute (browser-escaped by
+// `esc()`), and have the handler read it from the clicked element's
+// dataset at click time. No string interpolation, no escaping minefield.
 function buildPhotoRowHtml(stepContent) {
   var photos = getPhotosForStep(stepContent);
   var planLim = PLAN_LIMITS[userPlan] || PLAN_LIMITS.trial;
   var canAdd = !!planLim.canPhotos;
   // Bail early if nothing to show
   if(photos.length === 0 && !canAdd) return '';
-  var escContent = (stepContent || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+  // esc() handles HTML attribute escaping — covers quotes, ampersands, etc.
+  // safely. Step content is preserved verbatim and read back via dataset.
+  var safeContent = esc(stepContent || '');
   var html = '<div class="step-photos-row">';
   photos.forEach(function(p) {
+    var safeUrl = esc(p.url);
     html += '<div class="step-photo-thumb">'
-      + '<img src="' + esc(p.url) + '" alt="Step photo" onclick="openPhotoLightbox(\'' + esc(p.url).replace(/'/g, "\\'") + '\')"/>'
-      + (canAdd ? '<button class="step-photo-remove" onclick="confirmRemovePhoto(\'' + escContent.replace(/'/g, "\\'").replace(/"/g, '\\&quot;') + '\', \'' + esc(p.url).replace(/'/g, "\\'") + '\')" title="Remove">✕</button>' : '')
+      + '<img src="' + safeUrl + '" alt="Step photo" data-photo-url="' + safeUrl + '" onclick="onPhotoThumbClick(this)"/>'
+      + (canAdd
+          ? '<button class="step-photo-remove" data-step-content="' + safeContent + '" data-photo-url="' + safeUrl + '" onclick="onPhotoRemoveClick(this)" title="Remove">✕</button>'
+          : '')
       + '</div>';
   });
   if(canAdd && photos.length < 4) {
-    html += '<button class="step-photo-add-btn" onclick="triggerPhotoUpload(\'' + escContent.replace(/'/g, "\\'").replace(/"/g, '\\&quot;') + '\', this)" title="Add photo">'
+    html += '<button class="step-photo-add-btn" data-step-content="' + safeContent + '" onclick="onPhotoAddClick(this)" title="Add photo">'
       + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
       + 'Add photo'
       + '</button>';
   }
   html += '</div>';
   return html;
+}
+
+// PHOTO-CLICK-FIX: Delegated click handlers that read step content from the
+// clicked element's data attribute, then call the underlying business
+// functions. Keeps the brittle string-interpolation out of the inline HTML.
+function onPhotoAddClick(btn) {
+  if(!btn) return;
+  var stepContent = btn.getAttribute('data-step-content') || '';
+  triggerPhotoUpload(stepContent, btn);
+}
+function onPhotoRemoveClick(btn) {
+  if(!btn) return;
+  var stepContent = btn.getAttribute('data-step-content') || '';
+  var photoUrl = btn.getAttribute('data-photo-url') || '';
+  confirmRemovePhoto(stepContent, photoUrl);
+}
+function onPhotoThumbClick(img) {
+  if(!img) return;
+  var photoUrl = img.getAttribute('data-photo-url') || '';
+  openPhotoLightbox(photoUrl);
 }
 
 function renderSteps() {
