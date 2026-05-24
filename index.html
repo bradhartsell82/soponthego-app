@@ -14391,7 +14391,13 @@ async function generatePdfBlob() {
   // (one fetch per image, parallel).
   await new Promise(function(res) { requestAnimationFrame(function() { setTimeout(res, 100); }); });
   var imgs = wrapper.querySelectorAll('img');
+  console.log('[pdf-photos] DATAURL path running. Found', imgs.length, 'image(s) in wrapper');
   if(imgs.length) {
+    // List all the image URLs so we know exactly what we're working with
+    Array.prototype.forEach.call(imgs, function(img, i) {
+      var src = (img.getAttribute('src') || '').slice(0, 100);
+      console.log('[pdf-photos]   img[' + i + '] src=' + src + (img.getAttribute('src').length > 100 ? '...' : ''));
+    });
     // Helper: fetch an image URL, return a base64 data URL Promise.
     // On any failure (network, CORS, timeout) resolves to null so the
     // caller can decide what to do (we abort the PDF, see below).
@@ -14432,15 +14438,20 @@ async function generatePdfBlob() {
       // Skip data: URLs (already inline) and same-origin URLs (no taint risk).
       var needsConversion = /^https?:\/\//i.test(src)
         && !src.startsWith(location.origin);
-      if(!needsConversion) return Promise.resolve();
+      if(!needsConversion) {
+        console.log('[pdf-photos]   skip (not remote http):', src.slice(0, 80));
+        return Promise.resolve();
+      }
       return urlToDataUrl(src).then(function(dataUrl) {
         if(dataUrl) {
+          console.log('[pdf-photos]   ✓ inlined image (' + Math.round(dataUrl.length/1024) + 'KB data URL)');
           // Remove crossorigin attribute since we're now using a data URL —
           // crossorigin on a data: src is meaningless and can confuse some
           // browsers' canvas-tainting heuristics.
           img.removeAttribute('crossorigin');
           img.src = dataUrl;
         } else {
+          console.warn('[pdf-photos]   ✗ FAILED to fetch:', src.slice(0, 100));
           photoFailures++;
         }
       });
