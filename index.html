@@ -14739,21 +14739,19 @@ function persistPhotoMapToLibrary() {
     if(matchIdx === -1 && currentSopTitle) {
       matchIdx = hist.findIndex(function(h) { return h.title === currentSopTitle; });
     }
+    console.log('[photo-persist] start. currentDocId=' + currentDocId + ' currentSopTitle=' + currentSopTitle + ' matchIdx=' + matchIdx + ' histLen=' + hist.length);
+    console.log('[photo-persist] currentSopPhotoMap keys:', Object.keys(currentSopPhotoMap || {}));
     // PHOTO-SAVE-FIX: no library entry yet — auto-save the SOP first so we
     // have somewhere to attach the photoMap. Without this, photos uploaded
     // to a fresh-generated SOP would be lost on refresh (silent data loss).
     if(matchIdx === -1) {
       if(!currentSopTitle || !generatedText) {
-        // Nothing meaningful to save yet — defer; will retry on next photo
-        // add or when the SOP itself is saved.
-        console.warn('[photo] no SOP context yet, deferring photoMap persist');
+        console.warn('[photo-persist] no SOP context yet, deferring');
         return;
       }
       try {
-        // Use the existing saveToLib path so plan limits, dedup, cloud sync
-        // all behave consistently. saveToLib unshifts the new entry at index 0.
+        console.log('[photo-persist] no library match — auto-saving SOP first');
         saveToLib(currentSopTitle, generatedText, currentSopCat || (wiz && wiz.cat) || 'General');
-        // Re-read the freshly saved entry — it should now be at index 0.
         hist = JSON.parse(localStorage.getItem(getLibStorageKey()) || '[]');
         if(currentDocId) {
           matchIdx = hist.findIndex(function(h) { return h.docId === currentDocId; });
@@ -14761,24 +14759,28 @@ function persistPhotoMapToLibrary() {
         if(matchIdx === -1 && currentSopTitle) {
           matchIdx = hist.findIndex(function(h) { return h.title === currentSopTitle; });
         }
+        console.log('[photo-persist] after auto-save: matchIdx=' + matchIdx);
         if(matchIdx === -1) {
-          // Still no match — saveToLib may have hit a plan-limit guard.
-          // Don't crash the photo flow; log and bail.
-          console.warn('[photo] auto-save to library failed (plan limit?); photoMap not persisted');
+          console.warn('[photo-persist] auto-save failed (plan limit?); aborting');
           return;
         }
         showToast('SOP saved to library ✓');
       } catch(saveErr) {
-        console.warn('[photo] auto-save threw:', saveErr);
+        console.warn('[photo-persist] auto-save threw:', saveErr);
         return;
       }
     }
     hist[matchIdx].photoMap = currentSopPhotoMap;
+    // PHOTO-PERSIST-FIX: Bump ts so this version wins the merge against any
+    // cloud version that hasn't received the photo update yet. Without this,
+    // the cloud sync race could overwrite our just-written photoMap.
+    hist[matchIdx].ts = Date.now();
     localStorage.setItem(getLibStorageKey(), JSON.stringify(hist));
     allHistory = hist;
+    console.log('[photo-persist] ✓ wrote photoMap to library entry (' + Object.keys(currentSopPhotoMap || {}).length + ' step keys). Scheduling cloud sync.');
     scheduleLibraryCloudSync();
   } catch(e) {
-    console.warn('[photo] persist failed:', e);
+    console.warn('[photo-persist] persist failed:', e);
   }
 }
 
@@ -14787,7 +14789,8 @@ function loadPhotoMapForCurrentSop() {
   currentSopPhotoMap = {};
   try {
     var hist = JSON.parse(localStorage.getItem(getLibStorageKey()) || '[]');
-    if(!hist.length) return;
+    console.log('[photo-load] start. currentDocId=' + currentDocId + ' currentSopTitle=' + currentSopTitle + ' histLen=' + hist.length);
+    if(!hist.length) { console.log('[photo-load] library empty'); return; }
     var match = null;
     if(currentDocId) {
       match = hist.find(function(h) { return h.docId === currentDocId; });
@@ -14795,11 +14798,19 @@ function loadPhotoMapForCurrentSop() {
     if(!match && currentSopTitle) {
       match = hist.find(function(h) { return h.title === currentSopTitle; });
     }
+    if(!match) {
+      console.warn('[photo-load] no library match found');
+      return;
+    }
+    console.log('[photo-load] matched entry: title=' + match.title + ' docId=' + match.docId + ' hasPhotoMap=' + !!match.photoMap);
     if(match && match.photoMap && typeof match.photoMap === 'object') {
       currentSopPhotoMap = match.photoMap;
+      console.log('[photo-load] ✓ loaded photoMap with ' + Object.keys(currentSopPhotoMap).length + ' step keys');
+    } else {
+      console.log('[photo-load] match found but no photoMap on it');
     }
   } catch(e) {
-    console.warn('[photo] load failed:', e);
+    console.warn('[photo-load] load failed:', e);
   }
 }
 
@@ -15677,9 +15688,26 @@ function syncLibraryFromCloud() {
       if(!s) return;
       var k = keyOf(s);
       var existing = map[k];
-      // Newer one wins (or local if no cloud counterpart)
-      if(!existing || (s.ts || 0) > (existing.ts || 0)) {
+      // PHOTO-PERSIST-FIX: When deciding which version of an SOP wins the
+      // merge, we now consider photoMap presence in addition to timestamp.
+      // Before this fix, a local SOP with photos and the same `ts` as the
+      // cloud version (which had photos stripped by old server code) would
+      // get overwritten — photos lost on every refresh. Now:
+      //   1. If no cloud version exists, local wins.
+      //   2. If local is newer (strictly higher ts), local wins.
+      //   3. If timestamps tie and local has photos but cloud doesn't,
+      //      local wins (preserve the user's photo attachments).
+      //   4. Otherwise, cloud wins (default).
+      if(!existing) {
         map[k] = s;
+      } else if((s.ts || 0) > (existing.ts || 0)) {
+        map[k] = s;
+      } else if((s.ts || 0) === (existing.ts || 0)) {
+        var localHasPhotos = !!(s.photoMap && typeof s.photoMap === 'object' && Object.keys(s.photoMap).length > 0);
+        var cloudHasPhotos = !!(existing.photoMap && typeof existing.photoMap === 'object' && Object.keys(existing.photoMap).length > 0);
+        if(localHasPhotos && !cloudHasPhotos) {
+          map[k] = s;
+        }
       }
     });
     var merged = Object.values(map).sort(function(a, b) { return (b.ts || 0) - (a.ts || 0); });
