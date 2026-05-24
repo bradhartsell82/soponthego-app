@@ -19910,7 +19910,14 @@ function generateAckLink(ackId) {
     var acks = JSON.parse(localStorage.getItem('sotg_acknowledgments') || '[]');
     var ack = acks.find(function(a){ return a.id === ackId; });
     if(!ack) return;
-    var ackPageHtml = buildAckPage(ack);
+    // Read recipients/message from the form so buildAckPage receives them.
+    // Without this, recipients arrives as undefined and the function crashes
+    // on recipients.split('\n'). Same field-reading logic as emailAckLink.
+    var recipientsEl = document.getElementById('ack-recipients');
+    var recipients = recipientsEl ? recipientsEl.value.trim() : '';
+    var messageEl = document.getElementById('ack-message');
+    var message = messageEl ? messageEl.value.trim() : '';
+    var ackPageHtml = buildAckPage(ack, recipients, message);
     var blob = new Blob([ackPageHtml], {type: 'text/html'});
     var url = URL.createObjectURL(blob);
     // Copy URL to clipboard
@@ -19929,6 +19936,8 @@ function generateAckLink(ackId) {
     }
     showToast('Acknowledgment page downloaded ✓');
   } catch(e) {
+    // Log the real error to console so future debugging isn't blind.
+    console.error('[ack] generateAckLink failed:', e);
     showToast('Error generating acknowledgment');
   }
 }
@@ -19955,6 +19964,13 @@ function emailAckLink(ackId) {
 }
 
 function buildAckPage(ack, recipients, message) {
+  // Defensive defaults — buildAckPage used to crash with "Cannot read
+  // properties of undefined (reading 'split')" when called with fewer
+  // than 3 args. Coerce missing/null values to empty strings so .split
+  // and string interpolation below behave predictably.
+  recipients = recipients || '';
+  message = message || '';
+  ack = ack || {};
   const recipientList = recipients.split('\n').filter(r => r.trim()).map(r => r.trim());
   const profile = loadProfile ? loadProfile() : {};
   const contentLines = (ack.content || '').split('\n').filter(l => l.trim());
