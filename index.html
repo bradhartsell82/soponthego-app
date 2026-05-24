@@ -1816,13 +1816,17 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
   <div id="lib-folder-bar" style="padding:0 16px 10px;display:flex;gap:6px;overflow-x:auto;white-space:nowrap;scrollbar-width:none"></div>
 
   <!-- Bulk Action Bar -->
-  <div id="bulk-action-bar" style="display:none;padding:8px 16px;background:var(--surface2);border-bottom:1px solid var(--border);align-items:center;justify-content:space-between;gap:8px">
+  <!-- LIBRARY-BULK-UX: Bar is persistently visible (display:flex) rather than
+       hidden until something is checked. Better discoverability — users see
+       the bulk actions are available, and the count updates as they tick
+       boxes. Disabled-style appearance when 0 selected (handled in JS) to
+       signal that Export/Delete need a selection. -->
+  <div id="bulk-action-bar" style="display:flex;padding:8px 16px;background:var(--surface2);border-bottom:1px solid var(--border);align-items:center;justify-content:space-between;gap:8px">
     <span id="bulk-count" style="font-size:13px;font-weight:700;color:var(--text)">0 selected</span>
     <div style="display:flex;gap:6px">
       <button id="bulk-toggle-btn" onclick="bulkToggleSelectAll()" style="padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Select All</button>
-      <button onclick="bulkExport()" style="padding:6px 12px;background:var(--accent);border:none;border-radius:8px;color:white;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Export</button>
-      <button onclick="bulkDelete()" style="padding:6px 12px;background:rgba(255,107,107,.15);border:1px solid rgba(255,107,107,.3);border-radius:8px;color:var(--accent2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Delete</button>
-      <button onclick="bulkClearAll()" title="Clear selection" aria-label="Clear selection" style="padding:6px 12px;background:none;border:none;color:var(--text3);font-family:var(--font);font-size:11px;cursor:pointer">✕</button>
+      <button id="bulk-export-btn" onclick="bulkExport()" style="padding:6px 12px;background:var(--accent);border:none;border-radius:8px;color:white;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Export</button>
+      <button id="bulk-delete-btn" onclick="bulkDelete()" style="padding:6px 12px;background:rgba(255,107,107,.15);border:1px solid rgba(255,107,107,.3);border-radius:8px;color:var(--accent2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Delete</button>
     </div>
   </div>
   <div class="cat-row" id="lib-cats"></div>
@@ -21173,6 +21177,11 @@ function renderLibraryWithFolders() {
   // Update count
   var countEl = document.getElementById('lib-count');
   if(countEl) countEl.textContent = filtered.length + ' SOP' + (filtered.length !== 1 ? 's' : '');
+
+  // LIBRARY-BULK-UX: Sync bulk bar state after re-render. Bar is always
+  // visible now; this ensures the "X selected" count and Select All /
+  // Deselect All label match the actual checkboxes in the DOM.
+  try { updateBulkBar(); } catch(_) {}
 }
 
 function getFolderBtnStyle(active) {
@@ -22019,27 +22028,35 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 // ── BULK E───────────────────────────────────────────────────────────────
 function updateBulkBar() {
+  // LIBRARY-BULK-UX: Bar is always visible now. This function updates the
+  // count text, toggles the Select All / Deselect All label, and dims the
+  // Export/Delete buttons when nothing is selected (so users see they need
+  // to pick something first).
   var allChecks = document.querySelectorAll('.lib-bulk-check');
   var checked = document.querySelectorAll('.lib-bulk-check:checked');
   var bar = document.getElementById('bulk-action-bar');
   if(!bar) return;
-  if(checked.length > 0) {
-    bar.style.display = 'flex';
-    var countEl = document.getElementById('bulk-count');
-    if(countEl) countEl.textContent = checked.length + ' selected';
-    // LIBRARY-BULK-UX: Toggle button label based on selection state.
-    // If everything is selected, the button becomes "Deselect All" so users
-    // (especially those with 100s of SOPs) have a one-click escape hatch.
-    // Otherwise it acts as "Select All".
-    var toggleBtn = document.getElementById('bulk-toggle-btn');
-    if(toggleBtn) {
-      toggleBtn.textContent = (checked.length === allChecks.length && allChecks.length > 0)
-        ? 'Deselect All'
-        : 'Select All';
-    }
-  } else {
-    bar.style.display = 'none';
+
+  var countEl = document.getElementById('bulk-count');
+  if(countEl) countEl.textContent = checked.length + ' selected';
+
+  // Toggle button label based on selection state.
+  var toggleBtn = document.getElementById('bulk-toggle-btn');
+  if(toggleBtn) {
+    toggleBtn.textContent = (checked.length === allChecks.length && allChecks.length > 0)
+      ? 'Deselect All'
+      : 'Select All';
   }
+
+  // Dim Export/Delete when nothing is selected — visual signal that an
+  // action requires picking something first. Buttons stay clickable so
+  // the toast feedback ("Select SOPs to export") can still fire and
+  // educate the user.
+  var hasSelection = checked.length > 0;
+  var exportBtn = document.getElementById('bulk-export-btn');
+  var deleteBtn = document.getElementById('bulk-delete-btn');
+  if(exportBtn) exportBtn.style.opacity = hasSelection ? '1' : '0.4';
+  if(deleteBtn) deleteBtn.style.opacity = hasSelection ? '1' : '0.4';
 }
 
 function bulkToggleSelectAll() {
