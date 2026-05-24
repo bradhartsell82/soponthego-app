@@ -2648,6 +2648,11 @@ function initFirebase() {
         var loginEl = document.getElementById('s-login');
         if(loginEl) loginEl.classList.remove('hidden');
         currentScreen = 's-login';
+        // LOGIN-BUTTON-FIX: auth observer can fire on sign-out from another
+        // tab. Reset the button so the user can sign back in here without
+        // a hard refresh. Wrapped in try because the helper might not be
+        // defined yet during very early init.
+        try { resetLoginButtonState(); } catch(e) {}
       }
     });
     return true;
@@ -2792,12 +2797,30 @@ function signOut() {
     try { currentSopTitle = ''; } catch(e) {}
     try { currentUser = null; } catch(e) {}
 
+    // LOGIN-BUTTON-FIX: signInWithEmail disables the email login button while
+    // auth is in flight and re-enables it on auth failure — but NOT on success
+    // (because the user typically navigates away on success). When the user
+    // later signs out and returns to the login screen, the button is still
+    // disabled from that previous successful sign-in. Reset it here.
+    try { resetLoginButtonState(); } catch(e) {}
+
     var screens = document.querySelectorAll('.screen');
     screens.forEach(function(s) { s.classList.add('hidden'); });
     var loginEl = document.getElementById('s-login');
     if(loginEl) loginEl.classList.remove('hidden');
     currentScreen = 's-login';
   });
+}
+
+// LOGIN-BUTTON-FIX: Helper to restore the email login button to its enabled
+// "click me" state. Called from signOut() and from any other path that
+// returns the user to the login screen after they may have left it.
+function resetLoginButtonState() {
+  var btn = document.getElementById('email-login-btn');
+  if(!btn) return;
+  btn.disabled = false;
+  btn.style.opacity = '1';
+  btn.textContent = (typeof authMode !== 'undefined' && authMode === 'signup') ? 'Start free trial' : 'Sign in';
 }
 
 function loadUserPlan() {
