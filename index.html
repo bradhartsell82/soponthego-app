@@ -13856,21 +13856,41 @@ function buildPhotoRowHtmlForPdf(stepContent) {
   // Frame style is the same for all layouts; size varies by layout.
   function buildPhotoFrame(url, size, isLast) {
     var marginRight = isLast ? '0' : (n === 2 ? '12px' : '10px');
-    return '<div style="'
+    // PHOTO-FRAME-FIX: We render the photo as a CSS background-image on the
+    // frame div, not as an <img> with object-fit:cover. Reason: html2canvas
+    // has documented bugs with object-fit inside overflow:hidden parents
+    // (silently renders blank pixels). background-image with background-size:cover
+    // renders reliably in both html2canvas and native browser print.
+    //
+    // We still emit an <img> tag underneath so the data-URL pre-fetch
+    // (PDF-PHOTOS-DATAURL) finds it, fetches the photo, and that image's
+    // src gets used as the background. Trick: the <img> is hidden via
+    // display:none AFTER the pre-fetch swaps its src to a data URL —
+    // but we can't do that here since the pre-fetch happens later. Instead,
+    // we emit the URL directly in background-image AND keep a hidden img
+    // so the pre-fetch can convert it; then we sync the data URL back to
+    // the background-image style at the same time.
+    return '<div class="sotg-photo-frame" data-photo-url="' + esc(url) + '" style="'
       + 'display:inline-block;'
       + 'vertical-align:top;'
       + 'width:' + size + 'px;'
       + 'height:' + size + 'px;'
       + 'border-radius:10px;'
-      + 'overflow:hidden;'
-      + 'background:#fff;'
+      + 'background-color:#fff;'
+      + 'background-image:url(\'' + esc(url) + '\');'
+      + 'background-size:cover;'
+      + 'background-position:center;'
+      + 'background-repeat:no-repeat;'
       + 'border:1px solid #d8d8e8;'
       + 'box-shadow:0 2px 8px rgba(26,26,46,.08), 0 1px 2px rgba(26,26,46,.06);'
       + 'margin-right:' + marginRight + ';'
       + 'margin-bottom:' + (n > 2 ? '10px' : '0') + ';'
       + '">'
+      // Hidden <img> tag so the PDF-PHOTOS-DATAURL pre-fetch finds and
+      // converts this URL. After conversion, we sync the data URL back to
+      // the parent's background-image (handled in generatePdfBlob).
       + '<img src="' + esc(url) + '" crossorigin="anonymous" '
-      +   'style="width:100%;height:100%;object-fit:cover;display:block;border-radius:10px"/>'
+      +   'style="display:none" data-frame-photo="1"/>'
       + '</div>';
   }
 
@@ -14450,6 +14470,17 @@ async function generatePdfBlob() {
           // browsers' canvas-tainting heuristics.
           img.removeAttribute('crossorigin');
           img.src = dataUrl;
+          // PHOTO-FRAME-FIX: For photos inside a .sotg-photo-frame parent,
+          // also sync the data URL into the parent's background-image style.
+          // The frame uses background-image (reliable in html2canvas), not
+          // the <img> tag itself (which has object-fit issues). The hidden
+          // <img> exists only so this pre-fetch loop converts the URL.
+          if(img.getAttribute('data-frame-photo') === '1') {
+            var frame = img.parentElement;
+            if(frame && frame.classList && frame.classList.contains('sotg-photo-frame')) {
+              frame.style.backgroundImage = 'url("' + dataUrl + '")';
+            }
+          }
         } else {
           console.warn('[pdf-photos]   ✗ FAILED to fetch:', src.slice(0, 100));
           photoFailures++;
@@ -14485,6 +14516,15 @@ async function generatePdfBlob() {
         }
       });
     }));
+    // Verify image state right before html2pdf consumes the wrapper.
+    // If src has somehow reverted to the firebase URL, or the image hasn't
+    // decoded, we'll see it here.
+    console.log('[pdf-photos] === Pre-html2canvas verification ===');
+    Array.prototype.forEach.call(imgs, function(img, i) {
+      var src = (img.src || '').slice(0, 60);
+      console.log('[pdf-photos]   img[' + i + ']: complete=' + img.complete + ' naturalW=' + img.naturalWidth + ' naturalH=' + img.naturalHeight + ' offsetW=' + img.offsetWidth + ' offsetH=' + img.offsetHeight + ' src=' + src + '...');
+    });
+
     await new Promise(function(res) {
       requestAnimationFrame(function() {
         requestAnimationFrame(function() { res(); });
