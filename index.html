@@ -500,7 +500,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
          Hidden in sign-in mode (returning users don't need the trial pitch). -->
     <div id="login-valueprop" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(0,214,143,.08);border:1px solid rgba(0,214,143,.25);border-radius:var(--radius-sm);padding:11px 14px;margin-bottom:22px">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00d68f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>
-      <div style="font-size:12.5px;font-weight:700;color:var(--text);text-align:left;line-height:1.4">3 free SOPs &middot; <span style="color:var(--text2);font-weight:600">No credit card &middot; Use forever</span></div>
+      <div style="font-size:12.5px;font-weight:700;color:var(--text);text-align:left;line-height:1.4">3 free SOPs &middot; <span style="color:var(--text2);font-weight:600">No credit card required</span></div>
     </div>
 
     <!-- Error message — appears ABOVE the form so users see it immediately
@@ -525,7 +525,7 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
         style="width:100%;background:var(--input-bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;box-sizing:border-box;margin-bottom:8px">
       <input id="login-password" type="password" placeholder="Create a password" autocomplete="new-password" oninput="validatePasswordLive()" onkeydown="if(event.key==='Enter'){event.preventDefault();signInWithEmail();}"
         style="width:100%;background:var(--input-bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;box-sizing:border-box;margin-bottom:6px">
-      <div id="login-pw-hint" style="display:block;font-size:11px;color:var(--text3);text-align:left;margin-bottom:10px;padding-left:2px">Use at least 6 characters</div>
+      <div id="login-pw-hint" style="display:block;font-size:11px;color:var(--text3);text-align:left;margin-bottom:10px;padding-left:2px">At least 8 characters · 1 number · 1 symbol</div>
       <button id="email-login-btn" onclick="signInWithEmail()" style="width:100%;padding:14px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:white;font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;margin-bottom:14px;box-shadow:0 6px 18px rgba(108,99,255,.32)">
         Start free trial
       </button>
@@ -13875,11 +13875,18 @@ function buildPhotoRowHtmlForPdf(stepContent) {
   }
 
   var photosHtml = '';
+  // SOP-PHOTOS-03: single-photo layout polish. Previously the lone 220px
+  // photo sat left-aligned with a wide swath of empty space to its right —
+  // looked unfinished. Now: centered, slightly larger (260px), wrapped so
+  // the visual weight feels intentional. Multi-photo layouts unchanged.
   if(n === 1) {
-    // ONE PHOTO: hero treatment. Large (220px), prominent.
-    // Real procedure docs show ONE photo big so the user can actually see
-    // what they need to see — not a thumbnail they have to squint at.
-    photosHtml = buildPhotoFrame(photos[0].url, 220, true);
+    // ONE PHOTO: centered hero treatment. Larger frame (260px) anchors the
+    // page visually. A "Reference" caption directly below ties it to the
+    // step it supports — feels like a real document, not a snapshot.
+    photosHtml = '<div style="text-align:center">'
+      + buildPhotoFrame(photos[0].url, 260, true)
+      + '<div style="font-size:10px;color:#9090a8;font-weight:600;letter-spacing:.04em;margin-top:6px;font-style:italic;text-transform:uppercase">Reference</div>'
+      + '</div>';
   } else if(n === 2) {
     // TWO PHOTOS: side-by-side, equal weight. 180px each fits comfortably
     // within a Letter-page printable width (~7.5" minus our margins).
@@ -13901,12 +13908,12 @@ function buildPhotoRowHtmlForPdf(stepContent) {
                + buildPhotoFrame(photos[3].url, 165, true);
   }
 
-  // Optional caption line when there's more than one photo — gives context
-  // without being obtrusive. Skip for single photo (looks cleaner alone).
+  // Caption line for multi-photo layouts. Single photo already has its own
+  // "Reference" caption above (rendered inline with centering); skip here.
   var captionLine = '';
   if(n > 1) {
     captionLine = '<div style="font-size:10px;color:#9090a8;font-weight:600;letter-spacing:.02em;margin-top:4px;font-style:italic">'
-      + esc(String(n) + (n === 1 ? ' reference photo' : ' reference photos'))
+      + esc(String(n) + ' reference photos')
       + '</div>';
   }
 
@@ -14014,15 +14021,47 @@ function buildPrintableSopHtml() {
   // Section headers get purple uppercase styling. Numbered steps get a
   // gradient purple circle with the number inside. Checklist items get an
   // empty box (for pen-tick on printed copies).
+  //
+  // SOP-FMT-09: Compliance sections get a distinct tinted callout treatment.
+  // Compliance is the headline trust signal for SOPONTHEGO (audit-ready
+  // language, FTC/OSHA/etc. citations) — visual emphasis reinforces that
+  // value. Wrap the section header and all its items in a soft amber-tinted
+  // box with a shield icon, then close the wrapper when the next section
+  // starts. Tracked with inComplianceBlock state.
   var stepsHtml = '<div style="padding:18px 24px">';
   var stepNum = 0;
+  var inComplianceBlock = false;
+  function closeComplianceBlockIfOpen() {
+    if(inComplianceBlock) {
+      stepsHtml += '</div>'; // close the inner content wrapper
+      stepsHtml += '</div>'; // close the outer callout
+      inComplianceBlock = false;
+    }
+  }
   steps.forEach(function(s) {
     if(s.type === 'section') {
-      // Section header — purple, uppercase, with underline accent
-      stepsHtml += '<div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#5a51e0;padding:18px 0 6px;border-bottom:2px solid rgba(108,99,255,.2);margin-bottom:10px">'
-        + esc(s.title)
-        + '</div>';
+      // Close any open compliance block before starting a new section
+      closeComplianceBlockIfOpen();
       stepNum = 0; // reset numbering per section
+      var titleLower = (s.title || '').toLowerCase().trim();
+      var isCompliance = (titleLower === 'compliance' || titleLower === 'regulatory compliance' || titleLower === 'compliance & regulations');
+      if(isCompliance) {
+        // Open the callout container. Amber-tinted background, left accent
+        // bar, shield icon in header — visually distinct from regular sections
+        // so the audit-ready language carries weight.
+        stepsHtml += '<div style="margin:18px 0 6px;background:linear-gradient(135deg,rgba(245,158,11,.06),rgba(245,158,11,.02));border:1px solid rgba(245,158,11,.25);border-left:4px solid #f59e0b;border-radius:10px;padding:14px 18px 16px;page-break-inside:avoid">';
+        stepsHtml += '<div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#92400e;padding-bottom:8px;border-bottom:1.5px solid rgba(245,158,11,.2);margin-bottom:10px">'
+          + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'
+          + esc(s.title)
+          + '</div>';
+        stepsHtml += '<div>'; // inner content wrapper
+        inComplianceBlock = true;
+      } else {
+        // Standard section header — purple, uppercase, with underline accent
+        stepsHtml += '<div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#5a51e0;padding:18px 0 6px;border-bottom:2px solid rgba(108,99,255,.2);margin-bottom:10px">'
+          + esc(s.title)
+          + '</div>';
+      }
     } else if(s.type === 'table') {
       // Render table inside its own container
       stepsHtml += '<div style="margin:10px 0">' + renderMarkdownTable(s.lines) + '</div>';
@@ -14041,9 +14080,12 @@ function buildPrintableSopHtml() {
       // Definition, etc.). Renders with a small purple bullet dot in the same
       // visual lane as the numbered circle — keeps alignment consistent — but
       // is unambiguously NOT a numbered procedural step.
-      stepsHtml += '<div style="display:flex;gap:12px;padding:7px 0;border-bottom:1px solid #f0f0f6">'
+      // Inside compliance block: use amber bullet to match the callout palette.
+      var bulletColor = inComplianceBlock ? '#f59e0b' : '#5a51e0';
+      var bulletBorder = inComplianceBlock ? '#fcd9aa' : '#f0f0f6';
+      stepsHtml += '<div style="display:flex;gap:12px;padding:7px 0;border-bottom:1px solid ' + bulletBorder + '">'
         + '<div style="width:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">'
-        +   '<div style="width:7px;height:7px;border-radius:50%;background:#5a51e0"></div>'
+        +   '<div style="width:7px;height:7px;border-radius:50%;background:' + bulletColor + '"></div>'
         + '</div>'
         + '<div style="flex:1;font-size:13px;color:#1a1a2e;line-height:1.65">' + renderMarkdownInline(s.content) + '</div>'
         + '</div>';
@@ -14075,6 +14117,9 @@ function buildPrintableSopHtml() {
         isCallout = true;
       }
 
+      // Choose item-divider color so it harmonizes with whichever block we're in.
+      var itemBorder = inComplianceBlock ? '#fcd9aa' : '#f0f0f6';
+
       if(isIntroLine) {
         stepsHtml += '<div style="padding:8px 0 4px;font-size:13px;color:#1a1a2e;font-weight:600;margin-left:38px">'
           + renderMarkdownInline(content)
@@ -14083,7 +14128,7 @@ function buildPrintableSopHtml() {
         // Labeled callout — bold label, content follows. No number.
         // Indented to align with where numbered step content sits, so the
         // visual rhythm of the page stays consistent.
-        stepsHtml += '<div style="padding:9px 0;border-bottom:1px solid #f0f0f6;margin-left:38px">'
+        stepsHtml += '<div style="padding:9px 0;border-bottom:1px solid ' + itemBorder + ';margin-left:38px">'
           + '<div style="font-size:13px;color:#1a1a2e;line-height:1.65">'
           +   '<strong>' + esc(calloutLabel) + ':</strong> '
           +   renderMarkdownInline(calloutBody)
@@ -14091,14 +14136,20 @@ function buildPrintableSopHtml() {
           + '</div>';
       } else {
         stepNum++;
-        stepsHtml += '<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #f0f0f6">'
-          + '<div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#5a51e0,#9b59b6);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;margin-top:1px">' + stepNum + '</div>'
+        // Inside compliance block: amber gradient number circle to match palette.
+        var numBg = inComplianceBlock
+          ? 'linear-gradient(135deg,#f59e0b,#d97706)'
+          : 'linear-gradient(135deg,#5a51e0,#9b59b6)';
+        stepsHtml += '<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid ' + itemBorder + '">'
+          + '<div style="width:26px;height:26px;border-radius:50%;background:' + numBg + ';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;margin-top:1px">' + stepNum + '</div>'
           + '<div style="flex:1;font-size:13px;color:#1a1a2e;line-height:1.65">' + renderMarkdownInline(content) + '</div>'
           + '</div>';
         stepsHtml += buildPhotoRowHtmlForPdf(s.content);
       }
     }
   });
+  // Close any open compliance block at end of document
+  closeComplianceBlockIfOpen();
   stepsHtml += '</div>';
 
   // ── FOOTER ── thin separator + document ID + version
@@ -14531,10 +14582,15 @@ function removePhotoFromStep(stepContent, photoUrl) {
 // Persist the current photo map back to the library entry. Library SOPs
 // store photoMap alongside content. Called after every add/remove so the
 // state survives page refresh and cross-device sync.
+//
+// FIX: previously, if the SOP wasn't yet saved to library (e.g. user just
+// generated it and immediately tapped Add Photo), this function silently
+// returned with matchIdx === -1, and the photoMap was lost on refresh.
+// Now we auto-save the SOP to library on the fly so the user's work is
+// never silently dropped.
 function persistPhotoMapToLibrary() {
   try {
     var hist = JSON.parse(localStorage.getItem(getLibStorageKey()) || '[]');
-    if(!hist.length) return;
     // Update the most recent entry (the one currently being viewed)
     // by matching on title. If user is editing a non-top entry (came from
     // library), match by docId.
@@ -14545,7 +14601,40 @@ function persistPhotoMapToLibrary() {
     if(matchIdx === -1 && currentSopTitle) {
       matchIdx = hist.findIndex(function(h) { return h.title === currentSopTitle; });
     }
-    if(matchIdx === -1) return;
+    // PHOTO-SAVE-FIX: no library entry yet — auto-save the SOP first so we
+    // have somewhere to attach the photoMap. Without this, photos uploaded
+    // to a fresh-generated SOP would be lost on refresh (silent data loss).
+    if(matchIdx === -1) {
+      if(!currentSopTitle || !generatedText) {
+        // Nothing meaningful to save yet — defer; will retry on next photo
+        // add or when the SOP itself is saved.
+        console.warn('[photo] no SOP context yet, deferring photoMap persist');
+        return;
+      }
+      try {
+        // Use the existing saveToLib path so plan limits, dedup, cloud sync
+        // all behave consistently. saveToLib unshifts the new entry at index 0.
+        saveToLib(currentSopTitle, generatedText, currentSopCat || (wiz && wiz.cat) || 'General');
+        // Re-read the freshly saved entry — it should now be at index 0.
+        hist = JSON.parse(localStorage.getItem(getLibStorageKey()) || '[]');
+        if(currentDocId) {
+          matchIdx = hist.findIndex(function(h) { return h.docId === currentDocId; });
+        }
+        if(matchIdx === -1 && currentSopTitle) {
+          matchIdx = hist.findIndex(function(h) { return h.title === currentSopTitle; });
+        }
+        if(matchIdx === -1) {
+          // Still no match — saveToLib may have hit a plan-limit guard.
+          // Don't crash the photo flow; log and bail.
+          console.warn('[photo] auto-save to library failed (plan limit?); photoMap not persisted');
+          return;
+        }
+        showToast('SOP saved to library ✓');
+      } catch(saveErr) {
+        console.warn('[photo] auto-save threw:', saveErr);
+        return;
+      }
+    }
     hist[matchIdx].photoMap = currentSopPhotoMap;
     localStorage.setItem(getLibStorageKey(), JSON.stringify(hist));
     allHistory = hist;
@@ -19937,7 +20026,6 @@ function generateAckLink(ackId) {
     }
     showToast('Acknowledgment page downloaded ✓');
   } catch(e) {
-    // Log the real error to console so future debugging isn't blind.
     console.error('[ack] generateAckLink failed:', e);
     showToast('Error generating acknowledgment');
   }
@@ -20800,51 +20888,25 @@ function buildProfessionalDocumentHtml() {
 }
 
 function doPrintFromPreview() {
-  // SOP-PDF-01: On mobile, opening a new window for print preview trapped
-  // users — no obvious way back to the app. Instead, generate a real PDF
-  // file directly using html2pdf. Desktop keeps the new-window flow since
-  // tab switching is obvious there.
-  var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  if(isMobile) {
-    // Close the print preview modal if it's open, then generate PDF
-    try { closeModal('m-print-preview'); } catch(_) {}
-    try { generateAndDownloadPdf(); } catch(e) {
-      console.error('[print] PDF gen failed:', e);
-      showToast('Could not generate PDF. Please try again.');
-    }
-    return;
+  // SOP-PDF-04: Unified PDF path. Previously, mobile used html2pdf
+  // (generateAndDownloadPdf) and desktop opened a new window calling
+  // window.print() — but the desktop path produced PDFs with browser-
+  // injected headers ("5/24/26, 9:35 AM Tik Toks Review") and footers
+  // ("about:blank 1/3") that no CSS can suppress. Those headers are
+  // a browser-print-engine artifact that users had to manually disable
+  // in the print dialog, which they never did.
+  //
+  // The fix: route BOTH platforms through generateAndDownloadPdf, which
+  // uses html2pdf to render a clean PDF blob with no browser chrome.
+  // Photo layouts, fonts, gradient headers — all preserved because we
+  // use the same buildPrintableSopHtml builder.
+  try { closeModal('m-print-preview'); } catch(_) {}
+  try {
+    generateAndDownloadPdf();
+  } catch(e) {
+    console.error('[print] PDF gen failed:', e);
+    showToast('Could not generate PDF. Please try again.');
   }
-  // Desktop path — original behavior
-  var previewBody = document.getElementById('print-preview-body');
-  if(!previewBody) return;
-  var win = window.open('','_blank');
-  if(!win) {
-    showToast('Please allow pop-ups for SOPONTHEGO so we can open the print view');
-    return;
-  }
-  win.document.write('<html><head><title>' + (wiz.title||'SOP') + '</title>'
-    + '<style>body{margin:0;font-family:Georgia,serif}@media print{body{margin:0}}</style>'
-    + '</head><body>' + previewBody.innerHTML + '</body></html>');
-  win.document.close();
-  win.focus();
-  // Wait for images (logos, etc.) to actually load before opening the print
-  // dialog — otherwise the logo can be blank on the printed page.
-  var doPrintNow = function() {
-    try { win.print(); } catch(e) { showToast('Print dialog blocked — check pop-up settings'); }
-  };
-  var imgs = win.document.images || [];
-  if(!imgs.length) {
-    setTimeout(doPrintNow, 250);
-    return;
-  }
-  var pending = imgs.length;
-  var done = function() { pending--; if(pending <= 0) doPrintNow(); };
-  Array.prototype.forEach.call(imgs, function(img) {
-    if(img.complete) done();
-    else { img.onload = done; img.onerror = done; }
-  });
-  // Hard safety: print after 1.5s no matter what
-  setTimeout(doPrintNow, 1500);
 }
 
 
