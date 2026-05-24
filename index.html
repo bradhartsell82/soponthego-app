@@ -13900,20 +13900,18 @@ function buildPhotoRowHtmlForPdf(stepContent) {
   // at 140, 4-photo at 165. That variation felt inconsistent — same SOP
   // could have wildly different photo sizes depending on which step you
   // looked at. Now every photo is 150px regardless of how many in a step;
-  // the only thing that changes is layout (centered / row / grid).
+  // the only thing that changes is layout.
   //
-  // This reinforces "SOP document with reference photos" over "photo album":
-  // photos support the text, they aren't the main event. Visual consistency
-  // also makes page-break behavior more predictable.
+  // SOP-PHOTOS-05: All photo layouts now LEFT-ALIGNED. Single photos used
+  // to be centered with a "REFERENCE" caption, but that read as decorative
+  // (magazine-style centerpiece) rather than functional (reference material
+  // attached to a step). Multi-photo layouts were already left-aligned, so
+  // making single photos match unifies the document's visual rhythm.
   var SIZE = 150;
   if(n === 1) {
-    // ONE PHOTO: centered, with "REFERENCE" caption below to tie it to
-    // the step. Centering avoids the awkward empty-right-side that
-    // left-alignment used to produce.
-    photosHtml = '<div style="text-align:center">'
-      + buildPhotoFrame(photos[0].url, SIZE, true)
-      + '<div style="font-size:10px;color:#9090a8;font-weight:600;letter-spacing:.04em;margin-top:6px;font-style:italic;text-transform:uppercase">Reference</div>'
-      + '</div>';
+    // ONE PHOTO: left-aligned, no caption needed (single photo doesn't
+    // need a count label, and "REFERENCE" felt redundant).
+    photosHtml = buildPhotoFrame(photos[0].url, SIZE, true);
   } else if(n === 2) {
     // TWO PHOTOS: side-by-side row.
     photosHtml = buildPhotoFrame(photos[0].url, SIZE, false)
@@ -14411,13 +14409,7 @@ async function generatePdfBlob() {
   // (one fetch per image, parallel).
   await new Promise(function(res) { requestAnimationFrame(function() { setTimeout(res, 100); }); });
   var imgs = wrapper.querySelectorAll('img');
-  console.log('[pdf-photos] DATAURL path running. Found', imgs.length, 'image(s) in wrapper');
   if(imgs.length) {
-    // List all the image URLs so we know exactly what we're working with
-    Array.prototype.forEach.call(imgs, function(img, i) {
-      var src = (img.getAttribute('src') || '').slice(0, 100);
-      console.log('[pdf-photos]   img[' + i + '] src=' + src + (img.getAttribute('src').length > 100 ? '...' : ''));
-    });
     // Helper: fetch an image URL, return a base64 data URL Promise.
     // On any failure (network, CORS, timeout) resolves to null so the
     // caller can decide what to do (we abort the PDF, see below).
@@ -14458,13 +14450,9 @@ async function generatePdfBlob() {
       // Skip data: URLs (already inline) and same-origin URLs (no taint risk).
       var needsConversion = /^https?:\/\//i.test(src)
         && !src.startsWith(location.origin);
-      if(!needsConversion) {
-        console.log('[pdf-photos]   skip (not remote http):', src.slice(0, 80));
-        return Promise.resolve();
-      }
+      if(!needsConversion) return Promise.resolve();
       return urlToDataUrl(src).then(function(dataUrl) {
         if(dataUrl) {
-          console.log('[pdf-photos]   ✓ inlined image (' + Math.round(dataUrl.length/1024) + 'KB data URL)');
           // Remove crossorigin attribute since we're now using a data URL —
           // crossorigin on a data: src is meaningless and can confuse some
           // browsers' canvas-tainting heuristics.
@@ -14482,7 +14470,7 @@ async function generatePdfBlob() {
             }
           }
         } else {
-          console.warn('[pdf-photos]   ✗ FAILED to fetch:', src.slice(0, 100));
+          console.warn('[pdf-photos] failed to fetch image:', src.slice(0, 100));
           photoFailures++;
         }
       });
@@ -14516,15 +14504,6 @@ async function generatePdfBlob() {
         }
       });
     }));
-    // Verify image state right before html2pdf consumes the wrapper.
-    // If src has somehow reverted to the firebase URL, or the image hasn't
-    // decoded, we'll see it here.
-    console.log('[pdf-photos] === Pre-html2canvas verification ===');
-    Array.prototype.forEach.call(imgs, function(img, i) {
-      var src = (img.src || '').slice(0, 60);
-      console.log('[pdf-photos]   img[' + i + ']: complete=' + img.complete + ' naturalW=' + img.naturalWidth + ' naturalH=' + img.naturalHeight + ' offsetW=' + img.offsetWidth + ' offsetH=' + img.offsetHeight + ' src=' + src + '...');
-    });
-
     await new Promise(function(res) {
       requestAnimationFrame(function() {
         requestAnimationFrame(function() { res(); });
