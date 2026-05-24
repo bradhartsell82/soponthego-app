@@ -13875,37 +13875,43 @@ function buildPhotoRowHtmlForPdf(stepContent) {
   }
 
   var photosHtml = '';
-  // SOP-PHOTOS-03: single-photo layout polish. Previously the lone 220px
-  // photo sat left-aligned with a wide swath of empty space to its right —
-  // looked unfinished. Now: centered, slightly larger (260px), wrapped so
-  // the visual weight feels intentional. Multi-photo layouts unchanged.
+  // SOP-PHOTOS-04: Uniform photo size (150px) across all layouts.
+  // Previously single photos were larger (260→200), 2-photo at 180, 3-photo
+  // at 140, 4-photo at 165. That variation felt inconsistent — same SOP
+  // could have wildly different photo sizes depending on which step you
+  // looked at. Now every photo is 150px regardless of how many in a step;
+  // the only thing that changes is layout (centered / row / grid).
+  //
+  // This reinforces "SOP document with reference photos" over "photo album":
+  // photos support the text, they aren't the main event. Visual consistency
+  // also makes page-break behavior more predictable.
+  var SIZE = 150;
   if(n === 1) {
-    // ONE PHOTO: centered hero treatment. Larger frame (260px) anchors the
-    // page visually. A "Reference" caption directly below ties it to the
-    // step it supports — feels like a real document, not a snapshot.
+    // ONE PHOTO: centered, with "REFERENCE" caption below to tie it to
+    // the step. Centering avoids the awkward empty-right-side that
+    // left-alignment used to produce.
     photosHtml = '<div style="text-align:center">'
-      + buildPhotoFrame(photos[0].url, 260, true)
+      + buildPhotoFrame(photos[0].url, SIZE, true)
       + '<div style="font-size:10px;color:#9090a8;font-weight:600;letter-spacing:.04em;margin-top:6px;font-style:italic;text-transform:uppercase">Reference</div>'
       + '</div>';
   } else if(n === 2) {
-    // TWO PHOTOS: side-by-side, equal weight. 180px each fits comfortably
-    // within a Letter-page printable width (~7.5" minus our margins).
-    photosHtml = buildPhotoFrame(photos[0].url, 180, false)
-               + buildPhotoFrame(photos[1].url, 180, true);
+    // TWO PHOTOS: side-by-side row.
+    photosHtml = buildPhotoFrame(photos[0].url, SIZE, false)
+               + buildPhotoFrame(photos[1].url, SIZE, true);
   } else if(n === 3) {
-    // THREE PHOTOS: row of 3, slightly smaller. Maintains horizontal
-    // composition (matches how documents typically show "before/during/after").
-    photosHtml = buildPhotoFrame(photos[0].url, 140, false)
-               + buildPhotoFrame(photos[1].url, 140, false)
-               + buildPhotoFrame(photos[2].url, 140, true);
+    // THREE PHOTOS: row of 3. Maintains horizontal composition
+    // (matches "before/during/after" document conventions).
+    photosHtml = buildPhotoFrame(photos[0].url, SIZE, false)
+               + buildPhotoFrame(photos[1].url, SIZE, false)
+               + buildPhotoFrame(photos[2].url, SIZE, true);
   } else {
-    // FOUR PHOTOS: 2×2 grid. 165px each. The break between rows happens
-    // naturally because margin-bottom is added when n > 2.
-    photosHtml = buildPhotoFrame(photos[0].url, 165, false)
-               + buildPhotoFrame(photos[1].url, 165, true)
+    // FOUR PHOTOS: 2×2 grid. <br> creates the row break; margin-bottom
+    // on the photo frames handles vertical spacing between rows.
+    photosHtml = buildPhotoFrame(photos[0].url, SIZE, false)
+               + buildPhotoFrame(photos[1].url, SIZE, true)
                + '<br>'
-               + buildPhotoFrame(photos[2].url, 165, false)
-               + buildPhotoFrame(photos[3].url, 165, true);
+               + buildPhotoFrame(photos[2].url, SIZE, false)
+               + buildPhotoFrame(photos[3].url, SIZE, true);
   }
 
   // Caption line for multi-photo layouts. Single photo already has its own
@@ -14366,19 +14372,113 @@ async function generatePdfBlob() {
   wrapper.innerHTML = inner;
   document.body.appendChild(wrapper);
 
-  // Wait for layout + image loading
+  // Wait for layout + image loading.
+  //
+  // PDF-PHOTOS-DATAURL: Pre-fetch each Firebase Storage image, convert to a
+  // base64 data URL, and inline-replace its src BEFORE html2canvas runs.
+  //
+  // Why: the previous img.decode() + crossorigin approach captured blank
+  // rectangles in the PDF even though no console errors fired. The root
+  // cause is html2canvas treating Firebase Storage download URLs as
+  // cross-origin tainted at canvas-render time, silently producing blank
+  // pixels. CORS config on the bucket helps for plain GETs but doesn't
+  // always cover the token-bearing ?alt=media&token=... URLs that
+  // getDownloadURL() returns.
+  //
+  // The data-URL approach is bulletproof: once an image is `data:image/...`,
+  // the canvas sees inline bytes — no cross-origin check, no taint, no
+  // race condition. Cost is ~2-3 seconds of extra time on PDFs with photos
+  // (one fetch per image, parallel).
   await new Promise(function(res) { requestAnimationFrame(function() { setTimeout(res, 100); }); });
   var imgs = wrapper.querySelectorAll('img');
   if(imgs.length) {
+    // Helper: fetch an image URL, return a base64 data URL Promise.
+    // On any failure (network, CORS, timeout) resolves to null so the
+    // caller can decide what to do (we abort the PDF, see below).
+    function urlToDataUrl(url) {
+      return new Promise(function(resolve) {
+        var settled = false;
+        var done = function(v) { if(!settled) { settled = true; resolve(v); } };
+        // 8-second cap per image. Most photos fetch in under 1s; the cap
+        // exists to bound the worst case on spotty connections rather than
+        // to catch the typical case.
+        setTimeout(function() { done(null); }, 8000);
+        try {
+          fetch(url, { mode: 'cors', credentials: 'omit' })
+            .then(function(r) {
+              if(!r.ok) { done(null); return; }
+              return r.blob();
+            })
+            .then(function(blob) {
+              if(!blob) { done(null); return; }
+              var reader = new FileReader();
+              reader.onload = function() { done(reader.result); };
+              reader.onerror = function() { done(null); };
+              reader.readAsDataURL(blob);
+            })
+            .catch(function() { done(null); });
+        } catch(e) { done(null); }
+      });
+    }
+
+    // Run all fetches in parallel for speed. Track failures so we can
+    // abort the whole PDF if any photo didn't load — better to fail loudly
+    // and let the user retry than to ship a PDF with blank rectangles
+    // they might not notice before sharing it with their team.
+    var photoFailures = 0;
     await Promise.all(Array.prototype.map.call(imgs, function(img) {
-      if(img.complete) return Promise.resolve();
-      return new Promise(function(res) {
-        var done = function() { res(); };
-        img.onload = done;
-        img.onerror = done;
-        setTimeout(done, 2000);
+      var src = img.getAttribute('src') || '';
+      // Only convert remote URLs that html2canvas tends to choke on.
+      // Skip data: URLs (already inline) and same-origin URLs (no taint risk).
+      var needsConversion = /^https?:\/\//i.test(src)
+        && !src.startsWith(location.origin);
+      if(!needsConversion) return Promise.resolve();
+      return urlToDataUrl(src).then(function(dataUrl) {
+        if(dataUrl) {
+          // Remove crossorigin attribute since we're now using a data URL —
+          // crossorigin on a data: src is meaningless and can confuse some
+          // browsers' canvas-tainting heuristics.
+          img.removeAttribute('crossorigin');
+          img.src = dataUrl;
+        } else {
+          photoFailures++;
+        }
       });
     }));
+
+    // If ANY photo failed to inline, abort the PDF rather than ship one
+    // with blank rectangles. Clean up the wrapper and overlay, then throw
+    // an error that the caller (generateAndDownloadPdf / doPrintFromPreview)
+    // shows as a user-facing toast.
+    if(photoFailures > 0) {
+      try { document.body.removeChild(wrapper); } catch(_) {}
+      try { document.body.removeChild(overlay); } catch(_) {}
+      throw new Error('Could not load ' + photoFailures + ' photo' + (photoFailures > 1 ? 's' : '') + '. Please check your connection and try again.');
+    }
+
+    // After replacing srcs, wait for the (now inline) images to actually
+    // be ready in the DOM. img.decode() resolves only after the image is
+    // decoded and ready to paint. Two animation frames let the browser
+    // commit paint before html2canvas walks the tree.
+    await Promise.all(Array.prototype.map.call(imgs, function(img) {
+      return new Promise(function(res) {
+        var settled = false;
+        var done = function() { if(!settled) { settled = true; res(); } };
+        setTimeout(done, 2000);
+        if(typeof img.decode === 'function') {
+          img.decode().then(done).catch(done);
+        } else {
+          if(img.complete && img.naturalWidth > 0) { done(); return; }
+          img.onload = done;
+          img.onerror = done;
+        }
+      });
+    }));
+    await new Promise(function(res) {
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() { res(); });
+      });
+    });
   }
 
   try {
