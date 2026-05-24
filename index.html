@@ -1819,10 +1819,10 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
   <div id="bulk-action-bar" style="display:none;padding:8px 16px;background:var(--surface2);border-bottom:1px solid var(--border);align-items:center;justify-content:space-between;gap:8px">
     <span id="bulk-count" style="font-size:13px;font-weight:700;color:var(--text)">0 selected</span>
     <div style="display:flex;gap:6px">
-      <button onclick="bulkSelectAll()" style="padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Select All</button>
+      <button id="bulk-toggle-btn" onclick="bulkToggleSelectAll()" style="padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Select All</button>
       <button onclick="bulkExport()" style="padding:6px 12px;background:var(--accent);border:none;border-radius:8px;color:white;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Export</button>
       <button onclick="bulkDelete()" style="padding:6px 12px;background:rgba(255,107,107,.15);border:1px solid rgba(255,107,107,.3);border-radius:8px;color:var(--accent2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Delete</button>
-      <button onclick="bulkClearAll()" style="padding:6px 12px;background:none;border:none;color:var(--text3);font-family:var(--font);font-size:11px;cursor:pointer">✕</button>
+      <button onclick="bulkClearAll()" title="Clear selection" aria-label="Clear selection" style="padding:6px 12px;background:none;border:none;color:var(--text3);font-family:var(--font);font-size:11px;cursor:pointer">✕</button>
     </div>
   </div>
   <div class="cat-row" id="lib-cats"></div>
@@ -22019,19 +22019,44 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 // ── BULK E───────────────────────────────────────────────────────────────
 function updateBulkBar() {
-  var checks = document.querySelectorAll('.lib-bulk-check:checked');
+  var allChecks = document.querySelectorAll('.lib-bulk-check');
+  var checked = document.querySelectorAll('.lib-bulk-check:checked');
   var bar = document.getElementById('bulk-action-bar');
   if(!bar) return;
-  if(checks.length > 0) {
+  if(checked.length > 0) {
     bar.style.display = 'flex';
     var countEl = document.getElementById('bulk-count');
-    if(countEl) countEl.textContent = checks.length + ' selected';
+    if(countEl) countEl.textContent = checked.length + ' selected';
+    // LIBRARY-BULK-UX: Toggle button label based on selection state.
+    // If everything is selected, the button becomes "Deselect All" so users
+    // (especially those with 100s of SOPs) have a one-click escape hatch.
+    // Otherwise it acts as "Select All".
+    var toggleBtn = document.getElementById('bulk-toggle-btn');
+    if(toggleBtn) {
+      toggleBtn.textContent = (checked.length === allChecks.length && allChecks.length > 0)
+        ? 'Deselect All'
+        : 'Select All';
+    }
   } else {
     bar.style.display = 'none';
   }
 }
 
+function bulkToggleSelectAll() {
+  // LIBRARY-BULK-UX: Single button that selects all OR clears all based on
+  // current state. If everything is already selected, this clears. Otherwise
+  // it selects everything. Prevents the trap where a user accidentally hits
+  // "Select All" on a 100+ SOP library and then has to find an unselect button.
+  var allChecks = document.querySelectorAll('.lib-bulk-check');
+  var checked = document.querySelectorAll('.lib-bulk-check:checked');
+  var everythingSelected = (checked.length === allChecks.length && allChecks.length > 0);
+  allChecks.forEach(function(c){ c.checked = !everythingSelected; });
+  updateBulkBar();
+}
+
 function bulkSelectAll() {
+  // Kept for backward compatibility — any older code path calling this still
+  // works. New UI uses bulkToggleSelectAll for smarter UX.
   document.querySelectorAll('.lib-bulk-check').forEach(function(c){ c.checked = true; });
   updateBulkBar();
 }
