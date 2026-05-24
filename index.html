@@ -2815,12 +2815,31 @@ function signOut() {
 // LOGIN-BUTTON-FIX: Helper to restore the email login button to its enabled
 // "click me" state. Called from signOut() and from any other path that
 // returns the user to the login screen after they may have left it.
+//
+// SECURITY: Also clears the email + password fields so a previous user's
+// credentials don't sit on screen for the next person (public computer,
+// shared mobile, family device, etc.). Browser autofill may still re-fill
+// the email afterwards, but that's the OS/browser's decision, not ours.
 function resetLoginButtonState() {
   var btn = document.getElementById('email-login-btn');
-  if(!btn) return;
-  btn.disabled = false;
-  btn.style.opacity = '1';
-  btn.textContent = (typeof authMode !== 'undefined' && authMode === 'signup') ? 'Start free trial' : 'Sign in';
+  if(btn) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.textContent = (typeof authMode !== 'undefined' && authMode === 'signup') ? 'Start free trial' : 'Sign in';
+  }
+  // Clear sensitive form fields on logout — security for shared devices.
+  var emailEl = document.getElementById('login-email');
+  if(emailEl) emailEl.value = '';
+  var pwEl = document.getElementById('login-password');
+  if(pwEl) {
+    pwEl.value = '';
+    pwEl.style.borderColor = 'var(--border)'; // reset any validation styling
+  }
+  // Clear any lingering auth error message from a previous attempt.
+  var errEl = document.getElementById('login-error');
+  if(errEl) errEl.style.display = 'none';
+  // Reset the password hint to its default text/state.
+  try { validatePasswordLive(); } catch(e) {}
 }
 
 function loadUserPlan() {
