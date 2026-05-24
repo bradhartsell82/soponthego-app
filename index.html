@@ -14084,7 +14084,7 @@ function buildPrintableSopHtml() {
       var bulletColor = inComplianceBlock ? '#f59e0b' : '#5a51e0';
       var bulletBorder = inComplianceBlock ? '#fcd9aa' : '#f0f0f6';
       stepsHtml += '<div style="display:flex;gap:12px;padding:7px 0;border-bottom:1px solid ' + bulletBorder + '">'
-        + '<div style="width:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">'
+        + '<div style="width:26px;display:flex;align-items:flex-start;justify-content:center;flex-shrink:0;padding-top:8px">'
         +   '<div style="width:7px;height:7px;border-radius:50%;background:' + bulletColor + '"></div>'
         + '</div>'
         + '<div style="flex:1;font-size:13px;color:#1a1a2e;line-height:1.65">' + renderMarkdownInline(s.content) + '</div>'
@@ -14134,6 +14134,10 @@ function buildPrintableSopHtml() {
           +   renderMarkdownInline(calloutBody)
           + '</div>'
           + '</div>';
+        // Photos attached to a labeled callout step (e.g. user added a photo
+        // to the "Purpose:" or "Responsible:" line). Without this, callout
+        // steps silently dropped their photos from the PDF.
+        stepsHtml += buildPhotoRowHtmlForPdf(s.content);
       } else {
         stepNum++;
         // Inside compliance block: amber gradient number circle to match palette.
