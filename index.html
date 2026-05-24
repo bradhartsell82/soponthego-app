@@ -2541,7 +2541,8 @@ select.text-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
 var firebaseConfig = {
   apiKey: "AIzaSyC-wyMhbd3w2Rsg20PiMa9nfEziOa0cZV0",
   authDomain: "soponthego.firebaseapp.com",
-  projectId: "soponthego"
+  projectId: "soponthego",
+  storageBucket: "soponthego.firebasestorage.app"
 };
 
 var firebaseApp = null;
@@ -19975,6 +19976,88 @@ function buildAckPage(ack, recipients, message) {
   const profile = loadProfile ? loadProfile() : {};
   const contentLines = (ack.content || '').split('\n').filter(l => l.trim());
 
+  // Convert the SOP's Markdown to HTML so recipients see proper headers,
+  // bold text, lists, and horizontal rules instead of raw `##` and `**`.
+  // Intentionally small/inline — SOP markdown is a limited subset, no need
+  // for a full library like marked.js. Handles: # headers, **bold**,
+  // *italic*, bullet/numbered lists, --- separators, paragraphs.
+  function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function mdToHtml(md) {
+    if (!md) return '<p>SOP content not included.</p>';
+    var lines = md.split('\n');
+    var html = [];
+    var inList = null; // 'ul' | 'ol' | null
+    function closeList() {
+      if (inList) { html.push('</' + inList + '>'); inList = null; }
+    }
+    function inlineFormat(s) {
+      // Escape HTML first, then apply inline markdown. Order matters:
+      // bold (**) before italic (*) so **foo** isn't misread as italic.
+      s = escapeHtml(s);
+      s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      s = s.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+      s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+      return s;
+    }
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      var trimmed = line.trim();
+      // Blank line — peek ahead. If the next non-blank line continues the
+      // same list type, keep the current list open (so "1.\n\n2." renders
+      // as one ordered list rather than two restarting at 1).
+      if (!trimmed) {
+        if (inList) {
+          var continues = false;
+          for (var j = i + 1; j < lines.length; j++) {
+            var peek = lines[j].trim();
+            if (!peek) continue;
+            if (inList === 'ol' && /^\d+\.\s+/.test(peek)) continues = true;
+            else if (inList === 'ul' && /^[-*+]\s+/.test(peek)) continues = true;
+            break;
+          }
+          if (!continues) closeList();
+        }
+        continue;
+      }
+      // Horizontal rule
+      if (/^---+$/.test(trimmed) || /^\*\*\*+$/.test(trimmed)) {
+        closeList();
+        html.push('<hr>');
+        continue;
+      }
+      // Headers (# through ######)
+      var hMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
+      if (hMatch) {
+        closeList();
+        var level = hMatch[1].length;
+        html.push('<h' + level + '>' + inlineFormat(hMatch[2]) + '</h' + level + '>');
+        continue;
+      }
+      // Numbered list item
+      var olMatch = trimmed.match(/^\d+\.\s+(.+)$/);
+      if (olMatch) {
+        if (inList !== 'ol') { closeList(); html.push('<ol>'); inList = 'ol'; }
+        html.push('<li>' + inlineFormat(olMatch[1]) + '</li>');
+        continue;
+      }
+      // Bullet list item
+      var ulMatch = trimmed.match(/^[-*+]\s+(.+)$/);
+      if (ulMatch) {
+        if (inList !== 'ul') { closeList(); html.push('<ul>'); inList = 'ul'; }
+        html.push('<li>' + inlineFormat(ulMatch[1]) + '</li>');
+        continue;
+      }
+      // Plain paragraph
+      closeList();
+      html.push('<p>' + inlineFormat(trimmed) + '</p>');
+    }
+    closeList();
+    return html.join('\n');
+  }
+  var renderedContent = mdToHtml(ack.content);
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19994,7 +20077,16 @@ function buildAckPage(ack, recipients, message) {
   .meta { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; }
   .meta-item { font-size: 13px; color: #666; }
   .meta-item strong { color: #333; display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 2px; }
-  .sop-content { background: #f9f9fb; border-radius: 10px; padding: 16px; font-size: 14px; line-height: 1.7; color: #444; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+  .sop-content { background: #f9f9fb; border-radius: 10px; padding: 18px 20px; font-size: 14px; line-height: 1.7; color: #444; max-height: 480px; overflow-y: auto; }
+  .sop-content h1, .sop-content h2 { font-size: 17px; color: #1a1a2e; margin: 18px 0 8px; font-weight: 700; }
+  .sop-content h3, .sop-content h4 { font-size: 14px; color: #1a1a2e; margin: 14px 0 6px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+  .sop-content h1:first-child, .sop-content h2:first-child, .sop-content h3:first-child { margin-top: 0; }
+  .sop-content p { margin: 8px 0; }
+  .sop-content strong { color: #1a1a2e; font-weight: 700; }
+  .sop-content ul, .sop-content ol { margin: 8px 0 12px 22px; padding: 0; }
+  .sop-content li { margin: 4px 0; }
+  .sop-content hr { border: none; border-top: 1px solid #e5e5ea; margin: 16px 0; }
+  .sop-content code { background: #eef; padding: 1px 6px; border-radius: 4px; font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 12px; }
   .message-box { background: #fff8e1; border-left: 4px solid #ffc107; padding: 12px 16px; border-radius: 0 10px 10px 0; margin-bottom: 16px; font-size: 14px; color: #555; }
   .ack-form { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,.08); border: 2px solid #6c63ff; }
   .ack-form h2 { font-size: 18px; color: #333; margin-bottom: 6px; }
@@ -20031,7 +20123,7 @@ function buildAckPage(ack, recipients, message) {
       <div class="meta-item"><strong>Created by</strong>${ack.author || 'Management'}</div>
       <div class="meta-item"><strong>Date</strong>${new Date(ack.created).toLocaleDateString()}</div>
     </div>
-    <div class="sop-content">${(ack.content || 'SOP content not included.').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+    <div class="sop-content">${renderedContent}</div>
   </div>
 
   <div class="ack-form" id="ack-form">
